@@ -1,7 +1,10 @@
 {
   "folders": [
     { "path": ".", "name": "<root>" },
-    { "path": "apps/cashfolio-app", "name": "apps/cashfolio-app" }
+    { "path": "apps/cashfolio-app", "name": "apps/cashfolio-app" },
   ],
-  "settings": {}
+  "settings": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+  },
 }
