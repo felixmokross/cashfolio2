@@ -6,7 +6,6 @@ import {
 } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
-import { NavbarButton } from "./navbar-button";
 import { Logo } from "./logo";
 import { ProfileButton } from "./profile-button";
 import { NavbarButtonList } from "~/navbar/navbar-button-list";

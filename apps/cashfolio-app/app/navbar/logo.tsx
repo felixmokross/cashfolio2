@@ -1,8 +1,8 @@
-import { classNames } from "~/class-names";
+import clsx from "clsx";
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <div className={classNames("flex h-16 shrink-0 items-center", className)}>
+    <div className={clsx("flex h-16 shrink-0 items-center", className)}>
       <img
         alt="Your Company"
         src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"

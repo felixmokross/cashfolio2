@@ -10,14 +10,12 @@ const navigation = [
     name: "Balance Sheet",
     href: "/balance-sheet",
     icon: ScaleIcon,
-    current: true,
   },
-  { name: "Accounts", href: "/accounts", icon: WalletIcon, current: false },
+  { name: "Accounts", href: "/accounts", icon: WalletIcon },
   {
     name: "Profit/Loss Statement",
     href: "/profit-loss-statement",
     icon: ArrowTrendingUpIcon,
-    current: false,
   },
 ];
 
@@ -26,11 +24,7 @@ export function NavbarButtonList() {
     <ul role="list" className="-mx-2 space-y-1">
       {navigation.map((item) => (
         <li key={item.name}>
-          <NavbarButton
-            href={item.href}
-            isActive={item.current}
-            icon={item.icon}
-          >
+          <NavbarButton href={item.href} icon={item.icon}>
             {item.name}
           </NavbarButton>
         </li>
