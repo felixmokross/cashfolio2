@@ -4,5 +4,9 @@ import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
+  plugins: [tailwindcss(), !isStorybook() && reactRouter(), tsconfigPaths()],
 });
+
+function isStorybook() {
+  return process.argv[1]?.includes("storybook");
+}
