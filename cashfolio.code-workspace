@@ -1,9 +1,7 @@
 {
-	"folders": [
-		{
-			"path": ".",
-			"name": "<root>"
-		}
-	],
-	"settings": {}
+  "folders": [
+    { "path": ".", "name": "<root>" },
+    { "path": "apps/cashfolio-app", "name": "apps/cashfolio-app" }
+  ],
+  "settings": {}
 }
