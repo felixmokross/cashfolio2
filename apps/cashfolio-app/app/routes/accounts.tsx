@@ -45,6 +45,7 @@ import {
   TrashIcon,
   WalletIcon,
 } from "@heroicons/react/24/outline";
+import { Combobox, ComboboxOption } from "~/catalyst/combobox";
 
 export async function loader() {
   return {
@@ -175,6 +176,7 @@ export default function Accounts() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isGroupOpen, setIsGroupOpen] = useState(false);
   const { accounts, accountGroups } = useLoaderData<typeof loader>();
+  const [selectedUnit, setSelectedUnit] = useState<AccountUnit>("CURRENCY");
 
   const childrenByParentId: Record<string, Node[]> = {};
   for (const g of accountGroups) {
@@ -201,6 +203,7 @@ export default function Accounts() {
           onClick={() => {
             setIsOpen(true);
             setSelectedNode(null);
+            setSelectedUnit("CURRENCY");
           }}
         >
           New Account
@@ -258,13 +261,14 @@ export default function Accounts() {
                   </Field>
                 </div>
                 <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
-                  <div>
+                  <Field>
                     <Label>Unit</Label>
                     <RadioGroup
                       name="unit"
                       defaultValue={
                         (selectedNode as Account)?.unit || "CURRENCY"
                       }
+                      onChange={(v) => setSelectedUnit(v as AccountUnit)}
                     >
                       <RadioField>
                         <Radio value="CURRENCY" />
@@ -283,21 +287,36 @@ export default function Accounts() {
                         </Description>
                       </RadioField>
                     </RadioGroup>
-                  </div>
-                  <Field>
-                    <Label>Currency</Label>
-                    <Select
-                      name="currency"
-                      defaultValue={
-                        (selectedNode as Account)?.currency || "CHF"
-                      }
-                    >
-                      <option value="CHF">CHF</option>
-                      <option value="EUR">EUR</option>
-                      <option value="USD">USD</option>
-                      <option value="DKK">DKK</option>
-                    </Select>
                   </Field>
+                  {selectedUnit === "CURRENCY" && (
+                    <Field>
+                      <Label>Currency</Label>
+                      <Combobox<string>
+                        name="currency"
+                        defaultValue={
+                          (selectedNode as Account)?.currency || "CHF"
+                        }
+                        displayValue={(o) => o ?? ""}
+                        options={[
+                          "CHF",
+                          "EUR",
+                          "USD",
+                          "GBP",
+                          "JPY",
+                          "AUD",
+                          "CAD",
+                          "CNY",
+                          "INR",
+                        ]}
+                      >
+                        {(option) => (
+                          <ComboboxOption value={option}>
+                            {option}
+                          </ComboboxOption>
+                        )}
+                      </Combobox>
+                    </Field>
+                  )}
                 </div>
                 <Field>
                   <Label>Opening Balance</Label>
@@ -407,6 +426,7 @@ export default function Accounts() {
                 onEdit={(node) => {
                   setSelectedNode(node);
                   if (node.nodeType === "account") {
+                    setSelectedUnit(node.unit);
                     setIsOpen(true);
                   } else {
                     setIsGroupOpen(true);
