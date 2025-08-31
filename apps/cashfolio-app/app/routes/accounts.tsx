@@ -1,4 +1,6 @@
+import { PrismaClient } from "@prisma/client";
 import { useState } from "react";
+import { useLoaderData } from "react-router";
 import { Button } from "~/catalyst/button";
 import {
   Dialog,
@@ -18,10 +20,22 @@ import { Input } from "~/catalyst/input";
 import { Radio, RadioField, RadioGroup } from "~/catalyst/radio";
 import { Select } from "~/catalyst/select";
 
+export async function loader() {
+  const prisma = new PrismaClient();
+  try {
+    await prisma.$connect();
+
+    return await prisma.account.findMany();
+  } finally {
+    prisma.$disconnect();
+  }
+}
+
 export default function Accounts() {
   const [isOpen, setIsOpen] = useState(false);
+  const accounts = useLoaderData<typeof loader>();
   return (
-    <p>
+    <div>
       <Button onClick={() => setIsOpen(true)}>New Account</Button>
       <Dialog open={isOpen} onClose={setIsOpen} size="3xl">
         <DialogTitle>New Account</DialogTitle>
@@ -84,6 +98,11 @@ export default function Accounts() {
           <Button onClick={() => setIsOpen(false)}>Create</Button>
         </DialogActions>
       </Dialog>
-    </p>
+      <ul>
+        {accounts.map((a) => (
+          <li key={a.id}>{a.name}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
