@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Form, useLoaderData, type ActionFunctionArgs } from "react-router";
 import { Button } from "~/catalyst/button";
+import { Text } from "~/catalyst/text";
 import {
   Dialog,
   DialogActions,
@@ -19,10 +20,14 @@ import { Input } from "~/catalyst/input";
 import { Radio, RadioField, RadioGroup } from "~/catalyst/radio";
 import { Select } from "~/catalyst/select";
 import { prisma } from "~/prisma.server";
+import type { Account, AccountGroup } from "@prisma/client";
 import slugify from "slugify";
 
 export async function loader() {
-  return await prisma.account.findMany();
+  return {
+    accountGroups: await prisma.accountGroup.findMany(),
+    accounts: await prisma.account.findMany(),
+  };
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -33,9 +38,17 @@ export async function action({ request }: ActionFunctionArgs) {
   if (typeof name !== "string") {
     return new Response(null, { status: 400 });
   }
+  const groupId = form.get("groupId");
+  if (typeof groupId !== "string") {
+    return new Response(null, { status: 400 });
+  }
 
   await prisma.account.create({
-    data: { name: name, slug: slugify(name, { lower: true }) },
+    data: {
+      name,
+      slug: slugify(name, { lower: true }),
+      groupId,
+    },
   });
 
   return new Response(null, { status: 201 });
@@ -43,10 +56,39 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function Accounts() {
   const [isOpen, setIsOpen] = useState(false);
-  const accounts = useLoaderData<typeof loader>();
+  const [isGroupOpen, setIsGroupOpen] = useState(false);
+  const { accounts, accountGroups } = useLoaderData<typeof loader>();
+
+  const childrenByParentId: Record<
+    string,
+    (
+      | (AccountGroup & { nodeType: "accountGroup" })
+      | (Account & { nodeType: "account" })
+    )[]
+  > = {};
+  for (const g of accountGroups) {
+    if (!g.parentGroupId) continue;
+    if (!childrenByParentId[g.parentGroupId]) {
+      childrenByParentId[g.parentGroupId] = [];
+    }
+    childrenByParentId[g.parentGroupId].push({
+      ...g,
+      nodeType: "accountGroup",
+    });
+  }
+  for (const a of accounts) {
+    if (!childrenByParentId[a.groupId]) {
+      childrenByParentId[a.groupId] = [];
+    }
+    childrenByParentId[a.groupId].push({ ...a, nodeType: "account" });
+  }
+
   return (
     <div>
-      <Button onClick={() => setIsOpen(true)}>New Account</Button>
+      <div className="flex gap-4">
+        <Button onClick={() => setIsOpen(true)}>New Account</Button>
+        <Button onClick={() => setIsGroupOpen(true)}>New Group</Button>
+      </div>
       <Dialog open={isOpen} onClose={setIsOpen} size="3xl">
         <Form method="POST" onSubmit={() => setIsOpen(false)}>
           <DialogTitle>New Account</DialogTitle>
@@ -64,7 +106,13 @@ export default function Accounts() {
                   </Field>
                   <Field>
                     <Label>Group</Label>
-                    <Select name="group"></Select>
+                    <Select name="groupId">
+                      {accountGroups.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.name}
+                        </option>
+                      ))}
+                    </Select>
                   </Field>
                 </div>
                 <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
@@ -110,11 +158,97 @@ export default function Accounts() {
           </DialogActions>
         </Form>
       </Dialog>
+      <Dialog open={isGroupOpen} onClose={setIsGroupOpen} size="lg">
+        <Form
+          method="POST"
+          action="/account-groups"
+          onSubmit={() => setIsGroupOpen(false)}
+        >
+          <DialogTitle>New Group</DialogTitle>
+          <DialogBody>
+            <FieldGroup>
+              <Fieldset>
+                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
+                  <Field>
+                    <Label>Name</Label>
+                    <Input name="name" />
+                  </Field>
+                  <Field>
+                    <Label>Parent Group</Label>
+                    <Select name="parentGroupId">
+                      {accountGroups.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                </div>
+              </Fieldset>
+            </FieldGroup>
+          </DialogBody>
+          <DialogActions>
+            <Button plain onClick={() => setIsGroupOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">Create</Button>
+          </DialogActions>
+        </Form>
+      </Dialog>
+
       <ul>
+        {accountGroups
+          .filter((g) => !g.parentGroupId)
+          .map((g) => (
+            <li key={g.id}>
+              <AccountGroupItem
+                {...g}
+                childrenByParentId={childrenByParentId}
+              />
+            </li>
+          ))}
+      </ul>
+      {/* <ul>
         {accounts.map((a) => (
           <li key={a.id}>{a.name}</li>
         ))}
-      </ul>
+      </ul> */}
     </div>
+  );
+}
+
+function AccountGroupItem({
+  id,
+  name,
+  childrenByParentId,
+}: AccountGroup & {
+  childrenByParentId: Record<
+    string,
+    (
+      | (AccountGroup & { nodeType: "accountGroup" })
+      | (Account & { nodeType: "account" })
+    )[]
+  >;
+}) {
+  return (
+    <>
+      {name}
+      {childrenByParentId[id] && (
+        <ul>
+          {childrenByParentId[id].map((child) =>
+            child.nodeType === "account" ? (
+              <li key={child.id}>{child.name}</li>
+            ) : (
+              <li key={child.id}>
+                <AccountGroupItem
+                  {...child}
+                  childrenByParentId={childrenByParentId}
+                />
+              </li>
+            ),
+          )}
+        </ul>
+      )}
+    </>
   );
 }

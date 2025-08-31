@@ -13,10 +13,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Account {
-  id String @default(cuid())
+enum AccountType {
+  ASSET
+  LIABILITY
+}
+
+model AccountGroup {
+  id   String      @default(cuid())
   name String
   slug String
+  type AccountType
+
+  parentGroup   AccountGroup? @relation("parent-child", fields: [parentGroupId], references: [id], onDelete: Restrict)
+  parentGroupId String?
+
+  childGroups AccountGroup[] @relation("parent-child")
+  Account     Account[]
+
+  @@id([id])
+  @@unique([slug])
+}
+
+model Account {
+  id      String       @default(cuid())
+  name    String
+  slug    String
+  group   AccountGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  groupId String
 
   @@id([id])
   @@unique([slug])
