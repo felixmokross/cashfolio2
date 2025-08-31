@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Form, useLoaderData, type ActionFunctionArgs } from "react-router";
 import { Button } from "~/catalyst/button";
-import { Text } from "~/catalyst/text";
 import {
   Dialog,
   DialogActions,
@@ -22,6 +21,15 @@ import { Select } from "~/catalyst/select";
 import { prisma } from "~/prisma.server";
 import type { Account, AccountGroup } from "@prisma/client";
 import slugify from "slugify";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/catalyst/table";
+import clsx from "clsx";
 
 export async function loader() {
   return {
@@ -59,13 +67,7 @@ export default function Accounts() {
   const [isGroupOpen, setIsGroupOpen] = useState(false);
   const { accounts, accountGroups } = useLoaderData<typeof loader>();
 
-  const childrenByParentId: Record<
-    string,
-    (
-      | (AccountGroup & { nodeType: "accountGroup" })
-      | (Account & { nodeType: "account" })
-    )[]
-  > = {};
+  const childrenByParentId: Record<string, Node[]> = {};
   for (const g of accountGroups) {
     if (!g.parentGroupId) continue;
     if (!childrenByParentId[g.parentGroupId]) {
@@ -195,60 +197,87 @@ export default function Accounts() {
           </DialogActions>
         </Form>
       </Dialog>
-
-      <ul>
-        {accountGroups
-          .filter((g) => !g.parentGroupId)
-          .map((g) => (
-            <li key={g.id}>
+      <Table dense bleed grid striped className="mt-8">
+        <TableHead>
+          <TableRow>
+            <TableHeader>Name</TableHeader>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {accountGroups
+            .filter((g) => !g.parentGroupId)
+            .map((g) => (
               <AccountGroupItem
+                nodeType="accountGroup"
                 {...g}
                 childrenByParentId={childrenByParentId}
+                level={0}
               />
-            </li>
-          ))}
-      </ul>
-      {/* <ul>
-        {accounts.map((a) => (
-          <li key={a.id}>{a.name}</li>
-        ))}
-      </ul> */}
+            ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
 
+type Node = AccountGroupNode | AccountNode;
+
+type AccountGroupNode = AccountGroup & { nodeType: "accountGroup" };
+type AccountNode = Account & { nodeType: "account" };
+
 function AccountGroupItem({
   id,
-  name,
   childrenByParentId,
-}: AccountGroup & {
-  childrenByParentId: Record<
-    string,
-    (
-      | (AccountGroup & { nodeType: "accountGroup" })
-      | (Account & { nodeType: "account" })
-    )[]
-  >;
+  level,
+  ...props
+}: AccountGroupNode & {
+  childrenByParentId: Record<string, Node[]>;
+  level: number;
 }) {
   return (
     <>
-      {name}
+      <NodeRow {...props} id={id} level={level} />
       {childrenByParentId[id] && (
-        <ul>
+        <>
           {childrenByParentId[id].map((child) =>
             child.nodeType === "account" ? (
-              <li key={child.id}>{child.name}</li>
+              <NodeRow {...child} key={child.id} level={level + 1} />
             ) : (
-              <li key={child.id}>
-                <AccountGroupItem
-                  {...child}
-                  childrenByParentId={childrenByParentId}
-                />
-              </li>
+              <AccountGroupItem
+                {...child}
+                childrenByParentId={childrenByParentId}
+                level={level + 1}
+              />
             ),
           )}
-        </ul>
+        </>
       )}
     </>
+  );
+}
+
+function NodeRow({ name, level }: Node & { level: number }) {
+  return (
+    <TableRow>
+      <TableCell>
+        <span
+          className={clsx({
+            "pl-0": level === 0,
+            "pl-4": level === 1,
+            "pl-8": level === 2,
+            "pl-12": level === 3,
+            "pl-16": level === 4,
+            "pl-20": level === 5,
+            "pl-24": level === 6,
+            "pl-28": level === 7,
+            "pl-32": level === 8,
+            "pl-36": level === 9,
+            "pl-40": level === 10,
+          })}
+        >
+          {name}
+        </span>
+      </TableCell>
+    </TableRow>
   );
 }
