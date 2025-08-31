@@ -24,7 +24,12 @@ import { Input } from "~/catalyst/input";
 import { Radio, RadioField, RadioGroup } from "~/catalyst/radio";
 import { Select } from "~/catalyst/select";
 import { prisma } from "~/prisma.server";
-import type { Account, AccountGroup } from "@prisma/client";
+import {
+  AccountUnit,
+  Prisma,
+  type Account,
+  type AccountGroup,
+} from "@prisma/client";
 import slugify from "slugify";
 import {
   Table,
@@ -44,7 +49,10 @@ import {
 export async function loader() {
   return {
     accountGroups: await prisma.accountGroup.findMany(),
-    accounts: await prisma.account.findMany(),
+    accounts: (await prisma.account.findMany()).map((a) => ({
+      ...a,
+      openingBalance: a.openingBalance ? a.openingBalance.toString() : null,
+    })),
   };
 }
 
@@ -71,6 +79,18 @@ async function createAccount({ request }: { request: Request }) {
   if (typeof groupId !== "string") {
     return new Response(null, { status: 400 });
   }
+  const openingBalance = form.get("openingBalance");
+  if (openingBalance && typeof openingBalance !== "string") {
+    return new Response(null, { status: 400 });
+  }
+  const unit = form.get("unit") as AccountUnit;
+  if (typeof unit !== "string") {
+    return new Response(null, { status: 400 });
+  }
+  const currency = form.get("currency");
+  if (currency && typeof currency !== "string") {
+    return new Response(null, { status: 400 });
+  }
 
   const { type } = await prisma.accountGroup.findUniqueOrThrow({
     where: { id: groupId },
@@ -83,6 +103,11 @@ async function createAccount({ request }: { request: Request }) {
       slug: slugify(name, { lower: true }),
       groupId,
       type,
+      unit,
+      currency: unit === AccountUnit.CURRENCY ? currency : null,
+      openingBalance: openingBalance
+        ? new Prisma.Decimal(openingBalance)
+        : null,
     },
   });
 
@@ -103,6 +128,18 @@ async function updateAccount({ request }: { request: Request }) {
   if (typeof groupId !== "string") {
     return new Response(null, { status: 400 });
   }
+  const openingBalance = form.get("openingBalance");
+  if (openingBalance && typeof openingBalance !== "string") {
+    return new Response(null, { status: 400 });
+  }
+  const unit = form.get("unit") as AccountUnit;
+  if (typeof unit !== "string") {
+    return new Response(null, { status: 400 });
+  }
+  const currency = form.get("currency");
+  if (currency && typeof currency !== "string") {
+    return new Response(null, { status: 400 });
+  }
 
   await prisma.account.update({
     where: { id },
@@ -110,6 +147,11 @@ async function updateAccount({ request }: { request: Request }) {
       name,
       slug: slugify(name, { lower: true }),
       groupId,
+      unit,
+      currency: unit === AccountUnit.CURRENCY ? currency : null,
+      openingBalance: openingBalance
+        ? new Prisma.Decimal(openingBalance)
+        : null,
     },
   });
 
@@ -216,11 +258,16 @@ export default function Accounts() {
                   </Field>
                 </div>
                 <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
-                  <Field>
+                  <div>
                     <Label>Unit</Label>
-                    <RadioGroup name="resale" defaultValue="permit">
+                    <RadioGroup
+                      name="unit"
+                      defaultValue={
+                        (selectedNode as Account)?.unit || "CURRENCY"
+                      }
+                    >
                       <RadioField>
-                        <Radio value="permit" />
+                        <Radio value="CURRENCY" />
                         <Label>Currency</Label>
                         <Description>
                           Customers can resell or transfer their tickets if they
@@ -228,7 +275,7 @@ export default function Accounts() {
                         </Description>
                       </RadioField>
                       <RadioField>
-                        <Radio value="forbid" />
+                        <Radio value="SECURITY" />
                         <Label>Security</Label>
                         <Description>
                           Tickets cannot be resold or transferred to another
@@ -236,17 +283,31 @@ export default function Accounts() {
                         </Description>
                       </RadioField>
                     </RadioGroup>
-                  </Field>
+                  </div>
                   <Field>
                     <Label>Currency</Label>
-                    <Select name="group">
-                      <option value="active">CHF</option>
-                      <option value="paused">EUR</option>
-                      <option value="delayed">USD</option>
-                      <option value="canceled">DKK</option>
+                    <Select
+                      name="currency"
+                      defaultValue={
+                        (selectedNode as Account)?.currency || "CHF"
+                      }
+                    >
+                      <option value="CHF">CHF</option>
+                      <option value="EUR">EUR</option>
+                      <option value="USD">USD</option>
+                      <option value="DKK">DKK</option>
                     </Select>
                   </Field>
                 </div>
+                <Field>
+                  <Label>Opening Balance</Label>
+                  <Input
+                    name="openingBalance"
+                    defaultValue={(
+                      selectedNode as Account
+                    )?.openingBalance?.toString()}
+                  />
+                </Field>
               </FieldGroup>
             </Fieldset>
           </DialogBody>
@@ -328,6 +389,9 @@ export default function Accounts() {
         <TableHead>
           <TableRow>
             <TableHeader>Name</TableHeader>
+            <TableHeader>Unit</TableHeader>
+            <TableHeader>Currency</TableHeader>
+            <TableHeader className="text-right">Opening Balance</TableHeader>
             <TableHeader>Actions</TableHeader>
           </TableRow>
         </TableHead>
@@ -359,7 +423,11 @@ export default function Accounts() {
 type Node = AccountGroupNode | AccountNode;
 
 type AccountGroupNode = AccountGroup & { nodeType: "accountGroup" };
-type AccountNode = Account & { nodeType: "account" };
+type AccountNode = SerializedAccount & { nodeType: "account" };
+
+type SerializedAccount = Omit<Account, "openingBalance"> & {
+  openingBalance: string | null;
+};
 
 function AccountGroupItem({
   childrenByParentId,
@@ -431,6 +499,13 @@ function NodeRow({
           {node.nodeType === "account" && <WalletIcon className="size-4" />}
           {node.name}
         </span>
+      </TableCell>
+      <TableCell>{node.nodeType === "account" ? node.unit : null}</TableCell>
+      <TableCell>
+        {node.nodeType === "account" ? node.currency : null}
+      </TableCell>
+      <TableCell className="text-right">
+        {node.nodeType === "account" ? node.openingBalance : null}
       </TableCell>
       <TableCell>
         <div className="flex gap-2 items-center">

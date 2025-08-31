@@ -18,6 +18,11 @@ enum AccountType {
   LIABILITY
 }
 
+enum AccountUnit {
+  CURRENCY
+  SECURITY
+}
+
 model AccountGroup {
   id   String      @default(cuid())
   name String
@@ -35,12 +40,15 @@ model AccountGroup {
 }
 
 model Account {
-  id      String       @default(cuid())
-  name    String
-  slug    String
-  type    AccountType
-  group   AccountGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
-  groupId String
+  id             String       @default(cuid())
+  name           String
+  slug           String
+  type           AccountType
+  group          AccountGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  groupId        String
+  unit           AccountUnit
+  currency       String?
+  openingBalance Decimal?
 
   @@id([id])
   @@unique([slug])
