@@ -38,6 +38,7 @@ model Account {
   id      String       @default(cuid())
   name    String
   slug    String
+  type    AccountType
   group   AccountGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
   groupId String
 

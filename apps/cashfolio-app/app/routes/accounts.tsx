@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { Form, useLoaderData, type ActionFunctionArgs } from "react-router";
+import {
+  Form,
+  redirect,
+  useLoaderData,
+  type ActionFunctionArgs,
+} from "react-router";
 import { Button } from "~/catalyst/button";
 import {
   Dialog,
@@ -30,6 +35,11 @@ import {
   TableRow,
 } from "~/catalyst/table";
 import clsx from "clsx";
+import {
+  PencilSquareIcon,
+  TrashIcon,
+  WalletIcon,
+} from "@heroicons/react/24/outline";
 
 export async function loader() {
   return {
@@ -39,8 +49,19 @@ export async function loader() {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  if (request.method !== "POST") return new Response(null, { status: 405 });
+  switch (request.method) {
+    case "POST":
+      return createAccount({ request });
+    case "PUT":
+      return updateAccount({ request });
+    case "DELETE":
+      return deleteAccount({ request });
+    default:
+      return new Response(null, { status: 405 });
+  }
+}
 
+async function createAccount({ request }: { request: Request }) {
   const form = await request.formData();
   const name = form.get("name");
   if (typeof name !== "string") {
@@ -51,7 +72,40 @@ export async function action({ request }: ActionFunctionArgs) {
     return new Response(null, { status: 400 });
   }
 
+  const { type } = await prisma.accountGroup.findUniqueOrThrow({
+    where: { id: groupId },
+    select: { type: true },
+  });
+
   await prisma.account.create({
+    data: {
+      name,
+      slug: slugify(name, { lower: true }),
+      groupId,
+      type,
+    },
+  });
+
+  return redirect(".");
+}
+
+async function updateAccount({ request }: { request: Request }) {
+  const form = await request.formData();
+  const id = form.get("id");
+  if (typeof id !== "string") {
+    return new Response(null, { status: 400 });
+  }
+  const name = form.get("name");
+  if (typeof name !== "string") {
+    return new Response(null, { status: 400 });
+  }
+  const groupId = form.get("groupId");
+  if (typeof groupId !== "string") {
+    return new Response(null, { status: 400 });
+  }
+
+  await prisma.account.update({
+    where: { id },
     data: {
       name,
       slug: slugify(name, { lower: true }),
@@ -59,11 +113,24 @@ export async function action({ request }: ActionFunctionArgs) {
     },
   });
 
-  return new Response(null, { status: 201 });
+  return redirect(".");
+}
+
+async function deleteAccount({ request }: { request: Request }) {
+  const form = await request.formData();
+
+  const id = form.get("id");
+  if (typeof id !== "string") {
+    return new Response(null, { status: 400 });
+  }
+
+  await prisma.account.delete({ where: { id } });
+  return redirect(".");
 }
 
 export default function Accounts() {
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isGroupOpen, setIsGroupOpen] = useState(false);
   const { accounts, accountGroups } = useLoaderData<typeof loader>();
 
@@ -88,12 +155,34 @@ export default function Accounts() {
   return (
     <div>
       <div className="flex gap-4">
-        <Button onClick={() => setIsOpen(true)}>New Account</Button>
-        <Button onClick={() => setIsGroupOpen(true)}>New Group</Button>
+        <Button
+          onClick={() => {
+            setIsOpen(true);
+            setSelectedNode(null);
+          }}
+        >
+          New Account
+        </Button>
+        <Button
+          onClick={() => {
+            setIsGroupOpen(true);
+            setSelectedNode(null);
+          }}
+        >
+          New Group
+        </Button>
       </div>
       <Dialog open={isOpen} onClose={setIsOpen} size="3xl">
-        <Form method="POST" onSubmit={() => setIsOpen(false)}>
-          <DialogTitle>New Account</DialogTitle>
+        <Form
+          method={selectedNode ? "PUT" : "POST"}
+          onSubmit={() => setIsOpen(false)}
+        >
+          {!!selectedNode && (
+            <input type="hidden" name="id" value={selectedNode.id} />
+          )}
+          <DialogTitle>
+            {selectedNode ? `Edit ${selectedNode?.name}` : "New Account"}
+          </DialogTitle>
           <DialogDescription>
             The refund will be reflected in the customer’s bank account 2 to 3
             business days after processing.
@@ -104,16 +193,25 @@ export default function Accounts() {
                 <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
                   <Field>
                     <Label>Name</Label>
-                    <Input name="name" />
+                    <Input name="name" defaultValue={selectedNode?.name} />
                   </Field>
                   <Field>
                     <Label>Group</Label>
-                    <Select name="groupId">
-                      {accountGroups.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.name}
-                        </option>
-                      ))}
+                    <Select
+                      name="groupId"
+                      defaultValue={(selectedNode as Account)?.groupId}
+                    >
+                      {accountGroups
+                        .filter(
+                          selectedNode
+                            ? (g) => (selectedNode as Account).type === g.type
+                            : () => true,
+                        )
+                        .map((g) => (
+                          <option key={g.id} value={g.id}>
+                            {g.name}
+                          </option>
+                        ))}
                     </Select>
                   </Field>
                 </div>
@@ -156,33 +254,62 @@ export default function Accounts() {
             <Button plain onClick={() => setIsOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit">Create</Button>
+            <Button type="submit">{selectedNode ? "Save" : "Create"}</Button>
           </DialogActions>
         </Form>
       </Dialog>
       <Dialog open={isGroupOpen} onClose={setIsGroupOpen} size="lg">
         <Form
-          method="POST"
+          method={selectedNode ? "PUT" : "POST"}
           action="/account-groups"
+          className="contents"
           onSubmit={() => setIsGroupOpen(false)}
         >
-          <DialogTitle>New Group</DialogTitle>
+          {!!selectedNode && (
+            <input type="hidden" name="id" value={selectedNode.id} />
+          )}
+          <DialogTitle>
+            {selectedNode ? `Edit ${selectedNode.name}` : "New Group"}
+          </DialogTitle>
           <DialogBody>
             <FieldGroup>
               <Fieldset>
                 <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
                   <Field>
                     <Label>Name</Label>
-                    <Input name="name" />
+                    <Input name="name" defaultValue={selectedNode?.name} />
                   </Field>
-                  <Field>
+                  <Field
+                    disabled={
+                      !!selectedNode &&
+                      !(selectedNode as AccountGroup).parentGroupId
+                    }
+                  >
                     <Label>Parent Group</Label>
-                    <Select name="parentGroupId">
-                      {accountGroups.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.name}
-                        </option>
-                      ))}
+                    <Select
+                      name="parentGroupId"
+                      defaultValue={
+                        (selectedNode as AccountGroup)?.parentGroupId ?? ""
+                      }
+                    >
+                      {!selectedNode ||
+                      (selectedNode as AccountGroup).parentGroupId ? (
+                        accountGroups
+                          .filter(
+                            selectedNode
+                              ? (g) =>
+                                  g.id !== selectedNode.id &&
+                                  g.type === (selectedNode as AccountGroup).type
+                              : () => true,
+                          )
+                          .map((g) => (
+                            <option key={g.id} value={g.id}>
+                              {g.name}
+                            </option>
+                          ))
+                      ) : (
+                        <option value="">(none)</option>
+                      )}
                     </Select>
                   </Field>
                 </div>
@@ -193,14 +320,15 @@ export default function Accounts() {
             <Button plain onClick={() => setIsGroupOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit">Create</Button>
+            <Button type="submit">{selectedNode ? "Save" : "Create"}</Button>
           </DialogActions>
         </Form>
       </Dialog>
-      <Table dense bleed grid striped className="mt-8">
+      <Table bleed grid className="mt-8">
         <TableHead>
           <TableRow>
             <TableHeader>Name</TableHeader>
+            <TableHeader>Actions</TableHeader>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -208,10 +336,18 @@ export default function Accounts() {
             .filter((g) => !g.parentGroupId)
             .map((g) => (
               <AccountGroupItem
-                nodeType="accountGroup"
-                {...g}
+                key={g.id}
+                node={{ ...g, nodeType: "accountGroup" }}
                 childrenByParentId={childrenByParentId}
                 level={0}
+                onEdit={(node) => {
+                  setSelectedNode(node);
+                  if (node.nodeType === "account") {
+                    setIsOpen(true);
+                  } else {
+                    setIsGroupOpen(true);
+                  }
+                }}
               />
             ))}
         </TableBody>
@@ -226,27 +362,36 @@ type AccountGroupNode = AccountGroup & { nodeType: "accountGroup" };
 type AccountNode = Account & { nodeType: "account" };
 
 function AccountGroupItem({
-  id,
   childrenByParentId,
   level,
-  ...props
-}: AccountGroupNode & {
+  node,
+  onEdit,
+}: {
+  node: AccountGroupNode;
   childrenByParentId: Record<string, Node[]>;
+  onEdit: (node: Node) => void;
   level: number;
 }) {
   return (
     <>
-      <NodeRow {...props} id={id} level={level} />
-      {childrenByParentId[id] && (
+      <NodeRow node={node} level={level} onEdit={onEdit} />
+      {childrenByParentId[node.id] && (
         <>
-          {childrenByParentId[id].map((child) =>
+          {childrenByParentId[node.id].map((child) =>
             child.nodeType === "account" ? (
-              <NodeRow {...child} key={child.id} level={level + 1} />
+              <NodeRow
+                key={child.id}
+                level={level + 1}
+                onEdit={onEdit}
+                node={child}
+              />
             ) : (
               <AccountGroupItem
-                {...child}
+                key={child.id}
+                node={child}
                 childrenByParentId={childrenByParentId}
                 level={level + 1}
+                onEdit={onEdit}
               />
             ),
           )}
@@ -256,12 +401,20 @@ function AccountGroupItem({
   );
 }
 
-function NodeRow({ name, level }: Node & { level: number }) {
+function NodeRow({
+  level,
+  node,
+  onEdit,
+}: {
+  node: Node;
+  level: number;
+  onEdit: (node: Node) => void;
+}) {
   return (
     <TableRow>
       <TableCell>
         <span
-          className={clsx({
+          className={clsx("inline-flex gap-2 items-center", {
             "pl-0": level === 0,
             "pl-4": level === 1,
             "pl-8": level === 2,
@@ -275,8 +428,37 @@ function NodeRow({ name, level }: Node & { level: number }) {
             "pl-40": level === 10,
           })}
         >
-          {name}
+          {node.nodeType === "account" && <WalletIcon className="size-4" />}
+          {node.name}
         </span>
+      </TableCell>
+      <TableCell>
+        <div className="flex gap-2 items-center">
+          <Form
+            method="DELETE"
+            action={
+              node.nodeType === "account" ? "/accounts" : "/account-groups"
+            }
+            className="contents"
+          >
+            <input type="hidden" name="id" value={node.id} />
+            <button
+              className="text-gray-400 disabled:cursor-not-allowed hover:text-gray-700 disabled:opacity-50 disabled:pointer-events-none"
+              type="submit"
+              disabled={level === 0}
+            >
+              <TrashIcon className="size-5" />
+            </button>
+          </Form>
+          <button
+            className="text-gray-400 disabled:cursor-not-allowed hover:text-gray-700 disabled:opacity-50 disabled:pointer-events-none"
+            onClick={() => {
+              onEdit?.(node);
+            }}
+          >
+            <PencilSquareIcon className="size-5" />
+          </button>
+        </div>
       </TableCell>
     </TableRow>
   );

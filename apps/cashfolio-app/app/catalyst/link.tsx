@@ -7,7 +7,7 @@ export function Link({
   href,
   ref,
   ...props
-}: { href: ReactRouterLinkProps["to"]; ref: Ref<HTMLAnchorElement> } & Omit<
+}: { href: ReactRouterLinkProps["to"]; ref?: Ref<HTMLAnchorElement> } & Omit<
   ReactRouterLinkProps,
   "to"
 >) {
