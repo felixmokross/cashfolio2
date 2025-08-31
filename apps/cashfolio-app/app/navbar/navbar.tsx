@@ -4,27 +4,13 @@ import {
   DialogPanel,
   TransitionChild,
 } from "@headlessui/react";
-import {
-  Bars3Icon,
-  CalendarIcon,
-  ChartPieIcon,
-  DocumentDuplicateIcon,
-  FolderIcon,
-  HomeIcon,
-  UsersIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import { NavbarButton } from "./navbar-button";
+import { Logo } from "./logo";
+import { ProfileButton } from "./profile-button";
+import { NavbarButtonList } from "~/navbar/navbar-button-list";
 
-const navigation = [
-  { name: "Dashboard", href: "#", icon: HomeIcon, current: true },
-  { name: "Team", href: "#", icon: UsersIcon, current: false },
-  { name: "Projects", href: "#", icon: FolderIcon, current: false },
-  { name: "Calendar", href: "#", icon: CalendarIcon, current: false },
-  { name: "Documents", href: "#", icon: DocumentDuplicateIcon, current: false },
-  { name: "Reports", href: "#", icon: ChartPieIcon, current: false },
-];
 export function Navbar() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   return (
@@ -59,34 +45,11 @@ export function Navbar() {
 
             {/* Sidebar component, swap this element with another sidebar if you like */}
             <div className="relative flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-2 dark:bg-gray-900 dark:ring dark:ring-white/10 dark:before:pointer-events-none dark:before:absolute dark:before:inset-0 dark:before:bg-black/10">
-              <div className="relative flex h-16 shrink-0 items-center">
-                <img
-                  alt="Your Company"
-                  src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"
-                  className="h-8 w-auto dark:hidden"
-                />
-                <img
-                  alt="Your Company"
-                  src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
-                  className="h-8 w-auto not-dark:hidden"
-                />
-              </div>
+              <Logo className="relative" />
               <nav className="relative flex flex-1 flex-col">
                 <ul role="list" className="flex flex-1 flex-col gap-y-7">
                   <li>
-                    <ul role="list" className="-mx-2 space-y-1">
-                      {navigation.map((item) => (
-                        <li key={item.name}>
-                          <NavbarButton
-                            href={item.href}
-                            isActive={item.current}
-                            icon={item.icon}
-                          >
-                            {item.name}
-                          </NavbarButton>
-                        </li>
-                      ))}
-                    </ul>
+                    <NavbarButtonList />
                   </li>
                 </ul>
               </nav>
@@ -99,52 +62,18 @@ export function Navbar() {
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col dark:bg-gray-900">
         {/* Sidebar component, swap this element with another sidebar if you like */}
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 dark:border-white/10 dark:bg-black/10">
-          <div className="flex h-16 shrink-0 items-center">
-            <img
-              alt="Your Company"
-              src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"
-              className="h-8 w-auto dark:hidden"
-            />
-            <img
-              alt="Your Company"
-              src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
-              className="h-8 w-auto not-dark:hidden"
-            />
-          </div>
+          <Logo />
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
               <li>
                 <ul role="list" className="flex flex-1 flex-col gap-y-7">
                   <li>
-                    <ul role="list" className="-mx-2 space-y-1">
-                      {navigation.map((item) => (
-                        <li key={item.name}>
-                          <NavbarButton
-                            href={item.href}
-                            isActive={item.current}
-                            icon={item.icon}
-                          >
-                            {item.name}
-                          </NavbarButton>
-                        </li>
-                      ))}
-                    </ul>
+                    <NavbarButtonList />
                   </li>
                 </ul>
               </li>
               <li className="-mx-6 mt-auto">
-                <a
-                  href="#"
-                  className="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-gray-900 hover:bg-gray-50 dark:text-white dark:hover:bg-white/5"
-                >
-                  <img
-                    alt=""
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                    className="size-8 rounded-full bg-gray-50 outline -outline-offset-1 outline-black/5 dark:bg-gray-800 dark:outline-white/10"
-                  />
-                  <span className="sr-only">Your profile</span>
-                  <span aria-hidden="true">Tom Cook</span>
-                </a>
+                <ProfileButton />
               </li>
             </ul>
           </nav>
