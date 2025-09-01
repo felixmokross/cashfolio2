@@ -344,15 +344,17 @@ export default function Accounts() {
                     </Field>
                   )}
                 </div>
-                <Field>
-                  <Label>Opening Balance</Label>
-                  <Input
-                    name="openingBalance"
-                    defaultValue={(
-                      selectedNode as Account
-                    )?.openingBalance?.toString()}
-                  />
-                </Field>
+                {(selectedType === "ASSET" || selectedType === "LIABILITY") && (
+                  <Field>
+                    <Label>Opening Balance</Label>
+                    <Input
+                      name="openingBalance"
+                      defaultValue={(
+                        selectedNode as Account
+                      )?.openingBalance?.toString()}
+                    />
+                  </Field>
+                )}
               </FieldGroup>
             </Fieldset>
           </DialogBody>
