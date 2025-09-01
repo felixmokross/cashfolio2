@@ -47,6 +47,7 @@ import {
   WalletIcon,
 } from "@heroicons/react/24/outline";
 import { Combobox, ComboboxOption } from "~/catalyst/combobox";
+import { Link } from "~/catalyst/link";
 
 export async function loader() {
   return {
@@ -546,7 +547,7 @@ function NodeRow({
     <TableRow>
       <TableCell>
         <span
-          className={clsx("inline-flex gap-2 items-center", {
+          className={clsx({
             "pl-0": level === 0,
             "pl-4": level === 1,
             "pl-8": level === 2,
@@ -560,8 +561,17 @@ function NodeRow({
             "pl-40": level === 10,
           })}
         >
-          {node.nodeType === "account" && <WalletIcon className="size-4" />}
-          {node.name}
+          {node.nodeType === "account" ? (
+            <Link
+              href={`/accounts/${node.id}`}
+              className="inline-flex gap-2 items-center"
+            >
+              <WalletIcon className="size-4" />
+              {node.name}
+            </Link>
+          ) : (
+            node.name
+          )}
         </span>
       </TableCell>
       <TableCell>{node.type}</TableCell>

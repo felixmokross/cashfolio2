@@ -52,6 +52,33 @@ model Account {
   currency       String?
   openingBalance Decimal?
 
+  bookings Booking[]
+
   @@id([id])
   @@unique([slug])
+}
+
+model Transaction {
+  id          String @default(cuid())
+  description String
+
+  bookings Booking[]
+
+  @@id([id])
+}
+
+model Booking {
+  id          String   @default(cuid())
+  date        DateTime
+  description String
+
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id])
+
+  value Decimal
+
+  @@id([id])
 }
