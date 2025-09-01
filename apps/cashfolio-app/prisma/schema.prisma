@@ -16,6 +16,8 @@ datasource db {
 enum AccountType {
   ASSET
   LIABILITY
+  INCOME
+  EXPENSE
 }
 
 enum AccountUnit {

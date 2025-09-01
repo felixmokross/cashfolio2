@@ -1,6 +1,7 @@
 import { redirect, type ActionFunctionArgs } from "react-router";
 import { prisma } from "~/prisma.server";
 import slugify from "slugify";
+import type { AccountType } from "@prisma/client";
 
 export async function action({ request }: ActionFunctionArgs) {
   switch (request.method) {
@@ -23,22 +24,22 @@ async function createAccountGroup({ request }: { request: Request }) {
     return new Response(null, { status: 400 });
   }
 
-  const parentGroupId = form.get("parentGroupId");
-  if (typeof parentGroupId !== "string") {
+  const type = form.get("type");
+  if (typeof type !== "string") {
     return new Response(null, { status: 400 });
   }
 
-  const { type } = await prisma.accountGroup.findFirstOrThrow({
-    where: { id: parentGroupId },
-    select: { type: true },
-  });
+  const parentGroupId = form.get("parentGroupId");
+  if (parentGroupId && typeof parentGroupId !== "string") {
+    return new Response(null, { status: 400 });
+  }
 
   await prisma.accountGroup.create({
     data: {
       name,
       slug: slugify(name, { lower: true }),
-      type,
-      parentGroupId,
+      type: type as AccountType,
+      parentGroupId: parentGroupId || null,
     },
   });
 
@@ -68,7 +69,7 @@ async function updateAccountGroup({ request }: { request: Request }) {
     data: {
       name,
       slug: slugify(name, { lower: true }),
-      parentGroupId,
+      parentGroupId: parentGroupId || null,
     },
   });
 

@@ -25,6 +25,7 @@ import { Radio, RadioField, RadioGroup } from "~/catalyst/radio";
 import { Select } from "~/catalyst/select";
 import { prisma } from "~/prisma.server";
 import {
+  AccountType,
   AccountUnit,
   Prisma,
   type Account,
@@ -76,6 +77,10 @@ async function createAccount({ request }: { request: Request }) {
   if (typeof name !== "string") {
     return new Response(null, { status: 400 });
   }
+  const type = form.get("type");
+  if (typeof type !== "string") {
+    return new Response(null, { status: 400 });
+  }
   const groupId = form.get("groupId");
   if (typeof groupId !== "string") {
     return new Response(null, { status: 400 });
@@ -93,17 +98,12 @@ async function createAccount({ request }: { request: Request }) {
     return new Response(null, { status: 400 });
   }
 
-  const { type } = await prisma.accountGroup.findUniqueOrThrow({
-    where: { id: groupId },
-    select: { type: true },
-  });
-
   await prisma.account.create({
     data: {
       name,
       slug: slugify(name, { lower: true }),
       groupId,
-      type,
+      type: type as AccountType,
       unit,
       currency: unit === AccountUnit.CURRENCY ? currency : null,
       openingBalance: openingBalance
@@ -177,6 +177,7 @@ export default function Accounts() {
   const [isGroupOpen, setIsGroupOpen] = useState(false);
   const { accounts, accountGroups } = useLoaderData<typeof loader>();
   const [selectedUnit, setSelectedUnit] = useState<AccountUnit>("CURRENCY");
+  const [selectedType, setSelectedType] = useState<AccountType>("ASSET");
 
   const childrenByParentId: Record<string, Node[]> = {};
   for (const g of accountGroups) {
@@ -203,6 +204,7 @@ export default function Accounts() {
           onClick={() => {
             setIsOpen(true);
             setSelectedNode(null);
+            setSelectedType("ASSET");
             setSelectedUnit("CURRENCY");
           }}
         >
@@ -212,6 +214,7 @@ export default function Accounts() {
           onClick={() => {
             setIsGroupOpen(true);
             setSelectedNode(null);
+            setSelectedType("ASSET");
           }}
         >
           New Group
@@ -240,26 +243,49 @@ export default function Accounts() {
                     <Label>Name</Label>
                     <Input name="name" defaultValue={selectedNode?.name} />
                   </Field>
-                  <Field>
-                    <Label>Group</Label>
-                    <Select
-                      name="groupId"
-                      defaultValue={(selectedNode as Account)?.groupId}
+                  <Field disabled={!!selectedNode}>
+                    <Label>Type</Label>
+                    <RadioGroup
+                      name="type"
+                      defaultValue={selectedNode?.type || "ASSET"}
+                      onChange={(value) =>
+                        setSelectedType(value as AccountType)
+                      }
                     >
-                      {accountGroups
-                        .filter(
-                          selectedNode
-                            ? (g) => (selectedNode as Account).type === g.type
-                            : () => true,
-                        )
-                        .map((g) => (
-                          <option key={g.id} value={g.id}>
-                            {g.name}
-                          </option>
-                        ))}
-                    </Select>
+                      <RadioField>
+                        <Radio value="ASSET" />
+                        <Label>Asset</Label>
+                      </RadioField>
+                      <RadioField>
+                        <Radio value="LIABILITY" />
+                        <Label>Liability</Label>
+                      </RadioField>
+                      <RadioField>
+                        <Radio value="INCOME" />
+                        <Label>Income</Label>
+                      </RadioField>
+                      <RadioField>
+                        <Radio value="EXPENSE" />
+                        <Label>Expense</Label>
+                      </RadioField>
+                    </RadioGroup>
                   </Field>
                 </div>
+                <Field>
+                  <Label>Group</Label>
+                  <Select
+                    name="groupId"
+                    defaultValue={(selectedNode as Account)?.groupId}
+                  >
+                    {accountGroups
+                      .filter((g) => g.type === selectedType)
+                      .map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.name}
+                        </option>
+                      ))}
+                  </Select>
+                </Field>
                 <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
                   <Field>
                     <Label>Unit</Label>
@@ -338,7 +364,7 @@ export default function Accounts() {
           </DialogActions>
         </Form>
       </Dialog>
-      <Dialog open={isGroupOpen} onClose={setIsGroupOpen} size="lg">
+      <Dialog open={isGroupOpen} onClose={setIsGroupOpen} size="3xl">
         <Form
           method={selectedNode ? "PUT" : "POST"}
           action="/account-groups"
@@ -353,47 +379,60 @@ export default function Accounts() {
           </DialogTitle>
           <DialogBody>
             <FieldGroup>
-              <Fieldset>
-                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
-                  <Field>
-                    <Label>Name</Label>
-                    <Input name="name" defaultValue={selectedNode?.name} />
-                  </Field>
-                  <Field
-                    disabled={
-                      !!selectedNode &&
-                      !(selectedNode as AccountGroup).parentGroupId
-                    }
+              <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
+                <Field>
+                  <Label>Name</Label>
+                  <Input name="name" defaultValue={selectedNode?.name} />
+                </Field>
+                <Field disabled={!!selectedNode}>
+                  <Label>Type</Label>
+                  <RadioGroup
+                    name="type"
+                    defaultValue={selectedNode?.type || "ASSET"}
+                    onChange={(value) => setSelectedType(value as AccountType)}
                   >
-                    <Label>Parent Group</Label>
-                    <Select
-                      name="parentGroupId"
-                      defaultValue={
-                        (selectedNode as AccountGroup)?.parentGroupId ?? ""
-                      }
-                    >
-                      {!selectedNode ||
-                      (selectedNode as AccountGroup).parentGroupId ? (
-                        accountGroups
-                          .filter(
-                            selectedNode
-                              ? (g) =>
-                                  g.id !== selectedNode.id &&
-                                  g.type === (selectedNode as AccountGroup).type
-                              : () => true,
-                          )
-                          .map((g) => (
-                            <option key={g.id} value={g.id}>
-                              {g.name}
-                            </option>
-                          ))
-                      ) : (
-                        <option value="">(none)</option>
-                      )}
-                    </Select>
-                  </Field>
-                </div>
-              </Fieldset>
+                    <RadioField>
+                      <Radio value="ASSET" />
+                      <Label>Asset</Label>
+                    </RadioField>
+                    <RadioField>
+                      <Radio value="LIABILITY" />
+                      <Label>Liability</Label>
+                    </RadioField>
+                    <RadioField>
+                      <Radio value="INCOME" />
+                      <Label>Income</Label>
+                    </RadioField>
+                    <RadioField>
+                      <Radio value="EXPENSE" />
+                      <Label>Expense</Label>
+                    </RadioField>
+                  </RadioGroup>
+                </Field>
+              </div>
+              <Field>
+                <Label>Parent Group</Label>
+                <Select
+                  name="parentGroupId"
+                  defaultValue={
+                    (selectedNode as AccountGroup)?.parentGroupId ?? ""
+                  }
+                >
+                  <option value="">(none)</option>
+                  {accountGroups
+                    .filter((g) => g.type === selectedType)
+                    .filter(
+                      selectedNode
+                        ? (g) => g.id !== selectedNode.id
+                        : () => true,
+                    )
+                    .map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                </Select>
+              </Field>
             </FieldGroup>
           </DialogBody>
           <DialogActions>
@@ -408,6 +447,7 @@ export default function Accounts() {
         <TableHead>
           <TableRow>
             <TableHeader>Name</TableHeader>
+            <TableHeader>Type</TableHeader>
             <TableHeader>Unit</TableHeader>
             <TableHeader>Currency</TableHeader>
             <TableHeader className="text-right">Opening Balance</TableHeader>
@@ -425,6 +465,8 @@ export default function Accounts() {
                 level={0}
                 onEdit={(node) => {
                   setSelectedNode(node);
+                  setSelectedType(node.type);
+
                   if (node.nodeType === "account") {
                     setSelectedUnit(node.unit);
                     setIsOpen(true);
@@ -520,6 +562,7 @@ function NodeRow({
           {node.name}
         </span>
       </TableCell>
+      <TableCell>{node.type}</TableCell>
       <TableCell>{node.nodeType === "account" ? node.unit : null}</TableCell>
       <TableCell>
         {node.nodeType === "account" ? node.currency : null}
@@ -540,7 +583,6 @@ function NodeRow({
             <button
               className="text-gray-400 disabled:cursor-not-allowed hover:text-gray-700 disabled:opacity-50 disabled:pointer-events-none"
               type="submit"
-              disabled={level === 0}
             >
               <TrashIcon className="size-5" />
             </button>
