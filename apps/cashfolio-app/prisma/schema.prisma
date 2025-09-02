@@ -37,6 +37,9 @@ model AccountGroup {
   childGroups AccountGroup[] @relation("parent-child")
   Account     Account[]
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@id([id])
   @@unique([slug])
 }
@@ -54,6 +57,9 @@ model Account {
 
   bookings Booking[]
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@id([id])
   @@unique([slug])
 }
@@ -63,6 +69,9 @@ model Transaction {
   description String
 
   bookings Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@id([id])
 }

@@ -11,12 +11,12 @@ const navigation = [
     href: "/balance-sheet",
     icon: ScaleIcon,
   },
-  { name: "Accounts", href: "/accounts", icon: WalletIcon },
   {
     name: "Profit/Loss Statement",
     href: "/profit-loss-statement",
     icon: ArrowTrendingUpIcon,
   },
+  { name: "Accounts", href: "/accounts", icon: WalletIcon },
 ];
 
 export function NavbarButtonList() {

@@ -46,7 +46,7 @@ import {
   TrashIcon,
   WalletIcon,
 } from "@heroicons/react/24/outline";
-import { Combobox, ComboboxOption } from "~/catalyst/combobox";
+import { Combobox, ComboboxLabel, ComboboxOption } from "~/catalyst/combobox";
 import { Link } from "~/catalyst/link";
 
 export async function loader() {
@@ -338,7 +338,7 @@ export default function Accounts() {
                       >
                         {(option) => (
                           <ComboboxOption value={option}>
-                            {option}
+                            <ComboboxLabel>{option}</ComboboxLabel>
                           </ComboboxOption>
                         )}
                       </Combobox>
