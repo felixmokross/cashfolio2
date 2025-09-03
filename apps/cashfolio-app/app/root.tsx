@@ -10,6 +10,7 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import { Navbar } from "./navbar/navbar";
+import { SidebarLayout } from "./catalyst/sidebar-layout";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -34,12 +35,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body className="h-full">
-        <div>
-          <Navbar />
-          <main className="py-10 lg:pl-72">
-            <div className="px-4 sm:px-6 lg:px-8">{children}</div>
-          </main>
-        </div>
+        <SidebarLayout sidebar={<Navbar />} navbar={null}>
+          {children}
+        </SidebarLayout>
         <ScrollRestoration />
         <Scripts />
       </body>

@@ -1,5 +1,5 @@
 import { redirect } from "react-router";
 
 export function loader() {
-  throw redirect("/balance-sheet");
+  throw redirect("/accounts");
 }
