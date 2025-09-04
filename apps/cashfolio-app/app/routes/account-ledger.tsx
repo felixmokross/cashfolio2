@@ -12,9 +12,9 @@ import {
   type LoaderFunctionArgs,
 } from "react-router";
 import { Fragment } from "react/jsx-runtime";
-import { Button } from "~/catalyst/button";
-import { Combobox, ComboboxLabel, ComboboxOption } from "~/catalyst/combobox";
-import { Input } from "~/catalyst/input";
+import { Button } from "~/platform/button";
+import { Combobox, ComboboxLabel, ComboboxOption } from "~/platform/combobox";
+import { Input } from "~/platform/input";
 import {
   Table,
   TableBody,
@@ -22,7 +22,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "~/catalyst/table";
+} from "~/platform/table";
 import { prisma } from "~/prisma.server";
 
 export async function loader({ params }: LoaderFunctionArgs) {

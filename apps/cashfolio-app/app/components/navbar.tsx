@@ -1,12 +1,10 @@
 import {
   ArrowTrendingUpIcon,
   ChartPieIcon,
-  PencilIcon,
   ScaleIcon,
-  TableCellsIcon,
   WalletIcon,
 } from "@heroicons/react/20/solid";
-import { Link } from "../catalyst/link";
+import { Link } from "~/platform/link";
 import {
   Sidebar,
   SidebarBody,
@@ -15,9 +13,9 @@ import {
   SidebarItem,
   SidebarLabel,
   SidebarSection,
-} from "../catalyst/sidebar";
+} from "~/platform/sidebar";
 import { Logo } from "./logo";
-import { Avatar } from "../catalyst/avatar";
+import { Avatar } from "~/platform/avatar";
 import {
   Dropdown,
   DropdownButton,
@@ -25,7 +23,7 @@ import {
   DropdownItem,
   DropdownLabel,
   DropdownMenu,
-} from "../catalyst/dropdown";
+} from "~/platform/dropdown";
 import {
   ArrowRightStartOnRectangleIcon,
   ChevronUpIcon,

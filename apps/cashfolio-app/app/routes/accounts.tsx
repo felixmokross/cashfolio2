@@ -5,24 +5,24 @@ import {
   useLoaderData,
   type ActionFunctionArgs,
 } from "react-router";
-import { Button } from "~/catalyst/button";
+import { Button } from "~/platform/button";
 import {
   Dialog,
   DialogActions,
   DialogBody,
   DialogDescription,
   DialogTitle,
-} from "~/catalyst/dialog";
+} from "~/platform/dialog";
 import {
   Description,
   Field,
   FieldGroup,
   Fieldset,
   Label,
-} from "~/catalyst/fieldset";
-import { Input } from "~/catalyst/input";
-import { Radio, RadioField, RadioGroup } from "~/catalyst/radio";
-import { Select } from "~/catalyst/select";
+} from "~/platform/fieldset";
+import { Input } from "~/platform/input";
+import { Radio, RadioField, RadioGroup } from "~/platform/radio";
+import { Select } from "~/platform/select";
 import { prisma } from "~/prisma.server";
 import {
   AccountType,
@@ -39,15 +39,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "~/catalyst/table";
+} from "~/platform/table";
 import clsx from "clsx";
 import {
   PencilSquareIcon,
   TrashIcon,
   WalletIcon,
 } from "@heroicons/react/24/outline";
-import { Combobox, ComboboxLabel, ComboboxOption } from "~/catalyst/combobox";
-import { Link } from "~/catalyst/link";
+import { Combobox, ComboboxLabel, ComboboxOption } from "~/platform/combobox";
+import { Link } from "~/platform/link";
 
 export async function loader() {
   return {

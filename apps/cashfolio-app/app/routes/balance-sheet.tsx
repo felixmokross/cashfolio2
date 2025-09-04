@@ -5,7 +5,7 @@ import {
   TableHeader,
   TableBody,
   TableCell,
-} from "~/catalyst/table";
+} from "~/platform/table";
 
 export default function BalanceSheet() {
   return (

@@ -9,8 +9,8 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { Navbar } from "./navbar/navbar";
-import { SidebarLayout } from "./catalyst/sidebar-layout";
+import { Navbar } from "./components/navbar";
+import { SidebarLayout } from "./platform/sidebar-layout";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
