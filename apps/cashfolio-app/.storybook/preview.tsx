@@ -1,6 +1,7 @@
 import type { Preview } from "@storybook/react-vite";
 import "../app/app.css";
 import { createRoutesStub } from "react-router";
+import { themes } from "storybook/theming";
 
 const preview: Preview = {
   parameters: {
@@ -9,6 +10,11 @@ const preview: Preview = {
         color: /(background|color)$/i,
         date: /Date$/i,
       },
+    },
+    docs: {
+      // Docs theme does not adapt to system theme out-of-the-box
+      // see https://github.com/storybookjs/storybook/issues/28664#issuecomment-2241393451
+      theme: themes[getPreferredColorScheme()],
     },
   },
   decorators: [
@@ -20,15 +26,21 @@ const preview: Preview = {
         },
       ]);
 
-      return (
-        <div className="flex h-[calc(100vh-2rem)] items-stretch justify-center">
-          <div className="w-80 h-full">
-            <Stub initialEntries={["/"]} />
-          </div>
-        </div>
-      );
+      return <Stub initialEntries={["/"]} />;
     },
   ],
+  tags: ["autodocs"],
 };
 
 export default preview;
+
+function getPreferredColorScheme() {
+  if (!window || !window.matchMedia) return "light";
+
+  const isDarkThemePreferred = window.matchMedia(
+    "(prefers-color-scheme: dark)",
+  ).matches;
+  if (isDarkThemePreferred) return "dark";
+
+  return "light";
+}

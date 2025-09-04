@@ -44,6 +44,15 @@ import {
 
 const meta = {
   component: Sidebar,
+  decorators: [
+    (Story) => (
+      <div className="flex h-[calc(100vh-2rem)] items-stretch justify-center">
+        <div className="w-80 h-full">
+          <Story />
+        </div>
+      </div>
+    ),
+  ],
 } satisfies Meta<typeof Sidebar>;
 
 export default meta;

@@ -159,9 +159,39 @@ const styles = {
 };
 
 type ButtonProps = (
-  | { color?: keyof typeof styles.colors; outline?: never; plain?: never }
-  | { color?: never; outline: true; plain?: never }
-  | { color?: never; outline?: never; plain: true }
+  | {
+      /**
+       * The [color variant](https://catalyst.tailwindui.com/docs/button#button-colors) the button should use.
+       *
+       * @default dark/zinc
+       */
+      color?: keyof typeof styles.colors;
+      outline?: never;
+      plain?: never;
+    }
+  | {
+      color?: never;
+      /**
+       * Whether to use the [outline button style](https://catalyst.tailwindui.com/docs/button#outline-buttons).
+       *
+       * @type boolean
+       * @default false
+       */
+      outline: true;
+      plain?: never;
+    }
+  | {
+      color?: never;
+      outline?: never;
+
+      /**
+       * Whether to use the [plain button style](https://catalyst.tailwindui.com/docs/button#plain-buttons).
+       *
+       * @type boolean
+       * @default false
+       */
+      plain: true;
+    }
 ) & { className?: string; children: React.ReactNode } & (
     | Omit<Headless.ButtonProps, "as" | "className">
     | Omit<React.ComponentPropsWithoutRef<typeof Link>, "className">
