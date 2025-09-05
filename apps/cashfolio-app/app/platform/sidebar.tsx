@@ -1,9 +1,10 @@
 import * as Headless from "@headlessui/react";
 import clsx from "clsx";
 import { LayoutGroup, motion } from "motion/react";
-import React, { forwardRef, useId } from "react";
+import React, { forwardRef, useId, type ComponentPropsWithoutRef } from "react";
 import { TouchTarget } from "./button";
 import { Link } from "./link";
+import { useLocation } from "react-router";
 
 export function Sidebar({
   className,
@@ -193,4 +194,21 @@ export function SidebarLabel({
   ...props
 }: React.ComponentPropsWithoutRef<"span">) {
   return <span {...props} className={clsx(className, "truncate")} />;
+}
+
+// how can I make the types work?
+export function NavSidebarItem({
+  href,
+  ...props
+}: ComponentPropsWithoutRef<typeof SidebarItem> & { href: string }) {
+  const location = useLocation();
+  return (
+    <SidebarItem
+      {...props}
+      current={
+        location.pathname === href || location.pathname.startsWith(href + "/")
+      }
+      href={href}
+    />
+  );
 }

@@ -6,6 +6,7 @@ import {
 } from "@heroicons/react/20/solid";
 import { Link } from "~/platform/link";
 import {
+  NavSidebarItem,
   Sidebar,
   SidebarBody,
   SidebarFooter,
@@ -32,10 +33,8 @@ import {
   ShieldCheckIcon,
   UserIcon,
 } from "@heroicons/react/16/solid";
-import { useMatch, useMatches } from "react-router";
 
 export function Navbar() {
-  const match = useMatch("/:page/*");
   return (
     <Sidebar>
       <SidebarHeader>
@@ -52,36 +51,24 @@ export function Navbar() {
       </SidebarHeader>
       <SidebarBody>
         <SidebarSection>
-          <SidebarItem
-            current={match?.params.page === "balances"}
-            href="/balances"
-          >
+          <NavSidebarItem href="/balances">
             <ScaleIcon />
             <SidebarLabel>Balances</SidebarLabel>
-          </SidebarItem>
-          <SidebarItem
-            current={match?.params.page === "profit-loss"}
-            href="/profit-loss"
-          >
+          </NavSidebarItem>
+          <NavSidebarItem href="/profit-loss">
             <ArrowTrendingUpIcon />
             <SidebarLabel>Profit/Loss</SidebarLabel>
-          </SidebarItem>
-          <SidebarItem
-            current={match?.params.page === "allocations"}
-            href="/allocations"
-          >
+          </NavSidebarItem>
+          <NavSidebarItem href="/allocations">
             <ChartPieIcon />
             <SidebarLabel>Allocations</SidebarLabel>
-          </SidebarItem>
-          <SidebarItem
-            current={match?.params.page === "accounts"}
-            href="/accounts"
-          >
+          </NavSidebarItem>
+          <NavSidebarItem href="/accounts">
             <WalletIcon />
             <SidebarLabel>Accounts</SidebarLabel>
-          </SidebarItem>
+          </NavSidebarItem>
         </SidebarSection>
-      </SidebarBody>{" "}
+      </SidebarBody>
       <SidebarFooter>
         <Dropdown>
           <DropdownButton as={SidebarItem}>
