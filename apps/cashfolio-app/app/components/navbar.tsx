@@ -40,7 +40,7 @@ export function Navbar() {
       <SidebarHeader>
         <Link
           className="mb-2 flex items-center gap-4"
-          href="#"
+          href="/"
           aria-label="Home"
         >
           <Logo />
