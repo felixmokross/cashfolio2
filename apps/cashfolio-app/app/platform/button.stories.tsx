@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Button } from "./button";
+import { Cog6ToothIcon } from "@heroicons/react/20/solid";
 const meta = {
   component: Button,
 } satisfies Meta<typeof Button>;
@@ -10,6 +11,22 @@ type Story = StoryObj<typeof meta>;
 
 export const Primary: Story = {
   args: {
-    children: "Click Me",
+    children: (
+      <>
+        <Cog6ToothIcon />
+        Click Me
+      </>
+    ),
+  },
+};
+
+export const IconOnly: Story = {
+  args: {
+    plain: true,
+    children: (
+      <>
+        <Cog6ToothIcon />
+      </>
+    ),
   },
 };

@@ -14,6 +14,7 @@ import {
 import { Fragment } from "react/jsx-runtime";
 import { Button } from "~/platform/button";
 import { Combobox, ComboboxLabel, ComboboxOption } from "~/platform/combobox";
+import { Heading } from "~/platform/heading";
 import { Input } from "~/platform/input";
 import {
   Table,
@@ -96,7 +97,7 @@ export default function AccountLedger() {
   const addFormId = useId();
   return (
     <>
-      <h2>{account.name}</h2>
+      <Heading>{account.name}</Heading>
 
       <Table grid dense bleed striped>
         <TableHead>
