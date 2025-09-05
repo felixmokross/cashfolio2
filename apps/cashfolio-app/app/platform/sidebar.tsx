@@ -196,7 +196,6 @@ export function SidebarLabel({
   return <span {...props} className={clsx(className, "truncate")} />;
 }
 
-// how can I make the types work?
 export function NavSidebarItem({
   href,
   ...props

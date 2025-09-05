@@ -37,7 +37,7 @@ import {
 export function Navbar() {
   return (
     <Sidebar>
-      <SidebarHeader>
+      <SidebarBody>
         <Link
           className="mb-2 flex items-center gap-4"
           href="/"
@@ -48,8 +48,6 @@ export function Navbar() {
             Cashfolio
           </SidebarLabel>
         </Link>
-      </SidebarHeader>
-      <SidebarBody>
         <SidebarSection>
           <NavSidebarItem href="/balances">
             <ScaleIcon />
