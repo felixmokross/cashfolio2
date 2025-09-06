@@ -1,6 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Listbox, ListboxLabel, ListboxOption } from "./listbox";
+import {
+  Bars3BottomLeftIcon,
+  Bars3BottomRightIcon,
+  Bars3Icon,
+} from "@heroicons/react/16/solid";
 
 const meta = {
   component: Listbox,
@@ -37,6 +42,28 @@ export const WithDefaultValue: Story = {
   args: {
     ...Default.args,
     defaultValue: "delayed",
+  },
+};
+
+export const WithIcons: Story = {
+  args: {
+    placeholder: "Select alignment…",
+    children: (
+      <>
+        <ListboxOption value="left">
+          <Bars3BottomLeftIcon />
+          <ListboxLabel>Left</ListboxLabel>
+        </ListboxOption>
+        <ListboxOption value="right">
+          <Bars3BottomRightIcon />
+          <ListboxLabel>Right</ListboxLabel>
+        </ListboxOption>
+        <ListboxOption value="justified">
+          <Bars3Icon />
+          <ListboxLabel>Justified</ListboxLabel>
+        </ListboxOption>
+      </>
+    ),
   },
 };
 
