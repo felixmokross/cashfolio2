@@ -13,9 +13,13 @@ import {
 } from "react-router";
 import { Fragment } from "react/jsx-runtime";
 import { Button } from "~/platform/button";
-import { Combobox, ComboboxLabel, ComboboxOption } from "~/platform/combobox";
+import {
+  Combobox,
+  ComboboxLabel,
+  ComboboxOption,
+} from "~/platform/forms/combobox";
 import { Heading } from "~/platform/heading";
-import { Input } from "~/platform/input";
+import { Input } from "~/platform/forms/input";
 import {
   Table,
   TableBody,

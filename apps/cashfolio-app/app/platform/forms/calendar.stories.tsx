@@ -3,7 +3,6 @@ import { Calendar } from "./calendar";
 import { CalendarDate } from "@internationalized/date";
 
 const meta: Meta<typeof Calendar> = {
-  title: "base/forms/Calendar",
   component: Calendar,
   parameters: { layout: "centered" },
 };

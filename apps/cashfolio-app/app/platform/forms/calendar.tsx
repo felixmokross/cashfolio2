@@ -17,8 +17,8 @@ import type { CalendarState } from "react-stately";
 import { useCalendarState } from "react-stately";
 import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/20/solid";
 import clsx from "clsx";
-import { Button } from "./button";
-import { Divider } from "./divider";
+import { Button } from "../button";
+import { Divider } from "../divider";
 
 export function Calendar(props: CalendarProps<DateValue>) {
   const { locale } = useLocale();

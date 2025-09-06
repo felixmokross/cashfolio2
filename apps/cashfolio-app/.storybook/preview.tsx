@@ -16,6 +16,16 @@ const preview: Preview = {
       // see https://github.com/storybookjs/storybook/issues/28664#issuecomment-2241393451
       theme: themes[getPreferredColorScheme()],
     },
+
+    backgrounds: {
+      options: {
+        dark: { name: "Dark", value: "var(--color-neutral-950)" },
+        light: { name: "Light", value: "var(--color-neutral-100)" },
+      },
+    },
+  },
+  initialGlobals: {
+    backgrounds: { value: "light" },
   },
   decorators: [
     (Story) => {
@@ -28,6 +38,13 @@ const preview: Preview = {
 
       return <Stub initialEntries={["/"]} />;
     },
+    (Story, { globals }) => (
+      <div
+        data-theme={globals.backgrounds.value === "dark" ? "dark" : undefined}
+      >
+        <Story />
+      </div>
+    ),
   ],
   tags: ["autodocs"],
 };

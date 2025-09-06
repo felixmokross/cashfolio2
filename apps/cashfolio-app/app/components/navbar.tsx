@@ -10,7 +10,6 @@ import {
   Sidebar,
   SidebarBody,
   SidebarFooter,
-  SidebarHeader,
   SidebarItem,
   SidebarLabel,
   SidebarSection,

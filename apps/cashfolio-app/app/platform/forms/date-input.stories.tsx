@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { DateInput } from "./date-input";
+import { Calendar, DateInput } from "./date-input";
 
 const meta: Meta<typeof DateInput> = {
-  title: "base/forms/DateInput",
   component: DateInput,
+  subcomponents: { Calendar },
   parameters: { layout: "centered" },
 };
 
@@ -31,4 +31,14 @@ export const Disabled: Story = {
     ...Default.args,
     disabled: true,
   },
+};
+
+export const Light: Story = {
+  args: Default.args,
+  globals: { backgrounds: { value: "light" } },
+};
+
+export const Dark: Story = {
+  args: Default.args,
+  globals: { backgrounds: { value: "dark" } },
 };

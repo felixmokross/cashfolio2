@@ -6,9 +6,9 @@ import {
   DialogDescription,
   DialogTitle,
 } from "~/platform/dialog";
-import { Field, FieldGroup, Label } from "~/platform/fieldset";
+import { Field, FieldGroup, Label } from "~/platform/forms/fieldset";
 import { Subheading } from "~/platform/heading";
-import { Input } from "~/platform/input";
+import { Input } from "~/platform/forms/input";
 import type { AccountOption } from "~/types";
 import { AccountCombobox } from "./account-combobox";
 

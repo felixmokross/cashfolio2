@@ -19,10 +19,10 @@ import {
   FieldGroup,
   Fieldset,
   Label,
-} from "~/platform/fieldset";
-import { Input } from "~/platform/input";
-import { Radio, RadioField, RadioGroup } from "~/platform/radio";
-import { Select } from "~/platform/select";
+} from "~/platform/forms/fieldset";
+import { Input } from "~/platform/forms/input";
+import { Radio, RadioField, RadioGroup } from "~/platform/forms/radio";
+import { Select } from "~/platform/forms/select";
 import { prisma } from "~/prisma.server";
 import {
   AccountType,
@@ -46,7 +46,11 @@ import {
   TrashIcon,
   WalletIcon,
 } from "@heroicons/react/24/outline";
-import { Combobox, ComboboxLabel, ComboboxOption } from "~/platform/combobox";
+import {
+  Combobox,
+  ComboboxLabel,
+  ComboboxOption,
+} from "~/platform/forms/combobox";
 import { Link } from "~/platform/link";
 
 export async function loader() {

@@ -64,3 +64,13 @@ export const Disabled: Story = {
     disabled: true,
   },
 };
+
+export const Light: Story = {
+  args: Default.args,
+  globals: { backgrounds: { value: "light" } },
+};
+
+export const Dark: Story = {
+  args: Default.args,
+  globals: { backgrounds: { value: "dark" } },
+};
