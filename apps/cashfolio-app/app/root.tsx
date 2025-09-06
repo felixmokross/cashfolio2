@@ -27,14 +27,17 @@ export const links: Route.LinksFunction = () => [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full bg-white dark:bg-gray-900">
+    <html
+      lang="en"
+      className="text-neutral-950 antialiased lg:bg-neutral-100 dark:bg-neutral-900 dark:text-white dark:lg:bg-neutral-950"
+    >
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
       </head>
-      <body className="h-full">
+      <body>
         <SidebarLayout sidebar={<Navbar />} navbar={null}>
           {children}
         </SidebarLayout>

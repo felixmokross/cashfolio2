@@ -1,4 +1,3 @@
-import type { Account } from "@prisma/client";
 import type { ComponentPropsWithoutRef } from "react";
 import { Combobox, ComboboxLabel, ComboboxOption } from "~/platform/combobox";
 import type { AccountOption } from "~/types";

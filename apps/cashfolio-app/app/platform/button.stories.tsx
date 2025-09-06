@@ -9,7 +9,34 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Primary: Story = {
+export const Default: Story = {
+  args: {
+    children: <>Click Me</>,
+  },
+};
+
+export const ColorAccentNegative: Story = {
+  args: {
+    color: "accent-negative",
+    children: <>Click Me</>,
+  },
+};
+
+export const Outline: Story = {
+  args: {
+    outline: true,
+    children: <>Click Me</>,
+  },
+};
+
+export const Plain: Story = {
+  args: {
+    plain: true,
+    children: <>Click Me</>,
+  },
+};
+
+export const WithIcon: Story = {
   args: {
     children: (
       <>
@@ -20,7 +47,7 @@ export const Primary: Story = {
   },
 };
 
-export const IconOnly: Story = {
+export const PlainIconOnly: Story = {
   args: {
     plain: true,
     children: (

@@ -15,5 +15,7 @@
       "markdown": false,
       "scminput": false,
     },
+    "tailwindCSS.classAttributes": ["class", "className", "styles"],
+    "tailwindCSS.classFunctions": ["clsx"],
   },
 }
