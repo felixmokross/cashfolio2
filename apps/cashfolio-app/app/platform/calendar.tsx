@@ -197,10 +197,10 @@ function CalendarButton({ className, ...props }: CalendarButtonProps) {
   return (
     <Button
       {...(buttonProps as ComponentPropsWithoutRef<typeof Button> & {
-        plain: true;
+        hierarchy: "tertiary";
       })}
       ref={ref}
-      plain
+      hierarchy="tertiary"
     >
       {children}
     </Button>

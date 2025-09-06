@@ -25,7 +25,7 @@ export function PaginationPrevious({
     <span className={clsx(className, "grow basis-0")}>
       <Button
         {...(href === null ? { disabled: true } : { href })}
-        plain
+        hierarchy="tertiary"
         aria-label="Previous page"
       >
         <svg
@@ -57,7 +57,7 @@ export function PaginationNext({
     <span className={clsx(className, "flex grow basis-0 justify-end")}>
       <Button
         {...(href === null ? { disabled: true } : { href })}
-        plain
+        hierarchy="tertiary"
         aria-label="Next page"
       >
         {children}
@@ -105,7 +105,7 @@ export function PaginationPage({
   return (
     <Button
       href={href}
-      plain
+      hierarchy="tertiary"
       aria-label={`Page ${children}`}
       aria-current={current ? "page" : undefined}
       className={clsx(

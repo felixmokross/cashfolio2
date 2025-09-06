@@ -1,6 +1,6 @@
 import * as Headless from "@headlessui/react";
 import clsx from "clsx";
-import React, { forwardRef } from "react";
+import React, { type Ref } from "react";
 import { Link } from "./link";
 
 const styles = {
@@ -16,7 +16,7 @@ const styles = {
     // Icon
     "*:data-[slot=icon]:-mx-0.5 *:data-[slot=icon]:my-0.5 *:data-[slot=icon]:size-5 *:data-[slot=icon]:shrink-0 *:data-[slot=icon]:self-center *:data-[slot=icon]:text-(--btn-icon) sm:*:data-[slot=icon]:my-1 sm:*:data-[slot=icon]:size-4 forced-colors:[--btn-icon:ButtonText] forced-colors:data-hover:[--btn-icon:ButtonText]",
   ],
-  solid: [
+  primary: [
     // Optical border, implemented as the button background to avoid corner artifacts
     "border-transparent bg-(--btn-border)",
     // Dark mode: border is rendered on `after` so background is set to button background
@@ -40,7 +40,7 @@ const styles = {
     // Disabled
     "data-disabled:before:shadow-none data-disabled:after:shadow-none",
   ],
-  outline: [
+  secondary: [
     // Base
     "border-neutral-950/10 text-neutral-950 data-active:bg-neutral-950/2.5 data-hover:bg-neutral-950/2.5",
     // Dark mode
@@ -48,7 +48,7 @@ const styles = {
     // Icon
     "[--btn-icon:var(--color-neutral-500)] data-active:[--btn-icon:var(--color-neutral-700)] data-hover:[--btn-icon:var(--color-neutral-700)] dark:data-active:[--btn-icon:var(--color-neutral-400)] dark:data-hover:[--btn-icon:var(--color-neutral-400)]",
   ],
-  plain: [
+  tertiary: [
     // Base
     "border-transparent text-neutral-950 data-active:bg-neutral-950/5 data-hover:bg-neutral-950/5",
     // Dark mode
@@ -56,12 +56,12 @@ const styles = {
     // Icon
     "[--btn-icon:var(--color-neutral-500)] data-active:[--btn-icon:var(--color-neutral-700)] data-hover:[--btn-icon:var(--color-neutral-700)] dark:[--btn-icon:var(--color-neutral-500)] dark:data-active:[--btn-icon:var(--color-neutral-400)] dark:data-hover:[--btn-icon:var(--color-neutral-400)]",
   ],
-  colors: {
-    brand: [
+  variants: {
+    standard: [
       "text-white [--btn-hover-overlay:var(--color-white)]/10 [--btn-bg:var(--color-brand-500)] [--btn-border:var(--color-brand-600)]/80",
       "[--btn-icon:var(--color-white)]/60 data-active:[--btn-icon:var(--color-white)]/80 data-hover:[--btn-icon:var(--color-white)]/80",
     ],
-    "accent-negative": [
+    destructive: [
       "text-white [--btn-hover-overlay:var(--color-white)]/10 [--btn-bg:var(--color-accent-negative-600)] [--btn-border:var(--color-accent-negative-700)]/90",
       "[--btn-icon:var(--color-accent-negative-300)] data-active:[--btn-icon:var(--color-accent-negative-200)] data-hover:[--btn-icon:var(--color-accent-negative-200)]",
     ],
@@ -71,61 +71,55 @@ const styles = {
 type ButtonProps = (
   | {
       /**
-       * The [color variant](https://catalyst.tailwindui.com/docs/button#button-colors) the button should use.
+       * The visual hierarchy of the button.
        *
-       * @default brand
+       * @default primary
        */
-      color?: keyof typeof styles.colors;
-      outline?: never;
-      plain?: never;
-    }
-  | {
-      color?: never;
-      /**
-       * Whether to use the [outline button style](https://catalyst.tailwindui.com/docs/button#outline-buttons).
-       *
-       * @type boolean
-       * @default false
-       */
-      outline: true;
-      plain?: never;
-    }
-  | {
-      color?: never;
-      outline?: never;
+      hierarchy?: "primary";
 
       /**
-       * Whether to use the [plain button style](https://catalyst.tailwindui.com/docs/button#plain-buttons).
+       * The color variant of the button. Only applicable when `hierarchy` is `primary`.
        *
-       * @type boolean
-       * @default false
+       * @default standard
        */
-      plain: true;
+      variant?: "standard" | "destructive";
     }
-) & { className?: string; children: React.ReactNode } & (
+  | {
+      hierarchy: "secondary" | "tertiary";
+      variant?: never;
+    }
+) & {
+  className?: string;
+  children: React.ReactNode;
+  ref?: Ref<HTMLButtonElement | HTMLAnchorElement>;
+} & (
     | Omit<Headless.ButtonProps, "as" | "className">
     | Omit<React.ComponentPropsWithoutRef<typeof Link>, "className">
   );
 
-export const Button = forwardRef(function Button(
-  { color, outline, plain, className, children, ...props }: ButtonProps,
-  ref: React.ForwardedRef<HTMLElement>,
-) {
+export function Button({
+  hierarchy,
+  variant,
+  className,
+  children,
+  ref,
+  ...props
+}: ButtonProps) {
   let classes = clsx(
     className,
     styles.base,
-    outline
-      ? styles.outline
-      : plain
-        ? styles.plain
-        : clsx(styles.solid, styles.colors[color ?? "brand"]),
+    hierarchy === "secondary"
+      ? styles.secondary
+      : hierarchy === "tertiary"
+        ? styles.tertiary
+        : clsx(styles.primary, styles.variants[variant ?? "standard"]),
   );
 
   return "href" in props ? (
     <Link
       {...props}
       className={classes}
-      ref={ref as React.ForwardedRef<HTMLAnchorElement>}
+      ref={ref as Ref<HTMLAnchorElement> | undefined}
     >
       <TouchTarget>{children}</TouchTarget>
     </Link>
@@ -138,7 +132,7 @@ export const Button = forwardRef(function Button(
       <TouchTarget>{children}</TouchTarget>
     </Headless.Button>
   );
-});
+}
 
 /**
  * Expand the hit area to at least 44×44px on touch devices

@@ -47,7 +47,7 @@ export function TransactionDialog({
         </FieldGroup>
       </DialogBody>
       <DialogActions>
-        <Button plain onClick={onClose}>
+        <Button hierarchy="tertiary" onClick={onClose}>
           Cancel
         </Button>
         <Button onClick={onClose}>Create</Button>

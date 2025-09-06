@@ -15,25 +15,25 @@ export const Default: Story = {
   },
 };
 
-export const ColorAccentNegative: Story = {
+export const Destructive: Story = {
   args: {
-    color: "accent-negative",
-    children: <>Click Me</>,
-  },
+    ...Default.args,
+    variant: "destructive",
+  } as Story["args"],
 };
 
-export const Outline: Story = {
+export const Secondary: Story = {
   args: {
-    outline: true,
-    children: <>Click Me</>,
-  },
+    ...Default.args,
+    hierarchy: "secondary",
+  } as Story["args"],
 };
 
-export const Plain: Story = {
+export const Tertiary: Story = {
   args: {
-    plain: true,
-    children: <>Click Me</>,
-  },
+    ...Default.args,
+    hierarchy: "tertiary",
+  } as Story["args"],
 };
 
 export const WithIcon: Story = {
@@ -47,13 +47,20 @@ export const WithIcon: Story = {
   },
 };
 
-export const PlainIconOnly: Story = {
+export const TertiaryIconOnly: Story = {
   args: {
-    plain: true,
+    hierarchy: "tertiary",
     children: (
       <>
         <Cog6ToothIcon />
       </>
     ),
+  },
+};
+
+export const Disabled: Story = {
+  args: {
+    ...Default.args,
+    disabled: true,
   },
 };

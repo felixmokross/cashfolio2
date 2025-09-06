@@ -360,7 +360,7 @@ export default function Accounts() {
             </Fieldset>
           </DialogBody>
           <DialogActions>
-            <Button plain onClick={() => setIsOpen(false)}>
+            <Button hierarchy="tertiary" onClick={() => setIsOpen(false)}>
               Cancel
             </Button>
             <Button type="submit">{selectedNode ? "Save" : "Create"}</Button>
@@ -439,7 +439,7 @@ export default function Accounts() {
             </FieldGroup>
           </DialogBody>
           <DialogActions>
-            <Button plain onClick={() => setIsGroupOpen(false)}>
+            <Button hierarchy="tertiary" onClick={() => setIsGroupOpen(false)}>
               Cancel
             </Button>
             <Button type="submit">{selectedNode ? "Save" : "Create"}</Button>
