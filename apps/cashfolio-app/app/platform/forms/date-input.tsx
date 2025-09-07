@@ -30,7 +30,7 @@ import { CalendarDaysIcon } from "@heroicons/react/20/solid";
 import { ClientOnly } from "../client-only";
 import clsx from "clsx";
 import type { CalendarDate } from "@internationalized/date";
-import { isToday, getWeeksInMonth } from "@internationalized/date";
+import { getWeeksInMonth } from "@internationalized/date";
 import { type ComponentPropsWithoutRef } from "react";
 import type { CalendarProps } from "react-aria";
 import { useCalendar, useCalendarCell, useCalendarGrid } from "react-aria";
@@ -248,7 +248,7 @@ export function Calendar(props: CalendarProps<DateValue>) {
       {...calendarProps}
       className={clsx(
         // Base styles,
-        "isolate min-w-[calc(var(--input-width)+8px)] scroll-py-1 rounded-xl p-1 select-none empty:invisible",
+        "isolate scroll-py-1 rounded-xl p-1 select-none",
         // Invisible border that is only visible in `forced-colors` mode for accessibility purposes
         "outline outline-transparent focus:outline-hidden",
         // Popover background
@@ -266,6 +266,7 @@ export function Calendar(props: CalendarProps<DateValue>) {
         </CalendarButton>
         <div>{title}</div>
         <CalendarButton {...nextButtonProps}>
+          <span className="sr-only">Next month</span>
           <ArrowRightIcon />
         </CalendarButton>
       </div>
@@ -289,13 +290,13 @@ function CalendarGrid({ state }: CalendarGridProps) {
         {weekDays.map((day, index) => (
           <div
             key={index}
-            className="dark:text-neutral-400 text-neutral-500 text-center text-xs font-normal"
+            className="text-neutral-500 text-center text-xs font-normal"
           >
             {day}
           </div>
         ))}
       </div>
-      <Divider className="mt-2" />
+      <Divider className="mt-2 [--gutter:--spacing(1)]" bleed />
       <div className="mt-2 grid grid-cols-7 gap-px rounded-lg overflow-hidden">
         {[...new Array(Math.max(weeksInMonth, 6)).keys()].map((weekIndex) => (
           <div key={weekIndex} className="contents ring-1 ring-gray-200">
@@ -348,52 +349,21 @@ function CalendarCell({ state, date, className }: CalendarCellProps) {
       {...cellProps}
       {...buttonProps}
       ref={ref}
+      disabled={isOutsideVisibleRange || isUnavailable || isDisabled}
       className={clsx(
-        "size-10 flex items-center justify-center rounded-lg",
-        isOutsideVisibleRange
-          ? "text-neutral-600"
-          : isUnavailable || isDisabled
-            ? "bg-neutral-900"
-            : "hover:bg-accent-neutral-500",
+        "size-10 flex items-center disabled:text-neutral-500 disabled:pointer-events-none hover:bg-accent-neutral-500 hover:text-white justify-center rounded-lg focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent-neutral-500",
       )}
     >
       <div
         className={
           isSelected
-            ? "rounded-full size-7 flex justify-center items-center bg-white text-neutral-950"
+            ? "rounded-full size-7 flex justify-center items-center bg-accent-neutral-500 text-white"
             : "contents"
         }
       >
         {formattedDate}
       </div>
     </button>
-    // <div
-    //   {...cellProps}
-    //   {...buttonProps}
-    //   ref={ref}
-    //   className={clsx(
-    //     className,
-    //     "h-10 w-10 px-2.5 py-2.5 text-center text-sm focus:z-20 focus:rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500",
-    //     isOutsideVisibleRange || isUnavailable || isDisabled
-    //       ? "cursor-default bg-neutral-700 text-gray-400"
-    //       : clsx(
-    //           "bg-white hover:bg-gray-100",
-    //           isToday(date, state.timeZone)
-    //             ? "font-semibold text-brand-600"
-    //             : "text-gray-900",
-    //         ),
-    //   )}
-    // >
-    //   <div
-    //     className={clsx(
-    //       isSelected
-    //         ? "-m-1 rounded-full bg-gray-900 p-1 font-semibold text-white"
-    //         : clsx("contents"),
-    //     )}
-    //   >
-    //     {formattedDate}
-    //   </div>
-    // </div>
   );
 }
 
