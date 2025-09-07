@@ -14,15 +14,20 @@ type Story = StoryObj<typeof DateInput>;
 export const Default: Story = {
   args: {
     name: "exampleDate",
-    defaultValue: "2023-03-01",
   },
 };
 
-export const WithError: Story = {
+export const WithDefaultValue: Story = {
+  args: {
+    name: "exampleDate",
+    defaultValue: "2025-10-15",
+  },
+};
+
+export const Invalid: Story = {
   args: {
     ...Default.args,
-    defaultValue: "",
-    error: "This field is required",
+    invalid: true,
   },
 };
 

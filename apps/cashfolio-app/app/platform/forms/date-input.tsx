@@ -1,3 +1,4 @@
+import * as Headless from "@headlessui/react";
 import type { ReactNode } from "react";
 import { useId, useRef } from "react";
 import type {
@@ -42,18 +43,16 @@ import { Divider } from "../divider";
 type DateInputProps = {
   name?: string;
   defaultValue?: string;
-  groupClassName?: string;
   className?: string;
-  error?: string;
+  invalid?: boolean;
   disabled?: boolean;
 };
 
 export function DateInput({
   name,
   defaultValue,
-  groupClassName,
   className,
-  error,
+  invalid,
   disabled = false,
 }: DateInputProps) {
   const props = {
@@ -63,28 +62,30 @@ export function DateInput({
 
   const state = useDatePickerState(props);
   const ref = useRef(null);
-  const {
-    groupProps,
-    labelProps,
-    fieldProps,
-    buttonProps,
-    dialogProps,
-    calendarProps,
-  } = useDatePicker(props, state, ref);
-
-  const errorId = `datepicker-error-${useId()}`;
+  const { groupProps, fieldProps, buttonProps, dialogProps, calendarProps } =
+    useDatePicker(props, state, ref);
 
   return (
-    <div className={groupClassName}>
-      {/* {label && <Label {...labelProps}>{label}</Label>} */}
-      <div
+    <>
+      <span
+        data-slot="control"
+        data-disabled={disabled ? "true" : undefined}
+        data-invalid={invalid ? "true" : undefined}
         {...groupProps}
         ref={ref}
         className={clsx(
-          "flex w-full gap-2 justify-between border px-3 py-2 sm:text-sm min-w-44",
-          "rounded-md border-neutral-600 shadow-sm dark:border-white/10 dark:hover:border-white/20",
-          "bg-transparent dark:bg-white/5",
-          disabled && "cursor-not-allowed bg-gray-50 opacity-50",
+          // Layout
+          "inline-flex rounded-lg w-full gap-2 justify-between items-center px-[calc(--spacing(3.5)-1px)] py-[calc(--spacing(2.5)-1px)] sm:px-[calc(--spacing(3)-1px)] sm:py-[calc(--spacing(1.5)-1px)] min-w-44",
+          // Typography
+          "text-base/6 text-neutral-950 sm:text-sm/6 dark:text-white",
+          // Border
+          "border border-neutral-950/10 hover:border-neutral-950/20 dark:border-white/10 dark:hover:border-white/20 shadow-sm dark:shadow-none",
+          // Background color
+          "bg-white dark:bg-white/5",
+          // Invalid state
+          "data-invalid:border-accent-negative-500 data-invalid:hover:border-accent-negative-500 dark:data-invalid:border-accent-negative-600 dark:data-invalid:hover:border-accent-negative-600",
+          // Disabled state
+          "data-disabled:opacity-50 data-disabled:bg-neutral-950/5 data-disabled:shadow-none data-disabled:pointer-events-none",
           className,
         )}
       >
@@ -95,10 +96,9 @@ export function DateInput({
         />
         <DateField {...fieldProps} />
         <DatePickerButton {...buttonProps} isDisabled={disabled}>
-          <CalendarDaysIcon className="h-5 w-5 text-gray-400" />
+          <CalendarDaysIcon />
         </DatePickerButton>
-      </div>
-      {/* <ErrorMessage error={error} errorId={errorId} /> */}
+      </span>
       {state.isOpen && (
         <Popover state={state} triggerRef={ref} placement="bottom start">
           <Dialog {...dialogProps}>
@@ -106,7 +106,7 @@ export function DateInput({
           </Dialog>
         </Popover>
       )}
-    </div>
+    </>
   );
 }
 
@@ -121,18 +121,14 @@ function DateField(props: DateFieldProps) {
   });
 
   const ref = useRef(null);
-  const { labelProps, fieldProps } = useDateField(props, state, ref);
+  const { fieldProps } = useDateField(props, state, ref);
 
   return (
-    <div>
-      <span {...labelProps}>{props.label}</span>
-      <div {...fieldProps} ref={ref} className="flex gap-1">
-        {state.segments.map((segment, i) => (
-          <DateFieldSegment key={i} segment={segment} state={state} />
-        ))}
-        {state.isInvalid && <span aria-hidden="true">🚫</span>}
-      </div>
-    </div>
+    <span {...fieldProps} ref={ref} className="inline-flex gap-1">
+      {state.segments.map((segment, i) => (
+        <DateFieldSegment key={i} segment={segment} state={state} />
+      ))}
+    </span>
   );
 }
 
@@ -146,11 +142,11 @@ function DateFieldSegment({ segment, state }: DateFieldSegmentProps) {
   const { segmentProps } = useDateSegment(segment, state, ref);
 
   return (
-    <div
+    <span
       {...segmentProps}
       ref={ref}
       className={clsx(
-        "rounded-sm focus:outline-none focus:bg-accent-neutral-500 p-0.5",
+        "rounded-sm focus:outline-none focus:ring-2 focus:ring-accent-neutral-500",
         {
           "text-neutral-500":
             segment.isPlaceholder || segment.type === "literal",
@@ -158,7 +154,7 @@ function DateFieldSegment({ segment, state }: DateFieldSegmentProps) {
       )}
     >
       <ClientOnly fallback="">{segment.text}</ClientOnly>
-    </div>
+    </span>
   );
 }
 
@@ -217,13 +213,22 @@ function DatePickerButton(props: DatePickerButtonProps) {
   const { children } = props;
 
   return (
-    <button
+    <Headless.Button
       {...buttonProps}
       ref={ref}
-      className="rounded-sm text-gray-500 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+      className={clsx(
+        // Base
+        "rounded-sm -mx-1 px-1",
+        // Focus
+        "focus:outline-2 focus:outline-accent-neutral-500",
+        // Icon (base)
+        "*:data-[slot=icon]:-mx-0.5 *:data-[slot=icon]:my-0.5 *:data-[slot=icon]:size-5 *:data-[slot=icon]:shrink-0 *:data-[slot=icon]:self-center *:data-[slot=icon]:text-(--btn-icon) sm:*:data-[slot=icon]:my-1 sm:*:data-[slot=icon]:size-4 forced-colors:[--btn-icon:ButtonText] forced-colors:data-hover:[--btn-icon:ButtonText]",
+        // Icon (colors)
+        "[--btn-icon:var(--color-neutral-500)] data-active:[--btn-icon:var(--color-neutral-700)] data-hover:[--btn-icon:var(--color-neutral-700)] dark:[--btn-icon:var(--color-neutral-500)] dark:data-active:[--btn-icon:var(--color-neutral-400)] dark:hover:[--btn-icon:var(--color-neutral-400)]",
+      )}
     >
       {children}
-    </button>
+    </Headless.Button>
   );
 }
 
