@@ -32,6 +32,7 @@ import {
   useDeleteTransaction,
 } from "~/components/delete-transaction";
 import type { TransactionWithBookings } from "~/types";
+import { TextLink } from "~/platform/text";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const [account, bookings, allAccounts] = await Promise.all([
@@ -40,13 +41,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
       where: { accountId: params.accountId },
       include: {
         transaction: {
-          include: {
-            bookings: {
-              include: {
-                account: { select: { id: true, name: true } },
-              },
-            },
-          },
+          include: { bookings: true },
         },
       },
       orderBy: [{ date: "asc" }, { transaction: { createdAt: "asc" } }],
@@ -155,13 +150,19 @@ export default function AccountLedger() {
                 {lr.booking?.date.toISOString().split("T")[0]}
               </TableCell>
               <TableCell>
-                {lr.booking?.transaction.bookings
-                  .filter((b) => b.accountId !== account.id)
-                  .map((b) => b.account)
-                  .map((a, i, { length }) => (
-                    <Fragment key={a.id}>
-                      <Link to={`/accounts/${a.id}`}>{a.name}</Link>
-                      {i < length - 1 ? ", " : null}
+                {lr.booking &&
+                  Array.from(
+                    new Set(
+                      lr.booking.transaction.bookings
+                        .map((b) => b.accountId)
+                        .filter((accountId) => accountId !== account.id),
+                    ),
+                  ).map((accountId, i, arr) => (
+                    <Fragment key={accountId}>
+                      <TextLink href={`/accounts/${accountId}`}>
+                        {allAccounts.find((a) => a.id === accountId)?.name}
+                      </TextLink>
+                      {i < arr.length - 1 ? ", " : null}
                     </Fragment>
                   ))}
               </TableCell>

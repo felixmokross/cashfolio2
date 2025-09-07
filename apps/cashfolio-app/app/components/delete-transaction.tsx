@@ -17,8 +17,8 @@ export function useDeleteTransaction({
   const [transactionId, setTransactionId] = useState<string>();
 
   function onDeleteTransaction(transactionId: string) {
-    setAlertOpen(true);
     setTransactionId(transactionId);
+    setAlertOpen(true);
   }
   return {
     deleteTransactionProps: {

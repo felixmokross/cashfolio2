@@ -21,10 +21,15 @@ import {
 import { FormattedNumberInput } from "~/platform/forms/formatted-number-input";
 import { useState } from "react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/16/solid";
+import { Form } from "react-router";
+import { createId } from "@paralleldrive/cuid2";
 
-type Booking = {
-  id: number;
-  date?: string;
+type BookingFormValues = {
+  id: string;
+  date: string;
+  description: string;
+  accountId: string;
+  value: string;
 };
 
 export function useEditTransaction({
@@ -46,12 +51,12 @@ export function useEditTransaction({
       transaction,
     },
     onNewTransaction: () => {
-      setIsOpen(true);
       setTransaction(undefined);
+      setIsOpen(true);
     },
     onEditTransaction: (transaction: TransactionWithBookings) => {
-      setIsOpen(true);
       setTransaction(transaction);
+      setIsOpen(true);
     },
   };
 }
@@ -69,21 +74,12 @@ export function EditTransaction({
   returnToAccountId: string;
   transaction?: TransactionWithBookings;
 }) {
-  const [bookings, setBookings] = useState<Booking[]>(
-    transaction
-      ? transaction.bookings.map((b, i) => ({
-          id: i,
-          date: b.date.toISOString().split("T")[0],
-        }))
-      : addNewBooking(addNewBooking([])),
-  );
-  console.log(transaction);
   return (
-    <Dialog size="5xl" open={isOpen} onClose={onClose}>
-      <form
+    <Dialog size="5xl" open={isOpen} onClose={onClose} key={transaction?.id}>
+      <Form
         className="contents"
         action="/transactions"
-        method="POST"
+        method={transaction ? "PUT" : "POST"}
         onSubmit={() => onClose()}
       >
         <input
@@ -91,6 +87,7 @@ export function EditTransaction({
           name="returnToAccountId"
           value={returnToAccountId}
         />
+        <input type="hidden" name="transactionId" value={transaction?.id} />
         <DialogTitle>
           {transaction ? "Edit Transaction" : "New Transaction"}
         </DialogTitle>
@@ -104,88 +101,7 @@ export function EditTransaction({
                 defaultValue={transaction?.description}
               />
             </Field>
-            <div className="flex flex-col gap-4">
-              <Table bleed className="[--gutter:--spacing(8)]">
-                <TableHead>
-                  <TableRow>
-                    <TableHeader className="w-48">Date</TableHeader>
-                    <TableHeader>Account</TableHeader>
-                    <TableHeader>Description</TableHeader>
-                    <TableHeader className="w-36">Value</TableHeader>
-                    <TableHeader className="w-5">
-                      <span className="sr-only">Actions</span>
-                    </TableHeader>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {bookings.map((booking, i) => (
-                    <TableRow key={booking.id}>
-                      <TableCell>
-                        <DateInput
-                          name={`bookings[${i}][date]`}
-                          defaultValue={booking.date}
-                          onChange={(d) => {
-                            setBookings(
-                              bookings.map((b) =>
-                                b.id === booking.id
-                                  ? { ...b, date: d ? d.toString() : undefined }
-                                  : b,
-                              ),
-                            );
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <AccountCombobox
-                          name={`bookings[${i}][accountId]`}
-                          accounts={accounts}
-                          defaultValue={transaction?.bookings[i].accountId}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          name={`bookings[${i}][description]`}
-                          type="text"
-                          defaultValue={transaction?.bookings[i].description}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <FormattedNumberInput
-                          name={`bookings[${i}][value]`}
-                          defaultValue={transaction?.bookings[
-                            i
-                          ].value.toString()}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          hierarchy="tertiary"
-                          onClick={() =>
-                            setBookings(
-                              bookings.filter((b) => b.id !== booking.id),
-                            )
-                          }
-                        >
-                          <TrashIcon />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center">
-                      <Button
-                        type="button"
-                        hierarchy="secondary"
-                        onClick={() => setBookings(addNewBooking(bookings))}
-                      >
-                        <PlusIcon />
-                        Add booking
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
+            <BookingsTable transaction={transaction} accounts={accounts} />
           </FieldGroup>
         </DialogBody>
         <DialogActions>
@@ -194,19 +110,120 @@ export function EditTransaction({
           </Button>
           <Button type="submit">{transaction ? "Save" : "Create"}</Button>
         </DialogActions>
-      </form>
+      </Form>
     </Dialog>
   );
 }
 
-function addNewBooking(bookings: Booking[]) {
+function BookingsTable({
+  transaction,
+  accounts,
+}: {
+  transaction?: TransactionWithBookings;
+  accounts: AccountOption[];
+}) {
+  const [bookings, setBookings] = useState<BookingFormValues[]>(
+    transaction
+      ? transaction.bookings.map((b) => ({
+          id: b.id,
+          date: b.date.toISOString().split("T")[0],
+          description: b.description,
+          accountId: b.accountId,
+          value: b.value.toString(),
+        }))
+      : addNewBooking(addNewBooking([])),
+  );
+  return (
+    <Table bleed className="[--gutter:--spacing(8)]">
+      <TableHead>
+        <TableRow>
+          <TableHeader className="w-48">Date</TableHeader>
+          <TableHeader>Account</TableHeader>
+          <TableHeader>Description</TableHeader>
+          <TableHeader className="w-36">Value</TableHeader>
+          <TableHeader className="w-5">
+            <span className="sr-only">Actions</span>
+          </TableHeader>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {bookings.map((booking, i) => (
+          <TableRow key={booking.id}>
+            <TableCell>
+              <DateInput
+                name={`bookings[${i}][date]`}
+                defaultValue={booking.date}
+                onChange={(d) => {
+                  setBookings(
+                    bookings.map((b) =>
+                      b.id === booking.id
+                        ? { ...b, date: d ? d.toString() : "" }
+                        : b,
+                    ),
+                  );
+                }}
+              />
+            </TableCell>
+            <TableCell>
+              <AccountCombobox
+                name={`bookings[${i}][accountId]`}
+                accounts={accounts}
+                defaultValue={booking.accountId}
+              />
+            </TableCell>
+            <TableCell>
+              <Input
+                name={`bookings[${i}][description]`}
+                type="text"
+                defaultValue={booking.description}
+              />
+            </TableCell>
+            <TableCell>
+              <FormattedNumberInput
+                name={`bookings[${i}][value]`}
+                defaultValue={booking.value}
+              />
+            </TableCell>
+            <TableCell>
+              <Button
+                hierarchy="tertiary"
+                onClick={() =>
+                  setBookings(bookings.filter((b) => b.id !== booking.id))
+                }
+              >
+                <TrashIcon />
+              </Button>
+            </TableCell>
+          </TableRow>
+        ))}
+        <TableRow>
+          <TableCell colSpan={5} className="text-center">
+            <Button
+              type="button"
+              hierarchy="secondary"
+              onClick={() => setBookings(addNewBooking(bookings))}
+            >
+              <PlusIcon />
+              Add booking
+            </Button>
+          </TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
+  );
+}
+
+function addNewBooking(bookings: BookingFormValues[]) {
   return [
     ...bookings,
     {
-      id: bookings.length > 0 ? Math.max(...bookings.map((b) => b.id)) + 1 : 0,
+      id: createId(),
       date:
         bookings[bookings.length - 1]?.date ??
         new Date().toISOString().split("T")[0],
-    },
+      description: "",
+      accountId: "",
+      value: "",
+    } as BookingFormValues,
   ];
 }
