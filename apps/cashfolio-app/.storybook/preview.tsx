@@ -41,7 +41,7 @@ const preview: Preview = {
       return <Stub initialEntries={["/"]} />;
     },
     (Story, { globals }) => (
-      <div data-theme={getTheme(globals)}>
+      <div data-theme={getTheme(globals)} className="contents">
         <Story />
       </div>
     ),
