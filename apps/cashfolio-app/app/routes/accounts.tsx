@@ -195,6 +195,7 @@ export default function Accounts() {
       nodeType: "accountGroup",
     });
   }
+
   for (const a of accounts) {
     if (!childrenByParentId[a.groupId]) {
       childrenByParentId[a.groupId] = [];

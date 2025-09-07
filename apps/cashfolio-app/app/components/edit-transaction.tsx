@@ -23,6 +23,7 @@ import { useState } from "react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/16/solid";
 import { Form } from "react-router";
 import { createId } from "@paralleldrive/cuid2";
+import type { AccountGroup } from "@prisma/client";
 
 type BookingFormValues = {
   id: string;
@@ -35,8 +36,10 @@ type BookingFormValues = {
 export function useEditTransaction({
   accounts,
   returnToAccountId,
+  accountGroups,
 }: {
   accounts: AccountOption[];
+  accountGroups: AccountGroup[];
   returnToAccountId: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -47,6 +50,7 @@ export function useEditTransaction({
       isOpen,
       onClose: () => setIsOpen(false),
       accounts,
+      accountGroups,
       returnToAccountId,
       transaction,
     },
@@ -67,12 +71,14 @@ export function EditTransaction({
   accounts,
   returnToAccountId,
   transaction,
+  accountGroups,
 }: {
   isOpen: boolean;
   onClose: () => void;
   accounts: AccountOption[];
   returnToAccountId: string;
   transaction?: TransactionWithBookings;
+  accountGroups: AccountGroup[];
 }) {
   return (
     <Dialog size="5xl" open={isOpen} onClose={onClose} key={transaction?.id}>
@@ -101,7 +107,11 @@ export function EditTransaction({
                 defaultValue={transaction?.description}
               />
             </Field>
-            <BookingsTable transaction={transaction} accounts={accounts} />
+            <BookingsTable
+              transaction={transaction}
+              accounts={accounts}
+              accountGroups={accountGroups}
+            />
           </FieldGroup>
         </DialogBody>
         <DialogActions>
@@ -118,9 +128,11 @@ export function EditTransaction({
 function BookingsTable({
   transaction,
   accounts,
+  accountGroups,
 }: {
   transaction?: TransactionWithBookings;
   accounts: AccountOption[];
+  accountGroups: AccountGroup[];
 }) {
   const [bookings, setBookings] = useState<BookingFormValues[]>(
     transaction
@@ -169,6 +181,7 @@ function BookingsTable({
                 name={`bookings[${i}][accountId]`}
                 accounts={accounts}
                 defaultValue={booking.accountId}
+                accountGroups={accountGroups}
               />
             </TableCell>
             <TableCell>

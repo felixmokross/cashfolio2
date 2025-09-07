@@ -1,5 +1,5 @@
 import { Prisma, type Account, type Booking } from "@prisma/client";
-import { Link, useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { Fragment } from "react/jsx-runtime";
 import { Button } from "~/platform/button";
 import { Heading } from "~/platform/heading";
@@ -33,10 +33,14 @@ import {
 } from "~/components/delete-transaction";
 import type { TransactionWithBookings } from "~/types";
 import { TextLink } from "~/platform/text";
+import { getAccountGroupPath } from "~/utils";
 
 export async function loader({ params }: LoaderFunctionArgs) {
-  const [account, bookings, allAccounts] = await Promise.all([
-    prisma.account.findUnique({ where: { id: params.accountId } }),
+  const [account, bookings, allAccounts, accountGroups] = await Promise.all([
+    prisma.account.findUnique({
+      where: { id: params.accountId },
+      include: { group: { include: {} } },
+    }),
     prisma.booking.findMany({
       where: { accountId: params.accountId },
       include: {
@@ -47,15 +51,24 @@ export async function loader({ params }: LoaderFunctionArgs) {
       orderBy: [{ date: "asc" }, { transaction: { createdAt: "asc" } }],
     }),
     prisma.account.findMany({ orderBy: { name: "asc" } }),
+    prisma.accountGroup.findMany(),
   ]);
   if (!account) {
     throw new Response("Not Found", { status: 404 });
   }
 
+  function getAccountPath(account: Account) {
+    return `${getAccountGroupPath(account.groupId, accountGroups)} / ${
+      account.name
+    }`;
+  }
+
   return {
+    accountGroups,
     account: {
       ...account,
       openingBalance: account.openingBalance?.toString(),
+      path: getAccountPath(account),
     },
     ledgerRows: getLedgerRows(account, bookings)
       .map((lr) => ({
@@ -76,7 +89,12 @@ export async function loader({ params }: LoaderFunctionArgs) {
         balance: lr.balance.toString(),
       }))
       .reverse(),
-    allAccounts,
+    allAccounts: allAccounts
+      .map((a) => ({
+        ...a,
+        path: getAccountPath(a),
+      }))
+      .toSorted((a, b) => a.path.localeCompare(b.path)),
   };
 }
 
@@ -101,11 +119,13 @@ function getLedgerRows(account: Account, bookings: BookingWithTransaction[]) {
 }
 
 export default function AccountLedger() {
-  const { account, ledgerRows, allAccounts } = useLoaderData<typeof loader>();
+  const { account, ledgerRows, allAccounts, accountGroups } =
+    useLoaderData<typeof loader>();
   const { editTransactionProps, onNewTransaction, onEditTransaction } =
     useEditTransaction({
       returnToAccountId: account.id,
       accounts: allAccounts,
+      accountGroups,
     });
 
   const { deleteTransactionProps, onDeleteTransaction } = useDeleteTransaction({
@@ -115,7 +135,7 @@ export default function AccountLedger() {
   return (
     <>
       <div className="flex justify-between items-center">
-        <Heading>{account.name}</Heading>
+        <Heading>{account.path}</Heading>
 
         <Button hierarchy="primary" onClick={() => onNewTransaction()}>
           New Transaction
@@ -160,7 +180,7 @@ export default function AccountLedger() {
                   ).map((accountId, i, arr) => (
                     <Fragment key={accountId}>
                       <TextLink href={`/accounts/${accountId}`}>
-                        {allAccounts.find((a) => a.id === accountId)?.name}
+                        {allAccounts.find((a) => a.id === accountId)?.path}
                       </TextLink>
                       {i < arr.length - 1 ? ", " : null}
                     </Fragment>
