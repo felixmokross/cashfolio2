@@ -41,6 +41,7 @@ import {
   DropdownLabel,
   DropdownDivider,
 } from "./dropdown";
+import { Logo } from "~/components/logo";
 
 const meta = {
   component: Sidebar,
@@ -58,14 +59,14 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Primary: Story = {
+export const Default: Story = {
   args: {
     children: (
       <>
         <SidebarHeader>
           <Dropdown>
             <DropdownButton as={SidebarItem} className="mb-2.5">
-              <Avatar src="/tailwind-logo.svg" />
+              <Logo />
               <SidebarLabel>Tailwind Labs</SidebarLabel>
               <ChevronDownIcon />
             </DropdownButton>
@@ -145,7 +146,7 @@ export const Primary: Story = {
             <DropdownButton as={SidebarItem}>
               <span className="flex min-w-0 items-center gap-3">
                 <Avatar
-                  src="/profile-photo.jpg"
+                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
                   className="size-10"
                   square
                   alt=""
@@ -190,4 +191,14 @@ export const Primary: Story = {
       </>
     ),
   },
+};
+
+export const Light: Story = {
+  args: Default.args,
+  globals: { backgrounds: { value: "light" } },
+};
+
+export const Dark: Story = {
+  args: Default.args,
+  globals: { backgrounds: { value: "dark" } },
 };
