@@ -152,10 +152,10 @@ export const Default: Story = {
                   alt=""
                 />
                 <span className="min-w-0">
-                  <span className="block truncate text-sm/5 font-medium text-zinc-950 dark:text-white">
+                  <span className="block truncate text-sm/5 font-medium text-neutral-950 dark:text-white">
                     Erica
                   </span>
-                  <span className="block truncate text-xs/5 font-normal text-zinc-500 dark:text-zinc-400">
+                  <span className="block truncate text-xs/5 font-normal text-neutral-500 dark:text-neutral-400">
                     erica@example.com
                   </span>
                 </span>

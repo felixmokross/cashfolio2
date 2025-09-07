@@ -1,25 +1,8 @@
-import {
-  Prisma,
-  type Account,
-  type Booking,
-  type Transaction,
-} from "@prisma/client";
-import { useId } from "react";
-import {
-  Form,
-  Link,
-  useLoaderData,
-  type LoaderFunctionArgs,
-} from "react-router";
+import { Prisma, type Account, type Booking } from "@prisma/client";
+import { Link, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { Fragment } from "react/jsx-runtime";
 import { Button } from "~/platform/button";
-import {
-  Combobox,
-  ComboboxLabel,
-  ComboboxOption,
-} from "~/platform/forms/combobox";
 import { Heading } from "~/platform/heading";
-import { Input } from "~/platform/forms/input";
 import {
   Table,
   TableBody,
@@ -29,6 +12,26 @@ import {
   TableRow,
 } from "~/platform/table";
 import { prisma } from "~/prisma.server";
+import {
+  EditTransaction,
+  useEditTransaction,
+} from "~/components/edit-transaction";
+import {
+  EllipsisVerticalIcon,
+  PencilSquareIcon,
+  TrashIcon,
+} from "@heroicons/react/20/solid";
+import {
+  Dropdown,
+  DropdownButton,
+  DropdownItem,
+  DropdownMenu,
+} from "~/platform/dropdown";
+import {
+  DeleteTransaction,
+  useDeleteTransaction,
+} from "~/components/delete-transaction";
+import type { TransactionWithBookings } from "~/types";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const [account, bookings, allAccounts] = await Promise.all([
@@ -39,7 +42,9 @@ export async function loader({ params }: LoaderFunctionArgs) {
         transaction: {
           include: {
             bookings: {
-              include: { account: { select: { id: true, name: true } } },
+              include: {
+                account: { select: { id: true, name: true } },
+              },
             },
           },
         },
@@ -61,7 +66,17 @@ export async function loader({ params }: LoaderFunctionArgs) {
       .map((lr) => ({
         ...lr,
         booking: lr.booking
-          ? { ...lr.booking, value: lr.booking.value.toString() }
+          ? {
+              ...lr.booking,
+              value: lr.booking.value.toString(),
+              transaction: {
+                ...lr.booking.transaction,
+                bookings: lr.booking.transaction.bookings.map((b) => ({
+                  ...b,
+                  value: b.value.toString(),
+                })),
+              },
+            }
           : undefined,
         balance: lr.balance.toString(),
       }))
@@ -70,12 +85,6 @@ export async function loader({ params }: LoaderFunctionArgs) {
   };
 }
 
-type BookingWithAccountName = Booking & {
-  account: { id: string; name: string };
-};
-type TransactionWithBookings = Transaction & {
-  bookings: BookingWithAccountName[];
-};
 type BookingWithTransaction = Booking & {
   transaction: TransactionWithBookings;
 };
@@ -98,79 +107,45 @@ function getLedgerRows(account: Account, bookings: BookingWithTransaction[]) {
 
 export default function AccountLedger() {
   const { account, ledgerRows, allAccounts } = useLoaderData<typeof loader>();
-  const addFormId = useId();
+  const { editTransactionProps, onNewTransaction, onEditTransaction } =
+    useEditTransaction({
+      returnToAccountId: account.id,
+      accounts: allAccounts,
+    });
+
+  const { deleteTransactionProps, onDeleteTransaction } = useDeleteTransaction({
+    returnToAccountId: account.id,
+  });
+
   return (
     <>
-      <Heading>{account.name}</Heading>
+      <div className="flex justify-between items-center">
+        <Heading>{account.name}</Heading>
 
-      <Table grid dense bleed striped>
+        <Button hierarchy="primary" onClick={() => onNewTransaction()}>
+          New Transaction
+        </Button>
+      </div>
+
+      <EditTransaction {...editTransactionProps} />
+      <DeleteTransaction {...deleteTransactionProps} />
+
+      <Table
+        dense
+        bleed
+        striped
+        className="mt-8 [--gutter:--spacing(6)] lg:[--gutter:--spacing(10)]"
+      >
         <TableHead>
           <TableRow>
-            <TableHeader>Date</TableHeader>
+            <TableHeader className="w-32">Date</TableHeader>
             <TableHeader>Account(s)</TableHeader>
             <TableHeader>Description</TableHeader>
-            <TableHeader className="text-right">Value</TableHeader>
-            <TableHeader className="text-right">Balance</TableHeader>
-          </TableRow>
-          <TableRow>
-            <TableCell className="w-36">
-              <Input
-                name="date"
-                form={addFormId}
-                type="text"
-                placeholder="YYYY-MM-DD"
-              />
-            </TableCell>
-            <TableCell className="w-80">
-              <Combobox
-                name="targetAccountId"
-                form={addFormId}
-                displayValue={(o) => o?.label ?? ""}
-                placeholder="Account"
-                options={allAccounts.map((a) => ({
-                  value: a.id,
-                  label: a.name,
-                }))}
-              >
-                {(option) => (
-                  <ComboboxOption value={option}>
-                    <ComboboxLabel>{option.label}</ComboboxLabel>
-                  </ComboboxOption>
-                )}
-              </Combobox>
-            </TableCell>
-            <TableCell>
-              <Input
-                name="description"
-                form={addFormId}
-                type="text"
-                placeholder="Description"
-              />
-            </TableCell>
-            <TableCell className="w-36">
-              <Input
-                name="value"
-                form={addFormId}
-                type="text"
-                placeholder="Value"
-              />
-            </TableCell>
-            <TableCell>
-              <Form
-                id={addFormId}
-                method="POST"
-                action="/transactions"
-                className="contents"
-                onSubmit={(e) => e.currentTarget.reset()}
-              >
-                <input
-                  type="hidden"
-                  name="sourceAccountId"
-                  value={account.id}
-                />
-                <Button type="submit">Add</Button>
-              </Form>
-            </TableCell>
+            <TableHeader className="w-32 text-right">Value</TableHeader>
+            <TableHeader className="w-32 text-right">Balance</TableHeader>
+            <TableHeader className="w-4">
+              <span className="sr-only">Actions</span>
+            </TableHeader>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -202,6 +177,35 @@ export default function AccountLedger() {
               </TableCell>
               <TableCell className="text-right">{lr.booking?.value}</TableCell>
               <TableCell className="text-right">{lr.balance}</TableCell>
+              <TableCell>
+                {lr.booking && (
+                  <Dropdown>
+                    <DropdownButton hierarchy="tertiary">
+                      <EllipsisVerticalIcon />
+                    </DropdownButton>
+                    <DropdownMenu anchor="bottom end">
+                      <DropdownItem
+                        onClick={() =>
+                          // @ts-expect-error types don't match here since it was serialized
+                          // TODO properly type
+                          onEditTransaction(lr.booking!.transaction)
+                        }
+                      >
+                        <PencilSquareIcon />
+                        Edit
+                      </DropdownItem>
+                      <DropdownItem
+                        onClick={() =>
+                          onDeleteTransaction(lr.booking!.transactionId)
+                        }
+                      >
+                        <TrashIcon />
+                        Delete
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>
+                )}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

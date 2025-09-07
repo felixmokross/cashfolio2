@@ -25,7 +25,7 @@ const meta = {
           <TableRow key={user.handle}>
             <TableCell className="font-medium">{user.name}</TableCell>
             <TableCell>{user.email}</TableCell>
-            <TableCell className="text-zinc-500">{user.access}</TableCell>
+            <TableCell className="text-neutral-500">{user.access}</TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -117,7 +117,7 @@ export const WithRowLinks: Story = {
           <TableRow key={user.handle} href="#">
             <TableCell className="font-medium">{user.name}</TableCell>
             <TableCell>{user.email}</TableCell>
-            <TableCell className="text-zinc-500">{user.access}</TableCell>
+            <TableCell className="text-neutral-500">{user.access}</TableCell>
           </TableRow>
         ))}
       </TableBody>

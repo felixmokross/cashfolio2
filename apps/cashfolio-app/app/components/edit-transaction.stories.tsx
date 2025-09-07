@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { TransactionDialog } from "./transaction-dialog";
+import { EditTransaction } from "./edit-transaction";
 
 const meta = {
-  component: TransactionDialog,
-} satisfies Meta<typeof TransactionDialog>;
+  component: EditTransaction,
+} satisfies Meta<typeof EditTransaction>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

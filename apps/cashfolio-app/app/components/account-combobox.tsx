@@ -10,16 +10,24 @@ export function AccountCombobox({
   accounts,
   ...props
 }: Omit<
-  ComponentPropsWithoutRef<typeof Combobox<AccountOption>>,
+  ComponentPropsWithoutRef<typeof Combobox<string>>,
   "displayValue" | "options" | "children"
 > & {
   accounts: AccountOption[];
 }) {
   return (
-    <Combobox {...props} displayValue={(a) => a?.name ?? ""} options={accounts}>
-      {(account) => (
-        <ComboboxOption value={account}>
-          <ComboboxLabel>{account.name}</ComboboxLabel>
+    <Combobox
+      {...props}
+      displayValue={(accountId) =>
+        accounts.find((a) => a.id === accountId)?.name ?? ""
+      }
+      options={accounts.map((a) => a.id)}
+    >
+      {(accountId) => (
+        <ComboboxOption value={accountId}>
+          <ComboboxLabel>
+            {accounts.find((a) => a.id === accountId)?.name}
+          </ComboboxLabel>
         </ComboboxOption>
       )}
     </Combobox>

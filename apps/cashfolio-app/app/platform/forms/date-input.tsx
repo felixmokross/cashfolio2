@@ -46,6 +46,7 @@ type DateInputProps = {
   className?: string;
   invalid?: boolean;
   disabled?: boolean;
+  onChange?: (value: CalendarDate | null) => void;
 };
 
 export function DateInput({
@@ -53,11 +54,13 @@ export function DateInput({
   defaultValue,
   className,
   invalid,
+  onChange,
   disabled = false,
 }: DateInputProps) {
-  const props = {
+  const props: AriaDatePickerProps<CalendarDate> = {
     defaultValue: defaultValue ? parseDate(defaultValue) : undefined,
     isDisabled: disabled,
+    onChange,
   };
 
   const state = useDatePickerState(props);
