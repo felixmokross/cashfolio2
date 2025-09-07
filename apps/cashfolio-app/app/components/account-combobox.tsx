@@ -16,12 +16,7 @@ export function AccountCombobox({
   accounts: AccountOption[];
 }) {
   return (
-    <Combobox
-      {...props}
-      displayValue={(a) => a?.name ?? ""}
-      placeholder="Account"
-      options={accounts}
-    >
+    <Combobox {...props} displayValue={(a) => a?.name ?? ""} options={accounts}>
       {(account) => (
         <ComboboxOption value={account}>
           <ComboboxLabel>{account.name}</ComboboxLabel>

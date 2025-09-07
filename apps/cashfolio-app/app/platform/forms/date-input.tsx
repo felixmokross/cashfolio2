@@ -75,7 +75,7 @@ export function DateInput({
         ref={ref}
         className={clsx(
           // Layout
-          "inline-flex rounded-lg w-full gap-2 justify-between items-center px-[calc(--spacing(3.5)-1px)] py-[calc(--spacing(2.5)-1px)] sm:px-[calc(--spacing(3)-1px)] sm:py-[calc(--spacing(1.5)-1px)] min-w-44",
+          "inline-flex rounded-lg w-full gap-2 justify-between items-center px-[calc(--spacing(3.5)-1px)] py-[calc(--spacing(2.5)-1px)] sm:px-[calc(--spacing(3)-1px)] sm:py-[calc(--spacing(1.5)-1px)]",
           // Typography
           "text-base/6 text-neutral-950 sm:text-sm/6 dark:text-white",
           // Border

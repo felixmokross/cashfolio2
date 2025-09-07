@@ -9,7 +9,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Primary: Story = {
+export const Default: Story = {
   args: {
     isOpen: true,
     onClose: () => {},
@@ -20,4 +20,14 @@ export const Primary: Story = {
       { id: "4", name: "Savings" },
     ],
   },
+};
+
+export const Light: Story = {
+  args: Default.args,
+  globals: { backgrounds: { value: "light" } },
+};
+
+export const Dark: Story = {
+  args: Default.args,
+  globals: { backgrounds: { value: "dark" } },
 };
