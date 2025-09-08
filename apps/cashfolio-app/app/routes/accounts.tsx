@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Form,
   redirect,
@@ -6,23 +5,6 @@ import {
   type ActionFunctionArgs,
 } from "react-router";
 import { Button } from "~/platform/button";
-import {
-  Dialog,
-  DialogActions,
-  DialogBody,
-  DialogDescription,
-  DialogTitle,
-} from "~/platform/dialog";
-import {
-  Description,
-  Field,
-  FieldGroup,
-  Fieldset,
-  Label,
-} from "~/platform/forms/fieldset";
-import { Input } from "~/platform/forms/input";
-import { Radio, RadioField, RadioGroup } from "~/platform/forms/radio";
-import { Select } from "~/platform/forms/select";
 import { prisma } from "~/prisma.server";
 import {
   AccountType,
@@ -46,21 +28,28 @@ import {
   TrashIcon,
   WalletIcon,
 } from "@heroicons/react/24/outline";
-import {
-  Combobox,
-  ComboboxLabel,
-  ComboboxOption,
-} from "~/platform/forms/combobox";
 import { Link } from "~/platform/link";
+import { Heading } from "~/platform/heading";
+import { serialize, type Serialize } from "~/serialization";
+import { formatMoney } from "~/formatting";
+import { EditAccount, useEditAccount } from "~/components/edit-account";
+import {
+  EditAccountGroup,
+  useEditAccountGroup,
+} from "~/components/edit-account-group";
+import { getAccountGroupPath } from "~/utils";
 
 export async function loader() {
-  return {
-    accountGroups: await prisma.accountGroup.findMany(),
-    accounts: (await prisma.account.findMany()).map((a) => ({
-      ...a,
-      openingBalance: a.openingBalance ? a.openingBalance.toString() : null,
+  const accountGroups = await prisma.accountGroup.findMany({
+    orderBy: { name: "asc" },
+  });
+  return serialize({
+    accountGroups: accountGroups.map((ag) => ({
+      ...ag,
+      path: getAccountGroupPath(ag.id, accountGroups),
     })),
-  };
+    accounts: await prisma.account.findMany({ orderBy: { name: "asc" } }),
+  });
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -177,12 +166,13 @@ async function deleteAccount({ request }: { request: Request }) {
 }
 
 export default function Accounts() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const [isGroupOpen, setIsGroupOpen] = useState(false);
   const { accounts, accountGroups } = useLoaderData<typeof loader>();
-  const [selectedUnit, setSelectedUnit] = useState<AccountUnit>("CURRENCY");
-  const [selectedType, setSelectedType] = useState<AccountType>("ASSET");
+
+  const { editAccountProps, onNewAccount, onEditAccount } = useEditAccount({
+    accountGroups,
+  });
+  const { editAccountGroupProps, onNewAccountGroup, onEditAccountGroup } =
+    useEditAccountGroup({ accountGroups });
 
   const childrenByParentId: Record<string, Node[]> = {};
   for (const g of accountGroups) {
@@ -205,253 +195,25 @@ export default function Accounts() {
 
   return (
     <div>
-      <div className="flex gap-4">
-        <Button
-          onClick={() => {
-            setIsOpen(true);
-            setSelectedNode(null);
-            setSelectedType("ASSET");
-            setSelectedUnit("CURRENCY");
-          }}
-        >
-          New Account
-        </Button>
-        <Button
-          onClick={() => {
-            setIsGroupOpen(true);
-            setSelectedNode(null);
-            setSelectedType("ASSET");
-          }}
-        >
-          New Group
-        </Button>
+      <div className="flex justify-between items-center">
+        <Heading>Accounts</Heading>
+        <div className="flex gap-4">
+          <Button hierarchy="secondary" onClick={() => onNewAccount()}>
+            New Account
+          </Button>
+          <Button hierarchy="secondary" onClick={() => onNewAccountGroup()}>
+            New Group
+          </Button>
+        </div>
       </div>
-      <Dialog open={isOpen} onClose={setIsOpen} size="3xl">
-        <Form
-          method={selectedNode ? "PUT" : "POST"}
-          onSubmit={() => setIsOpen(false)}
-        >
-          {!!selectedNode && (
-            <input type="hidden" name="id" value={selectedNode.id} />
-          )}
-          <DialogTitle>
-            {selectedNode ? `Edit ${selectedNode?.name}` : "New Account"}
-          </DialogTitle>
-          <DialogDescription>
-            The refund will be reflected in the customer’s bank account 2 to 3
-            business days after processing.
-          </DialogDescription>
-          <DialogBody>
-            <Fieldset>
-              <FieldGroup>
-                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
-                  <Field>
-                    <Label>Name</Label>
-                    <Input name="name" defaultValue={selectedNode?.name} />
-                  </Field>
-                  <Field disabled={!!selectedNode}>
-                    <Label>Type</Label>
-                    <RadioGroup
-                      name="type"
-                      defaultValue={selectedNode?.type || "ASSET"}
-                      onChange={(value) =>
-                        setSelectedType(value as AccountType)
-                      }
-                    >
-                      <RadioField>
-                        <Radio value="ASSET" />
-                        <Label>Asset</Label>
-                      </RadioField>
-                      <RadioField>
-                        <Radio value="LIABILITY" />
-                        <Label>Liability</Label>
-                      </RadioField>
-                      <RadioField>
-                        <Radio value="INCOME" />
-                        <Label>Income</Label>
-                      </RadioField>
-                      <RadioField>
-                        <Radio value="EXPENSE" />
-                        <Label>Expense</Label>
-                      </RadioField>
-                    </RadioGroup>
-                  </Field>
-                </div>
-                <Field>
-                  <Label>Group</Label>
-                  <Select
-                    name="groupId"
-                    defaultValue={(selectedNode as Account)?.groupId}
-                  >
-                    {accountGroups
-                      .filter((g) => g.type === selectedType)
-                      .map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.name}
-                        </option>
-                      ))}
-                  </Select>
-                </Field>
-                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
-                  <Field>
-                    <Label>Unit</Label>
-                    <RadioGroup
-                      name="unit"
-                      defaultValue={
-                        (selectedNode as Account)?.unit || "CURRENCY"
-                      }
-                      onChange={(v) => setSelectedUnit(v as AccountUnit)}
-                    >
-                      <RadioField>
-                        <Radio value="CURRENCY" />
-                        <Label>Currency</Label>
-                        <Description>
-                          Customers can resell or transfer their tickets if they
-                          can’t make it to the event.
-                        </Description>
-                      </RadioField>
-                      <RadioField>
-                        <Radio value="SECURITY" />
-                        <Label>Security</Label>
-                        <Description>
-                          Tickets cannot be resold or transferred to another
-                          person.
-                        </Description>
-                      </RadioField>
-                    </RadioGroup>
-                  </Field>
-                  {selectedUnit === "CURRENCY" && (
-                    <Field>
-                      <Label>Currency</Label>
-                      <Combobox<string>
-                        name="currency"
-                        defaultValue={
-                          (selectedNode as Account)?.currency || "CHF"
-                        }
-                        displayValue={(o) => o ?? ""}
-                        options={[
-                          "CHF",
-                          "EUR",
-                          "USD",
-                          "GBP",
-                          "JPY",
-                          "AUD",
-                          "CAD",
-                          "CNY",
-                          "INR",
-                        ]}
-                      >
-                        {(option) => (
-                          <ComboboxOption value={option}>
-                            <ComboboxLabel>{option}</ComboboxLabel>
-                          </ComboboxOption>
-                        )}
-                      </Combobox>
-                    </Field>
-                  )}
-                </div>
-                {(selectedType === "ASSET" || selectedType === "LIABILITY") && (
-                  <Field>
-                    <Label>Opening Balance</Label>
-                    <Input
-                      name="openingBalance"
-                      defaultValue={(
-                        selectedNode as Account
-                      )?.openingBalance?.toString()}
-                    />
-                  </Field>
-                )}
-              </FieldGroup>
-            </Fieldset>
-          </DialogBody>
-          <DialogActions>
-            <Button hierarchy="tertiary" onClick={() => setIsOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">{selectedNode ? "Save" : "Create"}</Button>
-          </DialogActions>
-        </Form>
-      </Dialog>
-      <Dialog open={isGroupOpen} onClose={setIsGroupOpen} size="3xl">
-        <Form
-          method={selectedNode ? "PUT" : "POST"}
-          action="/account-groups"
-          className="contents"
-          onSubmit={() => setIsGroupOpen(false)}
-        >
-          {!!selectedNode && (
-            <input type="hidden" name="id" value={selectedNode.id} />
-          )}
-          <DialogTitle>
-            {selectedNode ? `Edit ${selectedNode.name}` : "New Group"}
-          </DialogTitle>
-          <DialogBody>
-            <FieldGroup>
-              <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
-                <Field>
-                  <Label>Name</Label>
-                  <Input name="name" defaultValue={selectedNode?.name} />
-                </Field>
-                <Field disabled={!!selectedNode}>
-                  <Label>Type</Label>
-                  <RadioGroup
-                    name="type"
-                    defaultValue={selectedNode?.type || "ASSET"}
-                    onChange={(value) => setSelectedType(value as AccountType)}
-                  >
-                    <RadioField>
-                      <Radio value="ASSET" />
-                      <Label>Asset</Label>
-                    </RadioField>
-                    <RadioField>
-                      <Radio value="LIABILITY" />
-                      <Label>Liability</Label>
-                    </RadioField>
-                    <RadioField>
-                      <Radio value="INCOME" />
-                      <Label>Income</Label>
-                    </RadioField>
-                    <RadioField>
-                      <Radio value="EXPENSE" />
-                      <Label>Expense</Label>
-                    </RadioField>
-                  </RadioGroup>
-                </Field>
-              </div>
-              <Field>
-                <Label>Parent Group</Label>
-                <Select
-                  name="parentGroupId"
-                  defaultValue={
-                    (selectedNode as AccountGroup)?.parentGroupId ?? ""
-                  }
-                >
-                  <option value="">(none)</option>
-                  {accountGroups
-                    .filter((g) => g.type === selectedType)
-                    .filter(
-                      selectedNode
-                        ? (g) => g.id !== selectedNode.id
-                        : () => true,
-                    )
-                    .map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.name}
-                      </option>
-                    ))}
-                </Select>
-              </Field>
-            </FieldGroup>
-          </DialogBody>
-          <DialogActions>
-            <Button hierarchy="tertiary" onClick={() => setIsGroupOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">{selectedNode ? "Save" : "Create"}</Button>
-          </DialogActions>
-        </Form>
-      </Dialog>
-      <Table bleed grid className="mt-8">
+      <EditAccount {...editAccountProps} />
+      <EditAccountGroup {...editAccountGroupProps} />
+      <Table
+        bleed
+        dense
+        striped
+        className="mt-8 [--gutter:--spacing(6)] lg:[--gutter:--spacing(10)]"
+      >
         <TableHead>
           <TableRow>
             <TableHeader>Name</TableHeader>
@@ -459,7 +221,9 @@ export default function Accounts() {
             <TableHeader>Unit</TableHeader>
             <TableHeader>Currency</TableHeader>
             <TableHeader className="text-right">Opening Balance</TableHeader>
-            <TableHeader>Actions</TableHeader>
+            <TableHeader className="w-10">
+              <span className="sr-only">Actions</span>
+            </TableHeader>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -472,14 +236,10 @@ export default function Accounts() {
                 childrenByParentId={childrenByParentId}
                 level={0}
                 onEdit={(node) => {
-                  setSelectedNode(node);
-                  setSelectedType(node.type);
-
                   if (node.nodeType === "account") {
-                    setSelectedUnit(node.unit);
-                    setIsOpen(true);
+                    onEditAccount(node);
                   } else {
-                    setIsGroupOpen(true);
+                    onEditAccountGroup(node);
                   }
                 }}
               />
@@ -492,12 +252,10 @@ export default function Accounts() {
 
 type Node = AccountGroupNode | AccountNode;
 
-type AccountGroupNode = AccountGroup & { nodeType: "accountGroup" };
-type AccountNode = SerializedAccount & { nodeType: "account" };
-
-type SerializedAccount = Omit<Account, "openingBalance"> & {
-  openingBalance: string | null;
+type AccountGroupNode = Serialize<AccountGroup> & {
+  nodeType: "accountGroup";
 };
+type AccountNode = Serialize<Account> & { nodeType: "account" };
 
 function AccountGroupItem({
   childrenByParentId,
@@ -585,10 +343,20 @@ function NodeRow({
         {node.nodeType === "account" ? node.currency : null}
       </TableCell>
       <TableCell className="text-right">
-        {node.nodeType === "account" ? node.openingBalance : null}
+        {node.nodeType === "account" && node.openingBalance
+          ? formatMoney(node.openingBalance)
+          : null}
       </TableCell>
       <TableCell>
         <div className="flex gap-2 items-center">
+          <Button
+            hierarchy="tertiary"
+            onClick={() => {
+              onEdit?.(node);
+            }}
+          >
+            <PencilSquareIcon />
+          </Button>
           <Form
             method="DELETE"
             action={
@@ -597,21 +365,10 @@ function NodeRow({
             className="contents"
           >
             <input type="hidden" name="id" value={node.id} />
-            <button
-              className="text-gray-400 disabled:cursor-not-allowed hover:text-gray-700 disabled:opacity-50 disabled:pointer-events-none"
-              type="submit"
-            >
-              <TrashIcon className="size-5" />
-            </button>
+            <Button type="submit" hierarchy="tertiary">
+              <TrashIcon />
+            </Button>
           </Form>
-          <button
-            className="text-gray-400 disabled:cursor-not-allowed hover:text-gray-700 disabled:opacity-50 disabled:pointer-events-none"
-            onClick={() => {
-              onEdit?.(node);
-            }}
-          >
-            <PencilSquareIcon className="size-5" />
-          </button>
         </div>
       </TableCell>
     </TableRow>

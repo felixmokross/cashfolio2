@@ -1,4 +1,3 @@
-import type { AccountGroup } from "@prisma/client";
 import type { ComponentPropsWithoutRef } from "react";
 import {
   Combobox,
@@ -9,14 +8,12 @@ import type { AccountOption } from "~/types";
 
 export function AccountCombobox({
   accounts,
-  accountGroups,
   ...props
 }: Omit<
   ComponentPropsWithoutRef<typeof Combobox<string>>,
   "displayValue" | "options" | "children"
 > & {
   accounts: AccountOption[];
-  accountGroups: AccountGroup[];
 }) {
   function getDisplayValue(accountId: string) {
     const account = accounts.find((a) => a.id === accountId);

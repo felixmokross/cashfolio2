@@ -2,7 +2,7 @@ import type { AccountGroup } from "@prisma/client";
 
 export function getAccountGroupPath(
   accountGroupId: string,
-  accountGroups: AccountGroup[],
+  accountGroups: Pick<AccountGroup, "id" | "parentGroupId" | "name">[],
 ): string {
   const accountGroup = accountGroups.find((g) => g.id === accountGroupId);
   if (!accountGroup) return `Unknown group ${accountGroupId}`;

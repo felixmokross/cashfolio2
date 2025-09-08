@@ -23,7 +23,7 @@ import { useState } from "react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/16/solid";
 import { Form } from "react-router";
 import { createId } from "@paralleldrive/cuid2";
-import type { AccountGroup } from "@prisma/client";
+import type { Serialize } from "~/serialization";
 
 type BookingFormValues = {
   id: string;
@@ -36,21 +36,19 @@ type BookingFormValues = {
 export function useEditTransaction({
   accounts,
   returnToAccountId,
-  accountGroups,
 }: {
   accounts: AccountOption[];
-  accountGroups: AccountGroup[];
   returnToAccountId: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [transaction, setTransaction] = useState<TransactionWithBookings>();
+  const [transaction, setTransaction] =
+    useState<Serialize<TransactionWithBookings>>();
 
   return {
     editTransactionProps: {
       isOpen,
       onClose: () => setIsOpen(false),
       accounts,
-      accountGroups,
       returnToAccountId,
       transaction,
     },
@@ -58,7 +56,7 @@ export function useEditTransaction({
       setTransaction(undefined);
       setIsOpen(true);
     },
-    onEditTransaction: (transaction: TransactionWithBookings) => {
+    onEditTransaction: (transaction: Serialize<TransactionWithBookings>) => {
       setTransaction(transaction);
       setIsOpen(true);
     },
@@ -71,14 +69,12 @@ export function EditTransaction({
   accounts,
   returnToAccountId,
   transaction,
-  accountGroups,
 }: {
   isOpen: boolean;
   onClose: () => void;
   accounts: AccountOption[];
   returnToAccountId: string;
-  transaction?: TransactionWithBookings;
-  accountGroups: AccountGroup[];
+  transaction?: Serialize<TransactionWithBookings>;
 }) {
   return (
     <Dialog size="5xl" open={isOpen} onClose={onClose} key={transaction?.id}>
@@ -107,11 +103,7 @@ export function EditTransaction({
                 defaultValue={transaction?.description}
               />
             </Field>
-            <BookingsTable
-              transaction={transaction}
-              accounts={accounts}
-              accountGroups={accountGroups}
-            />
+            <BookingsTable transaction={transaction} accounts={accounts} />
           </FieldGroup>
         </DialogBody>
         <DialogActions>
@@ -128,17 +120,15 @@ export function EditTransaction({
 function BookingsTable({
   transaction,
   accounts,
-  accountGroups,
 }: {
-  transaction?: TransactionWithBookings;
+  transaction?: Serialize<TransactionWithBookings>;
   accounts: AccountOption[];
-  accountGroups: AccountGroup[];
 }) {
   const [bookings, setBookings] = useState<BookingFormValues[]>(
     transaction
       ? transaction.bookings.map((b) => ({
           id: b.id,
-          date: b.date.toISOString().split("T")[0],
+          date: b.date.split("T")[0],
           description: b.description,
           accountId: b.accountId,
           value: b.value.toString(),
@@ -181,7 +171,6 @@ function BookingsTable({
                 name={`bookings[${i}][accountId]`}
                 accounts={accounts}
                 defaultValue={booking.accountId}
-                accountGroups={accountGroups}
               />
             </TableCell>
             <TableCell>

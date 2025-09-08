@@ -35,6 +35,7 @@ const preview: Preview = {
         {
           path: "*",
           Component: Story,
+          loader: () => ({}),
         },
       ]);
 

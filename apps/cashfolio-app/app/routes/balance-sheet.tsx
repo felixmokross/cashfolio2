@@ -1,101 +1,105 @@
-import {
-  Table,
-  TableHead,
-  TableRow,
-  TableHeader,
-  TableBody,
-  TableCell,
-} from "~/platform/table";
+import { Prisma } from "@prisma/client";
+import { useLoaderData } from "react-router";
+import { BalanceSheetPage } from "~/components/balance-sheet-page";
+import { prisma } from "~/prisma.server";
+import { serialize } from "~/serialization";
+import type { AccountsNode } from "~/types";
 
-export default function BalanceSheet() {
-  return (
-    <div className="grid grid-cols-2 gap-12">
-      <Table dense bleed grid striped>
-        <TableHead>
-          <TableRow>
-            <TableHeader>Assets</TableHeader>
-            <TableHeader align="right">CHF 30'000</TableHeader>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          <TableRow>
-            <TableCell>Cash</TableCell>
-            <TableCell align="right">CHF 10'000</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell>
-              <span className="pl-8">Account A</span>
-            </TableCell>
-            <TableCell align="right">CHF 2'000</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell>
-              <span className="pl-8">Account B</span>
-            </TableCell>
-            <TableCell align="right">CHF 2'000</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell>
-              <span className="pl-8">Category C</span>
-            </TableCell>
-            <TableCell align="right">CHF 2'000</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell>
-              <span className="pl-16">Account D</span>
-            </TableCell>
-            <TableCell align="right">CHF 2'000</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell>
-              <span className="pl-16">Account E</span>
-            </TableCell>
-            <TableCell align="right">CHF 2'000</TableCell>
-          </TableRow>
-          <TableRow>
-            <TableCell>Receivable</TableCell>
-            <TableCell align="right">CHF 5'000</TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-      <div className="space-y-12">
-        <Table bleed dense grid striped>
-          <TableHead>
-            <TableRow>
-              <TableHeader>Liabilities</TableHeader>
-              <TableHeader align="right">CHF 2'000</TableHeader>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <TableRow>
-              <TableCell>Credit Card</TableCell>
-              <TableCell align="right">CHF 1'400</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Other Loan</TableCell>
-              <TableCell align="right">CHF 600</TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-        <Table dense bleed grid striped>
-          <TableHead>
-            <TableRow>
-              <TableHeader>Net Worth</TableHeader>
-              <TableHeader align="right">CHF 28'000</TableHeader>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <TableRow>
-              <TableCell>Opening Balance 2024</TableCell>
-              <TableCell align="right">CHF 23'000</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Profit 2024</TableCell>
-              <TableCell align="right">CHF 7'000</TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-  );
+export async function loader() {
+  const [accounts, accountGroups] = await Promise.all([
+    prisma.account.findMany({
+      orderBy: { name: "asc" },
+      include: { bookings: true },
+    }),
+    prisma.accountGroup.findMany({ orderBy: { name: "asc" } }),
+  ]);
+
+  // TODO reuse from Accounts page
+  const childrenByParentId: Record<string, AccountsNode[]> = {};
+  for (const g of accountGroups) {
+    if (!g.parentGroupId) continue;
+    if (!childrenByParentId[g.parentGroupId]) {
+      childrenByParentId[g.parentGroupId] = [];
+    }
+    childrenByParentId[g.parentGroupId].push({
+      ...g,
+      nodeType: "accountGroup",
+      balance: new Prisma.Decimal(0),
+      children: [],
+    });
+  }
+
+  for (const a of accounts) {
+    if (!childrenByParentId[a.groupId]) {
+      childrenByParentId[a.groupId] = [];
+    }
+    childrenByParentId[a.groupId].push({
+      ...a,
+      nodeType: "account",
+      balance: (a.openingBalance ?? new Prisma.Decimal(0)).plus(
+        a.bookings
+          .map((b) => b.value)
+          .reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0)),
+      ),
+      children: [],
+    });
+  }
+
+  function getRootNode(type: "ASSET" | "LIABILITY") {
+    const rootGroup = accountGroups.find(
+      (g) => !g.parentGroupId && g.type === type,
+    );
+    if (!rootGroup) throw new Error(`Root group of type ${type} not found!`);
+    return getNodeWithChildren({
+      ...rootGroup,
+      nodeType: "accountGroup",
+      balance: new Prisma.Decimal(0),
+      children: [],
+    });
+  }
+
+  function getNodeWithChildren(node: AccountsNode): AccountsNode {
+    const children =
+      node.nodeType === "accountGroup"
+        ? childrenByParentId[node.id]?.map(getNodeWithChildren) || []
+        : [];
+
+    const balance =
+      node.nodeType === "account"
+        ? node.balance
+        : children
+            .map((c) => c.balance)
+            .reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0));
+    return {
+      ...node,
+      children,
+      balance,
+    };
+  }
+
+  const assets = getRootNode("ASSET");
+  const liabilities = getRootNode("LIABILITY");
+  return serialize({
+    balanceSheet: {
+      assets,
+      liabilities,
+      netWorth: assets.balance.plus(liabilities.balance),
+      openingBalance: accounts
+        .filter((a) => ["ASSET", "LIABILITY"].includes(a.type))
+        .map((a) => a.openingBalance ?? new Prisma.Decimal(0))
+        .reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0)),
+      profitAndLoss: accounts
+        .filter((a) => ["INCOME", "EXPENSE"].includes(a.type))
+        .flatMap((a) => a.bookings.map((b) => b.value))
+        .reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0))
+        .negated(),
+    },
+  });
+}
+
+type LoaderData = Awaited<ReturnType<typeof loader>>;
+
+export default function Route() {
+  const { balanceSheet } = useLoaderData<LoaderData>();
+  return <BalanceSheetPage loaderData={{ balanceSheet }} />;
 }

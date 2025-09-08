@@ -34,6 +34,8 @@ import {
 import type { TransactionWithBookings } from "~/types";
 import { TextLink } from "~/platform/text";
 import { getAccountGroupPath } from "~/utils";
+import { serialize } from "~/serialization";
+import { formatDate, formatMoney } from "~/formatting";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const [account, bookings, allAccounts, accountGroups] = await Promise.all([
@@ -63,39 +65,19 @@ export async function loader({ params }: LoaderFunctionArgs) {
     }`;
   }
 
-  return {
-    accountGroups,
+  return serialize({
     account: {
       ...account,
-      openingBalance: account.openingBalance?.toString(),
       path: getAccountPath(account),
     },
-    ledgerRows: getLedgerRows(account, bookings)
-      .map((lr) => ({
-        ...lr,
-        booking: lr.booking
-          ? {
-              ...lr.booking,
-              value: lr.booking.value.toString(),
-              transaction: {
-                ...lr.booking.transaction,
-                bookings: lr.booking.transaction.bookings.map((b) => ({
-                  ...b,
-                  value: b.value.toString(),
-                })),
-              },
-            }
-          : undefined,
-        balance: lr.balance.toString(),
-      }))
-      .reverse(),
+    ledgerRows: getLedgerRows(account, bookings).reverse(),
     allAccounts: allAccounts
       .map((a) => ({
         ...a,
         path: getAccountPath(a),
       }))
       .toSorted((a, b) => a.path.localeCompare(b.path)),
-  };
+  });
 }
 
 type BookingWithTransaction = Booking & {
@@ -119,13 +101,11 @@ function getLedgerRows(account: Account, bookings: BookingWithTransaction[]) {
 }
 
 export default function AccountLedger() {
-  const { account, ledgerRows, allAccounts, accountGroups } =
-    useLoaderData<typeof loader>();
+  const { account, ledgerRows, allAccounts } = useLoaderData<typeof loader>();
   const { editTransactionProps, onNewTransaction, onEditTransaction } =
     useEditTransaction({
       returnToAccountId: account.id,
       accounts: allAccounts,
-      accountGroups,
     });
 
   const { deleteTransactionProps, onDeleteTransaction } = useDeleteTransaction({
@@ -167,7 +147,7 @@ export default function AccountLedger() {
           {ledgerRows.map((lr) => (
             <TableRow key={lr.booking?.id ?? "opening-balance"}>
               <TableCell>
-                {lr.booking?.date.toISOString().split("T")[0]}
+                {lr.booking ? formatDate(lr.booking.date) : null}
               </TableCell>
               <TableCell>
                 {lr.booking &&
@@ -196,8 +176,12 @@ export default function AccountLedger() {
                   "Opening Balance"
                 )}
               </TableCell>
-              <TableCell className="text-right">{lr.booking?.value}</TableCell>
-              <TableCell className="text-right">{lr.balance}</TableCell>
+              <TableCell className="text-right">
+                {lr.booking && formatMoney(lr.booking.value)}
+              </TableCell>
+              <TableCell className="text-right">
+                {formatMoney(lr.balance)}
+              </TableCell>
               <TableCell>
                 {lr.booking && (
                   <Dropdown>
@@ -207,8 +191,6 @@ export default function AccountLedger() {
                     <DropdownMenu anchor="bottom end">
                       <DropdownItem
                         onClick={() =>
-                          // @ts-expect-error types don't match here since it was serialized
-                          // TODO properly type
                           onEditTransaction(lr.booking!.transaction)
                         }
                       >
