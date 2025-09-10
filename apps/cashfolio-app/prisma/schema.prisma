@@ -87,6 +87,8 @@ model Booking {
   accountId String
   account   Account @relation(fields: [accountId], references: [id])
 
+  currency String
+
   value Decimal
 
   @@id([id])

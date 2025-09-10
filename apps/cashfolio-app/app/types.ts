@@ -29,8 +29,11 @@ type BaseAccountsNode = {
   children: AccountsNode[];
 };
 export type AccountGroupNode = BaseAccountsNode &
-  AccountGroup & { nodeType: "accountGroup" };
+  AccountGroup & {
+    nodeType: "accountGroup";
+  };
 export type AccountNode = BaseAccountsNode &
   Account & {
     nodeType: "account";
+    balanceInOriginalCurrency: Prisma.Decimal;
   };

@@ -27,6 +27,7 @@ import { Radio, RadioField, RadioGroup } from "~/platform/forms/radio";
 import type { Serialize } from "~/serialization";
 import { AccountGroupCombobox } from "./account-group-combobox";
 import type { AccountGroupOption } from "~/types";
+import { CurrencyCombobox } from "./currency-combobox";
 
 export function useEditAccount({
   accountGroups,
@@ -158,28 +159,10 @@ export function EditAccount({
                 {selectedUnit === "CURRENCY" && (
                   <Field>
                     <Label>Currency</Label>
-                    <Combobox<string>
+                    <CurrencyCombobox
                       name="currency"
                       defaultValue={account?.currency || "CHF"}
-                      displayValue={(o) => o ?? ""}
-                      options={[
-                        "CHF",
-                        "EUR",
-                        "USD",
-                        "GBP",
-                        "JPY",
-                        "AUD",
-                        "CAD",
-                        "CNY",
-                        "INR",
-                      ]}
-                    >
-                      {(option) => (
-                        <ComboboxOption value={option}>
-                          <ComboboxLabel>{option}</ComboboxLabel>
-                        </ComboboxOption>
-                      )}
-                    </Combobox>
+                    />
                   </Field>
                 )}
               </div>

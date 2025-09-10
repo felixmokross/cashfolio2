@@ -2,6 +2,7 @@ import { WalletIcon } from "@heroicons/react/20/solid";
 import clsx from "clsx";
 import { formatMoney } from "~/formatting";
 import { Heading } from "~/platform/heading";
+import { Text } from "~/platform/text";
 import {
   Table,
   TableBody,
@@ -24,12 +25,16 @@ export function BalanceSheetPage({
   return (
     <>
       <Heading>Balances</Heading>
+      <Text>Reference Currency: CHF</Text>
       <div className="grid grid-cols-2 gap-12 mt-8">
         <Table dense bleed striped>
           <TableHead>
             <TableRow>
               <TableHeader>{balanceSheet.assets.name}</TableHeader>
-              <TableHeader align="right" className="w-32">
+              <TableHeader className="text-right w-32">
+                <span className="sr-only">Balance in Original Currency</span>
+              </TableHeader>
+              <TableHeader className="text-right w-32">
                 {formatMoney(balanceSheet.assets.balance)}
               </TableHeader>
             </TableRow>
@@ -43,7 +48,10 @@ export function BalanceSheetPage({
             <TableHead>
               <TableRow>
                 <TableHeader>{balanceSheet.liabilities.name}</TableHeader>
-                <TableHeader align="right" className="w-32">
+                <TableHeader className="text-right w-32">
+                  <span className="sr-only">Balance in Original Currency</span>
+                </TableHeader>
+                <TableHeader className="text-right w-32">
                   {formatMoney(-balanceSheet.liabilities.balance)}
                 </TableHeader>
               </TableRow>
@@ -59,7 +67,7 @@ export function BalanceSheetPage({
             <TableHead>
               <TableRow>
                 <TableHeader>Net Worth</TableHeader>
-                <TableHeader align="right">
+                <TableHeader className="text-right">
                   {formatMoney(balanceSheet.netWorth)}
                 </TableHeader>
               </TableRow>
@@ -67,13 +75,13 @@ export function BalanceSheetPage({
             <TableBody>
               <TableRow>
                 <TableCell>Opening Balance</TableCell>
-                <TableCell align="right">
+                <TableCell className="text-right">
                   {formatMoney(balanceSheet.openingBalance)}
                 </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell>Profit/Loss</TableCell>
-                <TableCell align="right">
+                <TableCell className="text-right">
                   {formatMoney(balanceSheet.profitAndLoss)}
                 </TableCell>
               </TableRow>
@@ -146,7 +154,19 @@ function AccountsNodeTableRow({
             )}
           </span>
         </TableCell>
-        <TableCell align="right">
+        <TableCell className="text-right">
+          {node.nodeType === "account" && node.currency !== "CHF" ? (
+            <>
+              {node.currency}{" "}
+              {formatMoney(
+                negated
+                  ? -node.balanceInOriginalCurrency
+                  : node.balanceInOriginalCurrency,
+              )}
+            </>
+          ) : null}
+        </TableCell>
+        <TableCell className="text-right">
           {formatMoney(negated ? -node.balance : node.balance)}
         </TableCell>
       </TableRow>

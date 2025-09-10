@@ -36,6 +36,7 @@ async function createTransaction({ request }: { request: Request }) {
           date: new Date(b.date),
           description: b.description,
           account: { connect: { id: b.accountId } },
+          currency: b.currency,
           value: new Prisma.Decimal(b.value),
         })),
       },
@@ -73,6 +74,7 @@ async function updateTransaction({ request }: { request: Request }) {
           date: new Date(b.date),
           description: b.description,
           account: { connect: { id: b.accountId } },
+          currency: b.currency,
           value: new Prisma.Decimal(b.value),
         })),
       },
@@ -116,6 +118,7 @@ function parseBookings(formData: FormData) {
     date: String(b.date ?? ""),
     accountId: String(b.accountId ?? ""),
     description: String(b.description ?? ""),
+    currency: String(b.currency ?? ""),
     value: String(b.value ?? ""),
   }));
 }

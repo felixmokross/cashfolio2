@@ -4,6 +4,7 @@ import { BalanceSheetPage } from "~/components/balance-sheet-page";
 import { prisma } from "~/prisma.server";
 import { serialize } from "~/serialization";
 import type { AccountsNode } from "~/types";
+import { convertToRefCurrency } from "~/fx.server";
 
 export async function loader() {
   const [accounts, accountGroups] = await Promise.all([
@@ -36,7 +37,10 @@ export async function loader() {
     childrenByParentId[a.groupId].push({
       ...a,
       nodeType: "account",
-      balance: (a.openingBalance ?? new Prisma.Decimal(0)).plus(
+      balance: new Prisma.Decimal(0),
+      balanceInOriginalCurrency: (
+        a.openingBalance ?? new Prisma.Decimal(0)
+      ).plus(
         a.bookings
           .map((b) => b.value)
           .reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0)),
@@ -45,12 +49,12 @@ export async function loader() {
     });
   }
 
-  function getRootNode(type: "ASSET" | "LIABILITY") {
+  async function getRootNode(type: "ASSET" | "LIABILITY") {
     const rootGroup = accountGroups.find(
       (g) => !g.parentGroupId && g.type === type,
     );
     if (!rootGroup) throw new Error(`Root group of type ${type} not found!`);
-    return getNodeWithChildren({
+    return await getNodeWithChildren({
       ...rootGroup,
       nodeType: "accountGroup",
       balance: new Prisma.Decimal(0),
@@ -58,15 +62,22 @@ export async function loader() {
     });
   }
 
-  function getNodeWithChildren(node: AccountsNode): AccountsNode {
+  async function getNodeWithChildren(
+    node: AccountsNode,
+  ): Promise<AccountsNode> {
     const children =
-      node.nodeType === "accountGroup"
-        ? childrenByParentId[node.id]?.map(getNodeWithChildren) || []
+      node.nodeType === "accountGroup" && childrenByParentId[node.id]
+        ? await Promise.all(
+            childrenByParentId[node.id].map(getNodeWithChildren),
+          )
         : [];
 
     const balance =
       node.nodeType === "account"
-        ? node.balance
+        ? await convertToRefCurrency(
+            node.balanceInOriginalCurrency,
+            node.currency!,
+          )
         : children
             .map((c) => c.balance)
             .reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0));
@@ -77,20 +88,36 @@ export async function loader() {
     };
   }
 
-  const assets = getRootNode("ASSET");
-  const liabilities = getRootNode("LIABILITY");
+  const [assets, liabilities] = await Promise.all([
+    getRootNode("ASSET"),
+    getRootNode("LIABILITY"),
+  ]);
   return serialize({
     balanceSheet: {
       assets,
       liabilities,
       netWorth: assets.balance.plus(liabilities.balance),
-      openingBalance: accounts
-        .filter((a) => ["ASSET", "LIABILITY"].includes(a.type))
-        .map((a) => a.openingBalance ?? new Prisma.Decimal(0))
-        .reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0)),
-      profitAndLoss: accounts
-        .filter((a) => ["INCOME", "EXPENSE"].includes(a.type))
-        .flatMap((a) => a.bookings.map((b) => b.value))
+      openingBalance: (
+        await Promise.all(
+          accounts
+            .filter((a) => ["ASSET", "LIABILITY"].includes(a.type))
+            .map((a) =>
+              convertToRefCurrency(
+                a.openingBalance ?? new Prisma.Decimal(0),
+                a.currency!,
+              ),
+            ),
+        )
+      ).reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0)),
+      profitAndLoss: (
+        await Promise.all(
+          accounts
+            .filter((a) => ["INCOME", "EXPENSE"].includes(a.type))
+            .flatMap((a) =>
+              a.bookings.map((b) => convertToRefCurrency(b.value, b.currency)),
+            ),
+        )
+      )
         .reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0))
         .negated(),
     },

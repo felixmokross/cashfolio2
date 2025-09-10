@@ -24,14 +24,13 @@ import { PlusIcon, TrashIcon } from "@heroicons/react/16/solid";
 import { Form } from "react-router";
 import { createId } from "@paralleldrive/cuid2";
 import type { Serialize } from "~/serialization";
+import type { Booking } from "@prisma/client";
+import { CurrencyCombobox } from "./currency-combobox";
+import { formatISO } from "date-fns";
 
-type BookingFormValues = {
-  id: string;
-  date: string;
-  description: string;
-  accountId: string;
-  value: string;
-};
+type BookingFormValues = Serialize<
+  Pick<Booking, "id" | "date" | "description" | "accountId" | "currency">
+> & { value: string; isAccountLocked?: true };
 
 export function useEditTransaction({
   accounts,
@@ -103,7 +102,11 @@ export function EditTransaction({
                 defaultValue={transaction?.description}
               />
             </Field>
-            <BookingsTable transaction={transaction} accounts={accounts} />
+            <BookingsTable
+              transaction={transaction}
+              accounts={accounts}
+              returnToAccountId={returnToAccountId}
+            />
           </FieldGroup>
         </DialogBody>
         <DialogActions>
@@ -120,20 +123,22 @@ export function EditTransaction({
 function BookingsTable({
   transaction,
   accounts,
+  returnToAccountId,
 }: {
   transaction?: Serialize<TransactionWithBookings>;
   accounts: AccountOption[];
+  returnToAccountId: string;
 }) {
   const [bookings, setBookings] = useState<BookingFormValues[]>(
     transaction
       ? transaction.bookings.map((b) => ({
-          id: b.id,
-          date: b.date.split("T")[0],
-          description: b.description,
-          accountId: b.accountId,
+          ...b,
+          date: formatISO(b.date, { representation: "date" }),
           value: b.value.toString(),
         }))
-      : addNewBooking(addNewBooking([])),
+      : addNewBooking(
+          addNewBooking([], { lockedAccountId: returnToAccountId }),
+        ),
   );
   return (
     <Table bleed className="[--gutter:--spacing(8)]">
@@ -142,6 +147,7 @@ function BookingsTable({
           <TableHeader className="w-48">Date</TableHeader>
           <TableHeader>Account</TableHeader>
           <TableHeader>Description</TableHeader>
+          <TableHeader className="w-28">Currency</TableHeader>
           <TableHeader className="w-36">Value</TableHeader>
           <TableHeader className="w-5">
             <span className="sr-only">Actions</span>
@@ -168,16 +174,30 @@ function BookingsTable({
             </TableCell>
             <TableCell>
               <AccountCombobox
+                disabled={booking.isAccountLocked}
                 name={`bookings[${i}][accountId]`}
                 accounts={accounts}
                 defaultValue={booking.accountId}
               />
+              {booking.isAccountLocked && (
+                <input
+                  type="hidden"
+                  name={`bookings[${i}][accountId]`}
+                  value={booking.accountId}
+                />
+              )}
             </TableCell>
             <TableCell>
               <Input
                 name={`bookings[${i}][description]`}
                 type="text"
                 defaultValue={booking.description}
+              />
+            </TableCell>
+            <TableCell>
+              <CurrencyCombobox
+                name={`bookings[${i}][currency]`}
+                defaultValue={booking.currency}
               />
             </TableCell>
             <TableCell>
@@ -188,6 +208,7 @@ function BookingsTable({
             </TableCell>
             <TableCell>
               <Button
+                disabled={bookings.length <= 2 || booking.isAccountLocked}
                 hierarchy="tertiary"
                 onClick={() =>
                   setBookings(bookings.filter((b) => b.id !== booking.id))
@@ -215,16 +236,21 @@ function BookingsTable({
   );
 }
 
-function addNewBooking(bookings: BookingFormValues[]) {
+function addNewBooking(
+  bookings: BookingFormValues[],
+  { lockedAccountId }: { lockedAccountId?: string } = {},
+) {
   return [
     ...bookings,
     {
       id: createId(),
       date:
         bookings[bookings.length - 1]?.date ??
-        new Date().toISOString().split("T")[0],
+        formatISO(new Date(), { representation: "date" }),
       description: "",
-      accountId: "",
+      currency: "",
+      accountId: lockedAccountId ?? "",
+      isAccountLocked: !!lockedAccountId,
       value: "",
     } as BookingFormValues,
   ];

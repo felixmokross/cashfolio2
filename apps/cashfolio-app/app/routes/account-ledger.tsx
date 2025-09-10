@@ -36,6 +36,7 @@ import { TextLink } from "~/platform/text";
 import { getAccountGroupPath } from "~/utils";
 import { serialize } from "~/serialization";
 import { formatDate, formatMoney } from "~/formatting";
+import { convertToCurrency, refCurrency } from "~/fx.server";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const [account, bookings, allAccounts, accountGroups] = await Promise.all([
@@ -65,12 +66,17 @@ export async function loader({ params }: LoaderFunctionArgs) {
     }`;
   }
 
+  const ledgerCurrency = account.currency ?? refCurrency;
+
   return serialize({
+    ledgerCurrency,
     account: {
       ...account,
       path: getAccountPath(account),
     },
-    ledgerRows: getLedgerRows(account, bookings).reverse(),
+    ledgerRows: (
+      await getLedgerRows(account, bookings, ledgerCurrency)
+    ).reverse(),
     allAccounts: allAccounts
       .map((a) => ({
         ...a,
@@ -83,17 +89,33 @@ export async function loader({ params }: LoaderFunctionArgs) {
 type BookingWithTransaction = Booking & {
   transaction: TransactionWithBookings;
 };
-type LedgerRow = { booking?: BookingWithTransaction; balance: Prisma.Decimal };
+type LedgerRow = {
+  booking?: BookingWithTransaction;
+  valueInAccountCurrency?: Prisma.Decimal;
+  balance: Prisma.Decimal;
+};
 
-function getLedgerRows(account: Account, bookings: BookingWithTransaction[]) {
+async function getLedgerRows(
+  account: Account,
+  bookings: BookingWithTransaction[],
+  ledgerCurrency: string,
+) {
   const rows = new Array<LedgerRow>(bookings.length + 1);
 
-  rows[0] = { balance: account.openingBalance ?? new Prisma.Decimal(0) };
+  rows[0] = {
+    balance: account.openingBalance ?? new Prisma.Decimal(0),
+  };
 
   for (let i = 0; i < bookings.length; i++) {
+    const valueInAccountCurrency = await convertToCurrency(
+      bookings[i].value,
+      bookings[i].currency,
+      ledgerCurrency,
+    );
     rows[i + 1] = {
       booking: bookings[i],
-      balance: rows[i].balance.add(bookings[i].value),
+      valueInAccountCurrency,
+      balance: rows[i].balance.add(valueInAccountCurrency),
     };
   }
 
@@ -101,7 +123,8 @@ function getLedgerRows(account: Account, bookings: BookingWithTransaction[]) {
 }
 
 export default function AccountLedger() {
-  const { account, ledgerRows, allAccounts } = useLoaderData<typeof loader>();
+  const { account, ledgerRows, allAccounts, ledgerCurrency } =
+    useLoaderData<typeof loader>();
   const { editTransactionProps, onNewTransaction, onEditTransaction } =
     useEditTransaction({
       returnToAccountId: account.id,
@@ -136,7 +159,11 @@ export default function AccountLedger() {
             <TableHeader className="w-32">Date</TableHeader>
             <TableHeader>Account(s)</TableHeader>
             <TableHeader>Description</TableHeader>
+            <TableHeader className="w-24">Currency</TableHeader>
             <TableHeader className="w-32 text-right">Value</TableHeader>
+            <TableHeader className="w-32 text-right">
+              Value ({ledgerCurrency})
+            </TableHeader>
             <TableHeader className="w-32 text-right">Balance</TableHeader>
             <TableHeader className="w-4">
               <span className="sr-only">Actions</span>
@@ -176,8 +203,14 @@ export default function AccountLedger() {
                   "Opening Balance"
                 )}
               </TableCell>
+              <TableCell>{lr.booking ? lr.booking.currency : null}</TableCell>
               <TableCell className="text-right">
                 {lr.booking && formatMoney(lr.booking.value)}
+              </TableCell>
+              <TableCell className="text-right">
+                {lr.valueInAccountCurrency
+                  ? formatMoney(lr.valueInAccountCurrency)
+                  : null}
               </TableCell>
               <TableCell className="text-right">
                 {formatMoney(lr.balance)}
