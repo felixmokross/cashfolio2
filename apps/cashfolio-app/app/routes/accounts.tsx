@@ -42,6 +42,7 @@ import {
   DeleteAccountGroup,
   useDeleteAccountGroup,
 } from "~/components/delete-account-group";
+import { DeleteAccount, useDeleteAccount } from "~/components/delete-account";
 
 export async function loader() {
   const accountGroups = await prisma.accountGroup.findMany({
@@ -154,12 +155,12 @@ async function updateAccount({ request }: { request: Request }) {
 async function deleteAccount({ request }: { request: Request }) {
   const form = await request.formData();
 
-  const id = form.get("id");
-  if (typeof id !== "string") {
+  const accountId = form.get("accountId");
+  if (typeof accountId !== "string") {
     return new Response(null, { status: 400 });
   }
 
-  await prisma.account.delete({ where: { id } });
+  await prisma.account.delete({ where: { id: accountId } });
   return redirect(".");
 }
 
@@ -193,6 +194,8 @@ export default function Accounts() {
 
   const { deleteAccountGroupProps, onDeleteAccountGroup } =
     useDeleteAccountGroup();
+
+  const { deleteAccountProps, onDeleteAccount } = useDeleteAccount();
 
   return (
     <div>
@@ -245,6 +248,8 @@ export default function Accounts() {
                 onDelete={(node) => {
                   if (node.nodeType === "accountGroup") {
                     onDeleteAccountGroup(node.id);
+                  } else {
+                    onDeleteAccount(node.id);
                   }
                 }}
               />
@@ -252,6 +257,7 @@ export default function Accounts() {
         </TableBody>
       </Table>
       <DeleteAccountGroup {...deleteAccountGroupProps} />
+      <DeleteAccount {...deleteAccountProps} />
     </div>
   );
 }
@@ -364,22 +370,13 @@ function NodeRow({
           >
             <PencilSquareIcon />
           </Button>
-          {node.nodeType === "account" ? (
-            <Form method="DELETE" action="/accounts" className="contents">
-              <input type="hidden" name="id" value={node.id} />
-              <Button type="submit" hierarchy="tertiary">
-                <TrashIcon />
-              </Button>
-            </Form>
-          ) : (
-            <Button
-              type="submit"
-              hierarchy="tertiary"
-              onClick={() => onDelete(node)}
-            >
-              <TrashIcon />
-            </Button>
-          )}
+          <Button
+            type="submit"
+            hierarchy="tertiary"
+            onClick={() => onDelete(node)}
+          >
+            <TrashIcon />
+          </Button>
         </div>
       </TableCell>
     </TableRow>
