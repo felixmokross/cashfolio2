@@ -74,9 +74,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
       ...account,
       path: getAccountPath(account),
     },
-    ledgerRows: (
-      await getLedgerRows(account, bookings, ledgerCurrency)
-    ).reverse(),
+    ledgerRows: (await getLedgerRows(bookings, ledgerCurrency)).reverse(),
     allAccounts: allAccounts
       .map((a) => ({
         ...a,
@@ -90,21 +88,18 @@ type BookingWithTransaction = Booking & {
   transaction: TransactionWithBookings;
 };
 type LedgerRow = {
-  booking?: BookingWithTransaction;
-  valueInAccountCurrency?: Prisma.Decimal;
+  booking: BookingWithTransaction;
+  valueInAccountCurrency: Prisma.Decimal;
   balance: Prisma.Decimal;
 };
 
 async function getLedgerRows(
-  account: Account,
   bookings: BookingWithTransaction[],
   ledgerCurrency: string,
 ) {
   const rows = new Array<LedgerRow>(bookings.length + 1);
 
-  rows[0] = {
-    balance: account.openingBalance ?? new Prisma.Decimal(0),
-  };
+  let balance = new Prisma.Decimal(0);
 
   for (let i = 0; i < bookings.length; i++) {
     const valueInAccountCurrency = await convertToCurrency(
@@ -112,10 +107,11 @@ async function getLedgerRows(
       bookings[i].currency,
       ledgerCurrency,
     );
-    rows[i + 1] = {
+    balance = balance.add(valueInAccountCurrency);
+    rows[i] = {
       booking: bookings[i],
       valueInAccountCurrency,
-      balance: rows[i].balance.add(valueInAccountCurrency),
+      balance,
     };
   }
 
@@ -173,74 +169,58 @@ export default function AccountLedger() {
         <TableBody>
           {ledgerRows.map((lr) => (
             <TableRow key={lr.booking?.id ?? "opening-balance"}>
+              <TableCell>{formatDate(lr.booking.date)}</TableCell>
               <TableCell>
-                {lr.booking ? formatDate(lr.booking.date) : null}
+                {Array.from(
+                  new Set(
+                    lr.booking.transaction.bookings
+                      .map((b) => b.accountId)
+                      .filter((accountId) => accountId !== account.id),
+                  ),
+                ).map((accountId, i, arr) => (
+                  <Fragment key={accountId}>
+                    <TextLink href={`/accounts/${accountId}`}>
+                      {allAccounts.find((a) => a.id === accountId)?.path}
+                    </TextLink>
+                    {i < arr.length - 1 ? ", " : null}
+                  </Fragment>
+                ))}
               </TableCell>
               <TableCell>
-                {lr.booking &&
-                  Array.from(
-                    new Set(
-                      lr.booking.transaction.bookings
-                        .map((b) => b.accountId)
-                        .filter((accountId) => accountId !== account.id),
-                    ),
-                  ).map((accountId, i, arr) => (
-                    <Fragment key={accountId}>
-                      <TextLink href={`/accounts/${accountId}`}>
-                        {allAccounts.find((a) => a.id === accountId)?.path}
-                      </TextLink>
-                      {i < arr.length - 1 ? ", " : null}
-                    </Fragment>
-                  ))}
+                {lr.booking.transaction.description} {lr.booking.description}
               </TableCell>
-              <TableCell>
-                {lr.booking ? (
-                  <>
-                    {lr.booking.transaction.description}{" "}
-                    {lr.booking.description}
-                  </>
-                ) : (
-                  "Opening Balance"
-                )}
-              </TableCell>
-              <TableCell>{lr.booking ? lr.booking.currency : null}</TableCell>
+              <TableCell>{lr.booking.currency}</TableCell>
               <TableCell className="text-right">
-                {lr.booking && formatMoney(lr.booking.value)}
+                {formatMoney(lr.booking.value)}
               </TableCell>
               <TableCell className="text-right">
-                {lr.valueInAccountCurrency
-                  ? formatMoney(lr.valueInAccountCurrency)
-                  : null}
+                {formatMoney(lr.valueInAccountCurrency)}
               </TableCell>
               <TableCell className="text-right">
                 {formatMoney(lr.balance)}
               </TableCell>
               <TableCell>
-                {lr.booking && (
-                  <Dropdown>
-                    <DropdownButton hierarchy="tertiary">
-                      <EllipsisVerticalIcon />
-                    </DropdownButton>
-                    <DropdownMenu anchor="bottom end">
-                      <DropdownItem
-                        onClick={() =>
-                          onEditTransaction(lr.booking!.transaction)
-                        }
-                      >
-                        <PencilSquareIcon />
-                        Edit
-                      </DropdownItem>
-                      <DropdownItem
-                        onClick={() =>
-                          onDeleteTransaction(lr.booking!.transactionId)
-                        }
-                      >
-                        <TrashIcon />
-                        Delete
-                      </DropdownItem>
-                    </DropdownMenu>
-                  </Dropdown>
-                )}
+                <Dropdown>
+                  <DropdownButton hierarchy="tertiary">
+                    <EllipsisVerticalIcon />
+                  </DropdownButton>
+                  <DropdownMenu anchor="bottom end">
+                    <DropdownItem
+                      onClick={() => onEditTransaction(lr.booking!.transaction)}
+                    >
+                      <PencilSquareIcon />
+                      Edit
+                    </DropdownItem>
+                    <DropdownItem
+                      onClick={() =>
+                        onDeleteTransaction(lr.booking!.transactionId)
+                      }
+                    >
+                      <TrashIcon />
+                      Delete
+                    </DropdownItem>
+                  </DropdownMenu>
+                </Dropdown>
               </TableCell>
             </TableRow>
           ))}

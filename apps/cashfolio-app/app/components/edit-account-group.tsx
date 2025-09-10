@@ -91,12 +91,8 @@ export function EditAccountGroup({
                     <Label>Liability</Label>
                   </RadioField>
                   <RadioField>
-                    <Radio value="INCOME" />
-                    <Label>Income</Label>
-                  </RadioField>
-                  <RadioField>
-                    <Radio value="EXPENSE" />
-                    <Label>Expense</Label>
+                    <Radio value="EQUITY" />
+                    <Label>Equity</Label>
                   </RadioField>
                 </RadioGroup>
               </Field>

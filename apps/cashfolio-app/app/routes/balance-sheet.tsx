@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { AccountType, Prisma } from "@prisma/client";
 import { useLoaderData } from "react-router";
 import { BalanceSheetPage } from "~/components/balance-sheet-page";
 import { prisma } from "~/prisma.server";
@@ -38,13 +38,9 @@ export async function loader() {
       ...a,
       nodeType: "account",
       balance: new Prisma.Decimal(0),
-      balanceInOriginalCurrency: (
-        a.openingBalance ?? new Prisma.Decimal(0)
-      ).plus(
-        a.bookings
-          .map((b) => b.value)
-          .reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0)),
-      ),
+      balanceInOriginalCurrency: a.bookings
+        .map((b) => b.value)
+        .reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0)),
       children: [],
     });
   }
@@ -97,22 +93,10 @@ export async function loader() {
       assets,
       liabilities,
       netWorth: assets.balance.plus(liabilities.balance),
-      openingBalance: (
-        await Promise.all(
-          accounts
-            .filter((a) => ["ASSET", "LIABILITY"].includes(a.type))
-            .map((a) =>
-              convertToRefCurrency(
-                a.openingBalance ?? new Prisma.Decimal(0),
-                a.currency!,
-              ),
-            ),
-        )
-      ).reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0)),
       profitAndLoss: (
         await Promise.all(
           accounts
-            .filter((a) => ["INCOME", "EXPENSE"].includes(a.type))
+            .filter((a) => (["EQUITY"] as AccountType[]).includes(a.type))
             .flatMap((a) =>
               a.bookings.map((b) => convertToRefCurrency(b.value, b.currency)),
             ),

@@ -10,18 +10,12 @@ import {
   DialogTitle,
 } from "~/platform/dialog";
 import {
-  Combobox,
-  ComboboxLabel,
-  ComboboxOption,
-} from "~/platform/forms/combobox";
-import {
   Description,
   Field,
   FieldGroup,
   Fieldset,
   Label,
 } from "~/platform/forms/fieldset";
-import { FormattedNumberInput } from "~/platform/forms/formatted-number-input";
 import { Input } from "~/platform/forms/input";
 import { Radio, RadioField, RadioGroup } from "~/platform/forms/radio";
 import type { Serialize } from "~/serialization";
@@ -110,12 +104,8 @@ export function EditAccount({
                       <Label>Liability</Label>
                     </RadioField>
                     <RadioField>
-                      <Radio value="INCOME" />
-                      <Label>Income</Label>
-                    </RadioField>
-                    <RadioField>
-                      <Radio value="EXPENSE" />
-                      <Label>Expense</Label>
+                      <Radio value="EQUITY" />
+                      <Label>Equity</Label>
                     </RadioField>
                   </RadioGroup>
                 </Field>
@@ -166,15 +156,6 @@ export function EditAccount({
                   </Field>
                 )}
               </div>
-              {(selectedType === "ASSET" || selectedType === "LIABILITY") && (
-                <Field>
-                  <Label>Opening Balance</Label>
-                  <FormattedNumberInput
-                    name="openingBalance"
-                    defaultValue={account?.openingBalance?.toString()}
-                  />
-                </Field>
-              )}
             </FieldGroup>
           </Fieldset>
         </DialogBody>

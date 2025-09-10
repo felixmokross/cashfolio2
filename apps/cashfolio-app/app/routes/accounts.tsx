@@ -100,9 +100,6 @@ async function createAccount({ request }: { request: Request }) {
       type: type as AccountType,
       unit,
       currency: unit === AccountUnit.CURRENCY ? currency : null,
-      openingBalance: openingBalance
-        ? new Prisma.Decimal(openingBalance)
-        : null,
     },
   });
 
@@ -144,9 +141,6 @@ async function updateAccount({ request }: { request: Request }) {
       groupId,
       unit,
       currency: unit === AccountUnit.CURRENCY ? currency : null,
-      openingBalance: openingBalance
-        ? new Prisma.Decimal(openingBalance)
-        : null,
     },
   });
 
@@ -220,7 +214,6 @@ export default function Accounts() {
             <TableHeader>Type</TableHeader>
             <TableHeader>Unit</TableHeader>
             <TableHeader>Currency</TableHeader>
-            <TableHeader className="text-right">Opening Balance</TableHeader>
             <TableHeader className="w-10">
               <span className="sr-only">Actions</span>
             </TableHeader>
@@ -341,11 +334,6 @@ function NodeRow({
       <TableCell>{node.nodeType === "account" ? node.unit : null}</TableCell>
       <TableCell>
         {node.nodeType === "account" ? node.currency : null}
-      </TableCell>
-      <TableCell className="text-right">
-        {node.nodeType === "account" && node.openingBalance
-          ? formatMoney(node.openingBalance)
-          : null}
       </TableCell>
       <TableCell>
         <div className="flex gap-2 items-center">

@@ -74,12 +74,6 @@ export function BalanceSheetPage({
             </TableHead>
             <TableBody>
               <TableRow>
-                <TableCell>Opening Balance</TableCell>
-                <TableCell className="text-right">
-                  {formatMoney(balanceSheet.openingBalance)}
-                </TableCell>
-              </TableRow>
-              <TableRow>
                 <TableCell>Profit/Loss</TableCell>
                 <TableCell className="text-right">
                   {formatMoney(balanceSheet.profitAndLoss)}
