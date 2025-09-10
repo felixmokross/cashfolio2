@@ -79,12 +79,12 @@ async function updateAccountGroup({ request }: { request: Request }) {
 async function deleteAccountGroup({ request }: { request: Request }) {
   const form = await request.formData();
 
-  const id = form.get("id");
-  if (typeof id !== "string") {
+  const accountGroupId = form.get("accountGroupId");
+  if (typeof accountGroupId !== "string") {
     return new Response(null, { status: 400 });
   }
 
-  await prisma.accountGroup.delete({ where: { id } });
+  await prisma.accountGroup.delete({ where: { id: accountGroupId } });
 
   return redirect("/accounts");
 }

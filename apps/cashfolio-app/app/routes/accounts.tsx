@@ -38,6 +38,10 @@ import {
   useEditAccountGroup,
 } from "~/components/edit-account-group";
 import { getAccountGroupPath } from "~/utils";
+import {
+  DeleteAccountGroup,
+  useDeleteAccountGroup,
+} from "~/components/delete-account-group";
 
 export async function loader() {
   const accountGroups = await prisma.accountGroup.findMany({
@@ -187,6 +191,9 @@ export default function Accounts() {
     childrenByParentId[a.groupId].push({ ...a, nodeType: "account" });
   }
 
+  const { deleteAccountGroupProps, onDeleteAccountGroup } =
+    useDeleteAccountGroup();
+
   return (
     <div>
       <div className="flex justify-between items-center">
@@ -235,10 +242,16 @@ export default function Accounts() {
                     onEditAccountGroup(node);
                   }
                 }}
+                onDelete={(node) => {
+                  if (node.nodeType === "accountGroup") {
+                    onDeleteAccountGroup(node.id);
+                  }
+                }}
               />
             ))}
         </TableBody>
       </Table>
+      <DeleteAccountGroup {...deleteAccountGroupProps} />
     </div>
   );
 }
@@ -255,15 +268,17 @@ function AccountGroupItem({
   level,
   node,
   onEdit,
+  onDelete,
 }: {
   node: AccountGroupNode;
   childrenByParentId: Record<string, Node[]>;
   onEdit: (node: Node) => void;
+  onDelete: (node: Node) => void;
   level: number;
 }) {
   return (
     <>
-      <NodeRow node={node} level={level} onEdit={onEdit} />
+      <NodeRow node={node} level={level} onEdit={onEdit} onDelete={onDelete} />
       {childrenByParentId[node.id] && (
         <>
           {childrenByParentId[node.id].map((child) =>
@@ -273,6 +288,7 @@ function AccountGroupItem({
                 level={level + 1}
                 onEdit={onEdit}
                 node={child}
+                onDelete={onDelete}
               />
             ) : (
               <AccountGroupItem
@@ -281,6 +297,7 @@ function AccountGroupItem({
                 childrenByParentId={childrenByParentId}
                 level={level + 1}
                 onEdit={onEdit}
+                onDelete={onDelete}
               />
             ),
           )}
@@ -294,10 +311,12 @@ function NodeRow({
   level,
   node,
   onEdit,
+  onDelete,
 }: {
   node: Node;
   level: number;
   onEdit: (node: Node) => void;
+  onDelete: (node: Node) => void;
 }) {
   return (
     <TableRow>
@@ -345,18 +364,22 @@ function NodeRow({
           >
             <PencilSquareIcon />
           </Button>
-          <Form
-            method="DELETE"
-            action={
-              node.nodeType === "account" ? "/accounts" : "/account-groups"
-            }
-            className="contents"
-          >
-            <input type="hidden" name="id" value={node.id} />
-            <Button type="submit" hierarchy="tertiary">
+          {node.nodeType === "account" ? (
+            <Form method="DELETE" action="/accounts" className="contents">
+              <input type="hidden" name="id" value={node.id} />
+              <Button type="submit" hierarchy="tertiary">
+                <TrashIcon />
+              </Button>
+            </Form>
+          ) : (
+            <Button
+              type="submit"
+              hierarchy="tertiary"
+              onClick={() => onDelete(node)}
+            >
               <TrashIcon />
             </Button>
-          </Form>
+          )}
         </div>
       </TableCell>
     </TableRow>
