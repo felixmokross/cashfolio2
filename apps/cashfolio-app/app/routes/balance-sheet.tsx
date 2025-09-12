@@ -22,9 +22,11 @@ export async function loader() {
   const [accounts, transactions, accountGroups] = await Promise.all([
     prisma.account.findMany({
       orderBy: { name: "asc" },
-      include: { bookings: true },
+      include: { bookings: { orderBy: { date: "asc" } } },
     }),
-    prisma.transaction.findMany({ include: { bookings: true } }),
+    prisma.transaction.findMany({
+      include: { bookings: { orderBy: { date: "asc" } } },
+    }),
     prisma.accountGroup.findMany({ orderBy: { name: "asc" } }),
   ]);
 
