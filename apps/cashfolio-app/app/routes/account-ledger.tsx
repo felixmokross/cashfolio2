@@ -36,7 +36,8 @@ import { TextLink } from "~/platform/text";
 import { getAccountGroupPath } from "~/utils";
 import { serialize } from "~/serialization";
 import { formatDate, formatMoney } from "~/formatting";
-import { convertToCurrency, refCurrency } from "~/fx.server";
+import { getExchangeRate } from "~/fx.server";
+import { refCurrency } from "~/config";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const [account, bookings, allAccounts, accountGroups] = await Promise.all([
@@ -102,11 +103,11 @@ async function getLedgerRows(
   let balance = new Prisma.Decimal(0);
 
   for (let i = 0; i < bookings.length; i++) {
-    const valueInAccountCurrency = await convertToCurrency(
-      bookings[i].value,
+    const valueInAccountCurrency = (await getExchangeRate(
       bookings[i].currency,
       ledgerCurrency,
-    );
+      bookings[i].date,
+    ))!.mul(bookings[i].value);
     balance = balance.add(valueInAccountCurrency);
     rows[i] = {
       booking: bookings[i],

@@ -1,35 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { formatISODate } from "./formatting";
 import { redis } from "~/redis.server";
-import { subDays } from "date-fns";
 
-export async function convertToCurrency(
-  value: Prisma.Decimal,
-  sourceCurrency: string,
-  targetCurrency: string,
-) {
-  if (sourceCurrency === targetCurrency) return value;
-
-  const today = new Date();
-  const date = formatISODate(today);
-
-  let rate = await getExchangeRate(sourceCurrency, targetCurrency, today);
-  if (rate === null) {
-    rate = await getExchangeRate(
-      sourceCurrency,
-      targetCurrency,
-      subDays(today, 1),
-    );
-  }
-
-  if (!rate) {
-    throw new Error(
-      `Could not get FX rate for ${sourceCurrency} to ${targetCurrency} on ${date}`,
-    );
-  }
-
-  return value.mul(rate);
-}
 const fxRateBaseCurrency = "USD";
 
 export async function getExchangeRate(

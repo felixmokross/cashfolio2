@@ -135,6 +135,7 @@ export async function loader() {
       fxTransferBookings: await Promise.all(
         transactions.map(async (t) => ({
           id: `fx-transfer-${t.id}`,
+          description: `FX Transfer for transaction ${t.description}`,
           date: max(t.bookings.map((b) => b.date)),
           currency: refCurrency,
           value: await completeFxTransaction(
