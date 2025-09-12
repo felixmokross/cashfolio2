@@ -1,4 +1,4 @@
-import type { AccountGroup } from "@prisma/client";
+import { Prisma, type AccountGroup } from "@prisma/client";
 
 export function getAccountGroupPath(
   accountGroupId: string,
@@ -10,4 +10,8 @@ export function getAccountGroupPath(
     ? `${getAccountGroupPath(accountGroup.parentGroupId, accountGroups)} / `
     : "";
   return prefix + accountGroup.name;
+}
+
+export function sum(values: Prisma.Decimal[]): Prisma.Decimal {
+  return values.reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0));
 }

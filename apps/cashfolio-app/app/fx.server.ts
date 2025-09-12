@@ -2,8 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { formatISODate } from "./formatting";
 import { redis } from "~/redis.server";
 import { subDays } from "date-fns";
-
-export const refCurrency = "CHF";
+import { refCurrency } from "./config";
 
 export async function convertToRefCurrency(
   value: Prisma.Decimal,
