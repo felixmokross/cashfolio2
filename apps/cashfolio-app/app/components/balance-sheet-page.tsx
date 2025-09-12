@@ -75,14 +75,24 @@ export function BalanceSheetPage({
             <TableBody>
               <TableRow>
                 <TableCell>Profit/Loss</TableCell>
-                <TableCell className="text-right">
-                  {formatMoney(balanceSheet.profitAndLoss)}
+                <TableCell>
+                  {formatMoney(
+                    balanceSheet.profitAndLoss
+                      .map(([, v]) => v)
+                      .reduce((a, b) => a + b, 0),
+                  )}
+                  <pre>
+                    {JSON.stringify(balanceSheet.profitAndLoss, null, 2)}
+                  </pre>
                 </TableCell>
               </TableRow>
             </TableBody>
           </Table>
         </div>
       </div>
+      <pre>{JSON.stringify(balanceSheet.fxBookings, null, 2)}</pre>
+      <pre>{JSON.stringify(balanceSheet.fxTransferBookings, null, 2)}</pre>
+      <pre>{JSON.stringify(balanceSheet.balanceByDate, null, 2)}</pre>
     </>
   );
 }

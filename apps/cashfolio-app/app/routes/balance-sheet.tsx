@@ -1,17 +1,30 @@
-import { AccountType, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { useLoaderData } from "react-router";
 import { BalanceSheetPage } from "~/components/balance-sheet-page";
 import { prisma } from "~/prisma.server";
 import { serialize } from "~/serialization";
 import type { AccountsNode } from "~/types";
-import { convertToRefCurrency } from "~/fx.server";
+import { getExchangeRate } from "~/fx.server";
+import {
+  completeFxTransaction,
+  generateFxBookingsForFxAccount,
+  getBalanceByDate,
+  getProfitLossStatement,
+} from "~/model";
+import { max, subDays } from "date-fns";
+import { refCurrency } from "~/config";
+import { today } from "~/today";
 
 export async function loader() {
-  const [accounts, accountGroups] = await Promise.all([
+  // this date marks the end of what can be considered
+  // bookings greater than this date should be filtered out for correct balances
+  const endDate = subDays(today, 1);
+  const [accounts, transactions, accountGroups] = await Promise.all([
     prisma.account.findMany({
       orderBy: { name: "asc" },
       include: { bookings: true },
     }),
+    prisma.transaction.findMany({ include: { bookings: true } }),
     prisma.accountGroup.findMany({ orderBy: { name: "asc" } }),
   ]);
 
@@ -70,9 +83,8 @@ export async function loader() {
 
     const balance =
       node.nodeType === "account"
-        ? await convertToRefCurrency(
+        ? (await getExchangeRate(node.currency!, refCurrency, endDate))!.mul(
             node.balanceInOriginalCurrency,
-            node.currency!,
           )
         : children
             .map((c) => c.balance)
@@ -93,17 +105,46 @@ export async function loader() {
       assets,
       liabilities,
       netWorth: assets.balance.plus(liabilities.balance),
-      profitAndLoss: (
-        await Promise.all(
-          accounts
-            .filter((a) => (["EQUITY"] as AccountType[]).includes(a.type))
-            .flatMap((a) =>
-              a.bookings.map((b) => convertToRefCurrency(b.value, b.currency)),
-            ),
-        )
-      )
-        .reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0))
-        .negated(),
+      profitAndLoss: Array.from(
+        await getProfitLossStatement(
+          accounts,
+          transactions,
+          async (date, from, to) => (await getExchangeRate(from, to, date))!,
+          endDate,
+        ),
+      ),
+      fxBookings: await Promise.all(
+        accounts
+          .filter(
+            (a) =>
+              (a.type === "ASSET" || a.type === "LIABILITY") &&
+              a.currency !== refCurrency,
+          )
+          .map(
+            async (a) =>
+              await generateFxBookingsForFxAccount(
+                a,
+                async (date, from, to) =>
+                  (await getExchangeRate(from, to, date))!,
+                endDate,
+              ),
+          ),
+      ),
+      fxTransferBookings: await Promise.all(
+        transactions.map(async (t) => ({
+          id: `fx-transfer-${t.id}`,
+          date: max(t.bookings.map((b) => b.date)),
+          currency: refCurrency,
+          value: await completeFxTransaction(
+            t,
+            async (date, from, to) => (await getExchangeRate(from, to, date))!,
+          ),
+        })),
+      ),
+      balanceByDate: accounts.map((a) => [
+        a.id,
+        Array.from(getBalanceByDate(a)),
+      ]),
     },
   });
 }

@@ -4,7 +4,9 @@ import {
   Prisma,
   type Account,
   type Booking,
+  type Transaction,
 } from "@prisma/client";
+import type { AccountWithBookings, TransactionWithBookings } from "./model";
 
 export function buildAccount(values: Partial<Account> = {}): Account {
   return {
@@ -21,6 +23,15 @@ export function buildAccount(values: Partial<Account> = {}): Account {
   };
 }
 
+export function buildAccountWithBookings(
+  values: Partial<AccountWithBookings> = {},
+): AccountWithBookings {
+  return {
+    ...buildAccount(values),
+    bookings: values.bookings ?? [],
+  };
+}
+
 export function buildBooking(values: Partial<Booking> = {}): Booking {
   return {
     id: "booking_1",
@@ -31,5 +42,26 @@ export function buildBooking(values: Partial<Booking> = {}): Booking {
     date: new Date(),
     description: "Test Booking",
     ...values,
+  };
+}
+
+export function buildTransaction(
+  values: Partial<Transaction> = {},
+): Transaction {
+  return {
+    id: "transaction_1",
+    description: "Test Transaction",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...values,
+  };
+}
+
+export function buildTransactionWithBookings(
+  values: Partial<TransactionWithBookings> = {},
+): TransactionWithBookings {
+  return {
+    ...buildTransaction(values),
+    bookings: values.bookings ?? [],
   };
 }

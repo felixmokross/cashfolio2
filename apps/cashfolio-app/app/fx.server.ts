@@ -1,15 +1,7 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { formatISODate } from "./formatting";
 import { redis } from "~/redis.server";
 import { subDays } from "date-fns";
-import { refCurrency } from "./config";
-
-export async function convertToRefCurrency(
-  value: Prisma.Decimal,
-  currency: string,
-) {
-  return await convertToCurrency(value, currency, refCurrency);
-}
 
 export async function convertToCurrency(
   value: Prisma.Decimal,
@@ -40,25 +32,33 @@ export async function convertToCurrency(
 }
 const fxRateBaseCurrency = "USD";
 
-async function getExchangeRate(
+export async function getExchangeRate(
   sourceCurrency: string,
   targetCurrency: string,
   date: Date,
 ) {
+  if (sourceCurrency === targetCurrency) {
+    return new Prisma.Decimal(1);
+  }
+
   const fxRates = await getExchangeRates(date);
   if (!fxRates) return null;
 
-  const baseToTargetRate = fxRates[`${fxRateBaseCurrency}${targetCurrency}`];
-  const baseToSourceRate = fxRates[`${fxRateBaseCurrency}${sourceCurrency}`];
+  const baseToTargetRate = new Prisma.Decimal(
+    fxRates[`${fxRateBaseCurrency}${targetCurrency}`],
+  );
+  const baseToSourceRate = new Prisma.Decimal(
+    fxRates[`${fxRateBaseCurrency}${sourceCurrency}`],
+  );
 
   if (sourceCurrency === fxRateBaseCurrency) {
     return baseToTargetRate;
   }
   if (targetCurrency === fxRateBaseCurrency) {
-    return 1 / baseToSourceRate;
+    return new Prisma.Decimal(1).dividedBy(baseToSourceRate);
   }
 
-  return baseToTargetRate / baseToSourceRate;
+  return baseToTargetRate.dividedBy(baseToSourceRate);
 }
 
 async function getExchangeRates(date: Date) {
@@ -76,8 +76,8 @@ async function getExchangeRates(date: Date) {
     }
 
     await redis.set(key, JSON.stringify(data.quotes));
-    return data.quotes;
+    return data.quotes as Record<string, number>;
   }
 
-  return JSON.parse(cacheEntry);
+  return JSON.parse(cacheEntry) as Record<string, number>;
 }
