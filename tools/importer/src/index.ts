@@ -1,14 +1,11 @@
 import { program } from "commander";
 import { prisma } from "cashfolio-app/app/prisma.server";
-import {
-  AccountGroup,
-  Account,
-  AccountType,
-} from "cashfolio-app/node_modules/@prisma/client";
+import * as TargetModel from "cashfolio-app/node_modules/@prisma/client";
 import { MongoClient } from "mongodb";
 import "dotenv/config";
 import slugify from "slugify";
 import { createId } from "@paralleldrive/cuid2";
+import * as SourceModel from "./source-model";
 
 program
   .name("importer")
@@ -25,14 +22,54 @@ program
       await prisma.accountGroup.deleteMany();
 
       const assetsGroup = await prisma.accountGroup.create({
-        data: { name: "Assets", slug: "assets", type: AccountType.ASSET },
+        data: {
+          name: "Assets",
+          slug: "assets",
+          type: TargetModel.AccountType.ASSET,
+        },
       });
 
       const liabilitiesGroup = await prisma.accountGroup.create({
         data: {
           name: "Liabilities",
           slug: "liabilities",
-          type: AccountType.LIABILITY,
+          type: TargetModel.AccountType.LIABILITY,
+        },
+      });
+
+      const equityGroup = await prisma.accountGroup.create({
+        data: {
+          name: "Equity",
+          slug: "equity",
+          type: TargetModel.AccountType.EQUITY,
+        },
+      });
+
+      const expensesGroup = await prisma.accountGroup.create({
+        data: {
+          name: "Expenses",
+          slug: "expenses",
+          type: TargetModel.AccountType.EQUITY,
+          parentGroupId: equityGroup.id,
+        },
+      });
+
+      const incomeGroup = await prisma.accountGroup.create({
+        data: {
+          name: "Income",
+          slug: "income",
+          type: TargetModel.AccountType.EQUITY,
+          parentGroupId: equityGroup.id,
+        },
+      });
+
+      const investmentGainLossAccount = await prisma.account.create({
+        data: {
+          name: "Investment Gain/Loss",
+          slug: "investment-gain-loss",
+          type: TargetModel.AccountType.EQUITY,
+          groupId: equityGroup.id,
+          unit: TargetModel.AccountUnit.CURRENCY,
         },
       });
 
@@ -40,12 +77,15 @@ program
       console.log(`connected to DB ${sourceDb.databaseName}`);
 
       const accountGroupsBySourceAccountCategoryId = Object.fromEntries(
-        (await sourceDb.collection("accountCategories").find().toArray()).map(
-          (sac) => [
-            sac._id.toString(),
-            sourceAccountCategoryToTargetAccountGroup(sac),
-          ],
-        ),
+        (
+          await sourceDb
+            .collection<SourceModel.AccountCategory>("accountCategories")
+            .find()
+            .toArray()
+        ).map((sac) => [
+          sac._id.toString(),
+          sourceAccountCategoryToTargetAccountGroup(sac),
+        ]),
       );
 
       console.log(
@@ -55,33 +95,97 @@ program
         data: Object.values(accountGroupsBySourceAccountCategoryId),
       });
 
-      const accounts = (
-        await sourceDb.collection("accounts").find().toArray()
-      ).map(sourceAccountToTargetAccount);
+      const accountsBySourceAccountId = Object.fromEntries(
+        (
+          await sourceDb
+            .collection<SourceModel.Account>("accounts")
+            .find()
+            .toArray()
+        ).map((a) => [a._id.toString(), sourceAccountToTargetAccount(a)]),
+      );
+
+      const accountsBySourceExpenseCategoryId = Object.fromEntries(
+        (
+          await sourceDb
+            .collection<SourceModel.ExpenseCategory>("expenseCategories")
+            .find()
+            .toArray()
+        ).map((ec) => [
+          ec._id.toString(),
+          sourceIncomeExpenseCategoryToTargetAccount(
+            ec,
+            SourceModel.BookingType.EXPENSE,
+          ),
+        ]),
+      );
+
+      const accountsBySourceIncomeCategoryId = Object.fromEntries(
+        (
+          await sourceDb
+            .collection<SourceModel.IncomeCategory>("incomeCategories")
+            .find()
+            .toArray()
+        ).map((ec) => [
+          ec._id.toString(),
+          sourceIncomeExpenseCategoryToTargetAccount(
+            ec,
+            SourceModel.BookingType.INCOME,
+          ),
+        ]),
+      );
+
+      const accounts = [
+        ...Object.values(accountsBySourceAccountId),
+        ...Object.values(accountsBySourceExpenseCategoryId),
+        ...Object.values(accountsBySourceIncomeCategoryId),
+      ];
+
       console.log(`Creating ${accounts.length} accounts…`);
       await prisma.account.createMany({
         data: accounts,
       });
 
+      const transactions = (
+        await sourceDb
+          .collection<SourceModel.Transaction>("transactions")
+          .find()
+          .toArray()
+      ).map(sourceTransactionToTargetTransaction);
+      console.log(`Creating ${transactions.length} transactions…`);
+      for (let i = 0; i < transactions.length; i++) {
+        await prisma.transaction.create({
+          data: transactions[i],
+        });
+
+        if ((i + 1) % 1000 === 0) {
+          console.log(`  created ${i + 1} transactions`);
+        }
+      }
+
+      console.log("Done");
+
       function sourceAccountCategoryToTargetAccountGroup(
-        category: any,
-      ): Omit<AccountGroup, "createdAt" | "updatedAt"> {
+        sourceAccountCategory: SourceModel.AccountCategory,
+      ): Omit<TargetModel.AccountGroup, "createdAt" | "updatedAt"> {
+        const id = createId();
         return {
-          id: createId(),
-          name: category.name,
-          slug: slugify(category.name, { lower: true }),
+          id,
+          name: sourceAccountCategory.name,
+          slug: slugify(sourceAccountCategory.name, { lower: true }) + `-${id}`,
           type:
-            category.type === "ASSET"
-              ? AccountType.ASSET
-              : AccountType.LIABILITY,
+            sourceAccountCategory.type === "ASSET"
+              ? TargetModel.AccountType.ASSET
+              : TargetModel.AccountType.LIABILITY,
           parentGroupId:
-            category.type === "ASSET" ? assetsGroup.id : liabilitiesGroup.id,
+            sourceAccountCategory.type === "ASSET"
+              ? assetsGroup.id
+              : liabilitiesGroup.id,
         };
       }
 
       function sourceAccountToTargetAccount(
-        sourceAccount: any,
-      ): Omit<Account, "createdAt" | "updatedAt"> {
+        sourceAccount: SourceModel.Account,
+      ): Omit<TargetModel.Account, "createdAt" | "updatedAt"> {
         const id = createId();
         return {
           id,
@@ -89,8 +193,8 @@ program
           slug: slugify(sourceAccount.name, { lower: true }) + `-${id}`,
           type:
             sourceAccount.categoryType === "ASSET"
-              ? AccountType.ASSET
-              : AccountType.LIABILITY,
+              ? TargetModel.AccountType.ASSET
+              : TargetModel.AccountType.LIABILITY,
           groupId:
             accountGroupsBySourceAccountCategoryId[
               sourceAccount.categoryId.toString()
@@ -101,6 +205,97 @@ program
               : null,
           unit:
             sourceAccount.unit.kind === "CURRENCY" ? "CURRENCY" : "SECURITY",
+        };
+      }
+
+      function sourceIncomeExpenseCategoryToTargetAccount(
+        sourceIncomeExpenseCategory: SourceModel.ExpenseCategory,
+        type: SourceModel.BookingType.INCOME | SourceModel.BookingType.EXPENSE,
+      ): Omit<TargetModel.Account, "createdAt" | "updatedAt"> {
+        const id = createId();
+        return {
+          id,
+          name: sourceIncomeExpenseCategory.name,
+          slug:
+            slugify(sourceIncomeExpenseCategory.name, { lower: true }) +
+            `-${id}`,
+          type: TargetModel.AccountType.EQUITY,
+          groupId:
+            type === SourceModel.BookingType.INCOME
+              ? incomeGroup.id
+              : expensesGroup.id,
+          currency: null,
+          unit: TargetModel.AccountUnit.CURRENCY,
+        };
+      }
+
+      function sourceTransactionToTargetTransaction(
+        sourceTransaction: SourceModel.Transaction,
+      ): TargetModel.Prisma.TransactionCreateInput {
+        return {
+          description: sourceTransaction.note ?? "",
+          bookings: {
+            create: sourceTransaction.bookings
+              .filter(
+                (
+                  b,
+                ): b is
+                  | ((SourceModel.Deposit | SourceModel.Charge) & {
+                      unit: { kind: SourceModel.AccountUnitKind.CURRENCY };
+                    })
+                  | SourceModel.Appreciation
+                  | SourceModel.Depreciation
+                  | SourceModel.Expense
+                  | SourceModel.Income =>
+                  ((b.type === SourceModel.BookingType.CHARGE ||
+                    b.type === SourceModel.BookingType.DEPOSIT) &&
+                    b.unit.kind === SourceModel.AccountUnitKind.CURRENCY) ||
+                  b.type === SourceModel.BookingType.INCOME ||
+                  b.type === SourceModel.BookingType.EXPENSE ||
+                  b.type === SourceModel.BookingType.APPRECIATION ||
+                  b.type === SourceModel.BookingType.DEPRECIATION,
+              )
+              .map((b) => {
+                return {
+                  date: sourceTransaction.date,
+                  description: "note" in b && b.note ? b.note : "",
+                  value: new TargetModel.Prisma.Decimal(b.amount.toString()),
+                  account: {
+                    connect:
+                      b.type === SourceModel.BookingType.DEPOSIT ||
+                      b.type === SourceModel.BookingType.CHARGE
+                        ? {
+                            id: accountsBySourceAccountId[
+                              b.accountId.toString()
+                            ].id,
+                          }
+                        : b.type === SourceModel.BookingType.INCOME
+                          ? {
+                              id: accountsBySourceIncomeCategoryId[
+                                b.incomeCategoryId.toString()
+                              ].id,
+                            }
+                          : b.type === SourceModel.BookingType.EXPENSE
+                            ? {
+                                id: accountsBySourceExpenseCategoryId[
+                                  b.expenseCategoryId.toString()
+                                ].id,
+                              }
+                            : {
+                                id: investmentGainLossAccount.id,
+                              },
+                  },
+                  currency:
+                    b.type === SourceModel.BookingType.DEPOSIT ||
+                    b.type === SourceModel.BookingType.CHARGE
+                      ? b.unit.currency
+                      : b.type === SourceModel.BookingType.EXPENSE ||
+                          b.type === SourceModel.BookingType.INCOME
+                        ? b.currency
+                        : "CHF",
+                };
+              }),
+          },
         };
       }
     } finally {

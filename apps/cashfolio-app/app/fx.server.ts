@@ -16,12 +16,23 @@ export async function getExchangeRate(
   const fxRates = await getExchangeRates(date);
   if (!fxRates) return null;
 
-  const baseToTargetRate = new Prisma.Decimal(
-    fxRates[`${fxRateBaseCurrency}${targetCurrency}`],
-  );
-  const baseToSourceRate = new Prisma.Decimal(
-    fxRates[`${fxRateBaseCurrency}${sourceCurrency}`],
-  );
+  const baseToTargetRateNumber =
+    fxRateBaseCurrency === targetCurrency
+      ? 1
+      : fxRates[`${fxRateBaseCurrency}${targetCurrency}`];
+  if (baseToTargetRateNumber == null) {
+    throw new Error(`No FX rate for ${targetCurrency} on ${date}`);
+  }
+  const baseToTargetRate = new Prisma.Decimal(baseToTargetRateNumber);
+
+  const baseToSourceRateNumber =
+    fxRateBaseCurrency === sourceCurrency
+      ? 1
+      : fxRates[`${fxRateBaseCurrency}${sourceCurrency}`];
+  if (baseToSourceRateNumber == null) {
+    throw new Error(`No FX rate for ${sourceCurrency} on ${date}`);
+  }
+  const baseToSourceRate = new Prisma.Decimal(baseToSourceRateNumber);
 
   if (sourceCurrency === fxRateBaseCurrency) {
     return baseToTargetRate;
