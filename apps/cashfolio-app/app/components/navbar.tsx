@@ -1,9 +1,3 @@
-import {
-  ArrowTrendingUpIcon,
-  ChartPieIcon,
-  ScaleIcon,
-  WalletIcon,
-} from "@heroicons/react/20/solid";
 import { Link } from "~/platform/link";
 import {
   NavSidebarItem,
@@ -31,7 +25,12 @@ import {
   LightBulbIcon,
   ShieldCheckIcon,
   UserIcon,
-} from "@heroicons/react/16/solid";
+} from "~/platform/icons/standard";
+import {
+  ArrowTrendingUpIcon,
+  ScaleIcon,
+  WalletIcon,
+} from "~/platform/icons/navigation";
 
 export function Navbar() {
   return (
@@ -55,10 +54,6 @@ export function Navbar() {
           <NavSidebarItem href="/income">
             <ArrowTrendingUpIcon />
             <SidebarLabel>Income</SidebarLabel>
-          </NavSidebarItem>
-          <NavSidebarItem href="/allocations">
-            <ChartPieIcon />
-            <SidebarLabel>Allocations</SidebarLabel>
           </NavSidebarItem>
           <NavSidebarItem href="/accounts">
             <WalletIcon />

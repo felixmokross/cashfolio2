@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Button } from "./button";
-import { Cog6ToothIcon } from "@heroicons/react/20/solid";
+import { Cog6ToothIcon } from "~/platform/icons/standard";
 const meta = {
   component: Button,
 } satisfies Meta<typeof Button>;

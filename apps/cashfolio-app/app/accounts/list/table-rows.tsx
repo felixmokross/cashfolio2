@@ -1,4 +1,4 @@
-import { PencilSquareIcon, TrashIcon } from "@heroicons/react/20/solid";
+import { PencilSquareIcon, TrashIcon } from "~/platform/icons/standard";
 import type { Account, AccountGroup } from "@prisma/client";
 import type { AccountsNode } from "~/account-groups/accounts-tree";
 import { AccountsNodeChildrenTableRows } from "~/account-groups/table-rows";

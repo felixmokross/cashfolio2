@@ -5,7 +5,7 @@ import {
   Bars3BottomLeftIcon,
   Bars3BottomRightIcon,
   Bars3Icon,
-} from "@heroicons/react/16/solid";
+} from "~/platform/icons/standard";
 
 const meta = {
   component: Listbox,

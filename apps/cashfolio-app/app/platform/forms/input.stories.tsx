@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Input, InputGroup } from "./input";
-import { MagnifyingGlassIcon } from "@heroicons/react/16/solid";
+import { MagnifyingGlassIcon } from "~/platform/icons/standard";
 
 const meta = {
   component: Input,

@@ -21,16 +21,16 @@ import { formatDate, formatMoney } from "~/formatting";
 import { Fragment } from "react/jsx-runtime";
 import { TextLink } from "~/platform/text";
 import {
-  EllipsisVerticalIcon,
-  PencilSquareIcon,
-  TrashIcon,
-} from "@heroicons/react/20/solid";
-import {
   Dropdown,
   DropdownButton,
   DropdownItem,
   DropdownMenu,
 } from "~/platform/dropdown";
+import {
+  EllipsisVerticalIcon,
+  PencilSquareIcon,
+  TrashIcon,
+} from "~/platform/icons/standard";
 
 export function Page({
   loaderData: { account, allAccounts, ledgerCurrency, ledgerRows },

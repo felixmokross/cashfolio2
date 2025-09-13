@@ -10,27 +10,6 @@ import {
   SidebarSection,
   SidebarSpacer,
 } from "./sidebar";
-import {
-  ArrowRightStartOnRectangleIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-  Cog8ToothIcon,
-  LightBulbIcon,
-  PlusIcon,
-  ShieldCheckIcon,
-  UserIcon,
-} from "@heroicons/react/16/solid";
-import {
-  Cog6ToothIcon,
-  HomeIcon,
-  InboxIcon,
-  MagnifyingGlassIcon,
-  MegaphoneIcon,
-  QuestionMarkCircleIcon,
-  SparklesIcon,
-  Square2StackIcon,
-  TicketIcon,
-} from "@heroicons/react/20/solid";
 
 import { Avatar } from "./avatar";
 import {
@@ -42,6 +21,27 @@ import {
   DropdownDivider,
 } from "./dropdown";
 import { Logo } from "~/components/logo";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  Cog6ToothIcon,
+  HomeIcon,
+  InboxIcon,
+  MagnifyingGlassIcon,
+  MegaphoneIcon,
+  QuestionMarkCircleIcon,
+  SparklesIcon,
+  Square2StackIcon,
+  TicketIcon,
+} from "./icons/navigation";
+import {
+  ArrowRightStartOnRectangleIcon,
+  Cog8ToothIcon,
+  LightBulbIcon,
+  PlusIcon,
+  ShieldCheckIcon,
+  UserIcon,
+} from "./icons/standard";
 
 const meta = {
   component: Sidebar,

@@ -26,7 +26,7 @@ import type {
 } from "react-stately";
 import { useDateFieldState, useDatePickerState } from "react-stately";
 import { createCalendar, parseDate } from "@internationalized/date";
-import { CalendarDaysIcon } from "@heroicons/react/20/solid";
+import { CalendarDaysIcon } from "~/platform/icons/standard";
 import { ClientOnly } from "../client-only";
 import clsx from "clsx";
 import type { CalendarDate } from "@internationalized/date";
@@ -36,7 +36,7 @@ import type { CalendarProps } from "react-aria";
 import { useCalendar, useCalendarCell, useCalendarGrid } from "react-aria";
 import type { CalendarState } from "react-stately";
 import { useCalendarState } from "react-stately";
-import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/20/solid";
+import { ArrowLeftIcon, ArrowRightIcon } from "~/platform/icons/standard";
 import { Button } from "../button";
 import { Divider } from "../divider";
 

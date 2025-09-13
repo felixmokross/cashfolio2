@@ -20,7 +20,7 @@ import {
 } from "~/platform/table";
 import { FormattedNumberInput } from "~/platform/forms/formatted-number-input";
 import { useState } from "react";
-import { PlusIcon, TrashIcon } from "@heroicons/react/16/solid";
+import { PlusIcon, TrashIcon } from "~/platform/icons/standard";
 import { Form } from "react-router";
 import { createId } from "@paralleldrive/cuid2";
 import type { Serialize } from "~/serialization";

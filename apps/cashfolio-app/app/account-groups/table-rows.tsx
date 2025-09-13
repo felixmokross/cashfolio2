@@ -1,10 +1,10 @@
 import type { Serialize } from "~/serialization";
 import { TableCell, TableRow } from "~/platform/table";
 import clsx from "clsx";
-import { WalletIcon } from "@heroicons/react/20/solid";
 import type { AccountsNode } from "./accounts-tree";
 import type { Account } from "@prisma/client";
 import type { ReactNode } from "react";
+import { WalletIcon } from "~/platform/icons/standard";
 
 export function AccountsNodeChildrenTableRows<TData = {}>({
   node,

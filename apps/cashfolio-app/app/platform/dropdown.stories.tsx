@@ -20,7 +20,7 @@ import {
   InformationCircleIcon,
   MoonIcon,
   UserIcon,
-} from "@heroicons/react/16/solid";
+} from "~/platform/icons/standard";
 
 const meta = {
   component: Dropdown,
