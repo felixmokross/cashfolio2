@@ -4,74 +4,55 @@ import {
   type Account,
   type AccountGroup,
   type Booking,
-  type Transaction,
 } from "@prisma/client";
 import { addDays, differenceInDays, formatISO, max } from "date-fns";
+import type { AccountWithBookings } from "~/accounts/types";
 import { refCurrency } from "~/config";
 import { formatISODate } from "~/formatting";
+import type { TransactionWithBookings } from "~/transactions/types";
 import { sum } from "~/utils";
-import type { AccountsNode } from "./types";
+import type { IncomeAccountsNode, IncomeData } from "./types";
+import { getExchangeRate } from "~/fx.server";
+import {
+  getAccountsTree,
+  type AccountsNode,
+} from "~/account-groups/accounts-tree";
 
-export function getAccountsTree(
-  accounts: Account[],
+export async function getIncomeStatement(
+  accounts: AccountWithBookings[],
   accountGroups: AccountGroup[],
-): { [K in AccountType]?: AccountsNode } {
-  const childrenByParentId: Record<string, AccountsNode[]> = {};
-  for (const g of accountGroups) {
-    if (!g.parentGroupId) continue;
-    if (!childrenByParentId[g.parentGroupId]) {
-      childrenByParentId[g.parentGroupId] = [];
+  transactions: TransactionWithBookings[],
+  endDate: Date,
+) {
+  const incomeData = await getIncomeData(
+    accounts,
+    accountGroups,
+    transactions,
+    async (date, from, to) => (await getExchangeRate(from, to, date))!,
+    endDate,
+  );
+
+  const equityRootNode = getAccountsTree(
+    (accounts as Account[]).concat(incomeData.virtualAccounts),
+    accountGroups.concat(incomeData.virtualAccountGroups),
+  ).EQUITY;
+  if (!equityRootNode) {
+    throw new Error("No equity account group found");
+  }
+
+  function withIncomeData(node: AccountsNode): IncomeAccountsNode {
+    if (node.nodeType === "accountGroup") {
+      const children = node.children.map(withIncomeData);
+      return { ...node, children, value: sum(children.map((c) => c.value)) };
     }
-    childrenByParentId[g.parentGroupId].push({
-      ...g,
-      nodeType: "accountGroup",
-      balance: new Prisma.Decimal(0),
-      children: [],
-    });
-  }
-
-  for (const a of accounts) {
-    if (!childrenByParentId[a.groupId]) {
-      childrenByParentId[a.groupId] = [];
-    }
-    childrenByParentId[a.groupId].push({
-      ...a,
-      nodeType: "account",
-      balance: new Prisma.Decimal(0),
-      balanceInOriginalCurrency: new Prisma.Decimal(0),
-      children: [],
-    });
-  }
-
-  function getRootNode(type: AccountType) {
-    const rootGroup = accountGroups.find(
-      (g) => !g.parentGroupId && g.type === type,
-    );
-    if (!rootGroup) return undefined;
-    return getNodeWithChildren({
-      ...rootGroup,
-      nodeType: "accountGroup",
-      balance: new Prisma.Decimal(0),
-      children: [],
-    });
-  }
-
-  function getNodeWithChildren(node: AccountsNode): AccountsNode {
-    const children =
-      node.nodeType === "accountGroup" && childrenByParentId[node.id]
-        ? childrenByParentId[node.id].map(getNodeWithChildren)
-        : [];
 
     return {
       ...node,
-      children,
+      value: incomeData.valueByAccountId.get(node.id) ?? new Prisma.Decimal(0),
     };
   }
-  return {
-    ASSET: getRootNode(AccountType.ASSET),
-    LIABILITY: getRootNode(AccountType.LIABILITY),
-    EQUITY: getRootNode(AccountType.EQUITY),
-  };
+
+  return withIncomeData(equityRootNode);
 }
 
 export function getBalanceByDate(
@@ -170,13 +151,13 @@ export async function completeFxTransaction(
   return bookingsSum.negated();
 }
 
-export async function getProfitLossStatement(
+export async function getIncomeData(
   accounts: AccountWithBookings[],
   accountGroups: AccountGroup[],
   transactions: TransactionWithBookings[],
   getFxRate: (date: Date, from: string, to: string) => Promise<Prisma.Decimal>,
   endDate: Date,
-): Promise<ProfitLossStatement> {
+): Promise<IncomeData> {
   const equityAccounts = accounts.filter((a) => a.type === AccountType.EQUITY);
 
   const equityRootGroup = accountGroups.find(
@@ -256,17 +237,3 @@ export async function getProfitLossStatement(
     ),
   };
 }
-
-export type ProfitLossStatement = {
-  virtualAccounts: Account[];
-  virtualAccountGroups: AccountGroup[];
-  valueByAccountId: Map<string, Prisma.Decimal>;
-};
-
-export type AccountWithBookings = Account & {
-  bookings: Booking[];
-};
-
-export type TransactionWithBookings = Transaction & {
-  bookings: Booking[];
-};

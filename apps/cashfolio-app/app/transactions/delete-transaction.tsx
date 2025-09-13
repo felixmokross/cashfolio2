@@ -22,6 +22,7 @@ export function useDeleteTransaction({
   }
   return {
     deleteTransactionProps: {
+      key: transactionId, // TODO key seems to cause problems with animation, think of different way (e.g. reset form)
       isOpen,
       onClose: () => setAlertOpen(false),
       transactionId,

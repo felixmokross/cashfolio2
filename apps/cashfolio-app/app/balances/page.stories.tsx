@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { BalanceSheetPage } from "./balance-sheet-page";
+import { Page } from "./page";
 
 const meta = {
-  component: BalanceSheetPage,
-} satisfies Meta<typeof BalanceSheetPage>;
+  component: Page,
+} satisfies Meta<typeof Page>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -47,7 +47,6 @@ export const Default: Story = {
                   updatedAt: new Date().toISOString(),
                   nodeType: "account",
                   balance: 997920,
-                  children: [],
                   balanceInOriginalCurrency: 997920,
                 },
                 {
@@ -62,7 +61,6 @@ export const Default: Story = {
                   updatedAt: new Date().toISOString(),
                   nodeType: "account",
                   balance: 100,
-                  children: [],
                   balanceInOriginalCurrency: 100,
                 },
               ],
@@ -92,13 +90,11 @@ export const Default: Story = {
               updatedAt: new Date().toISOString(),
               nodeType: "account",
               balance: -1500,
-              children: [],
               balanceInOriginalCurrency: -1500,
             },
           ],
         },
-        netWorth: 996520,
-        profitAndLoss: 996520,
+        equity: 996520,
       },
     },
   },

@@ -1,11 +1,13 @@
 import { type RouteConfig, index, route } from "@react-router/dev/routes";
+import { routes as accountRoutes } from "./accounts/routes";
 
 export default [
   index("routes/home.tsx"),
-  route("balances", "routes/balance-sheet.tsx"),
-  route("accounts", "routes/accounts.tsx"),
-  route("accounts/:accountId", "routes/account-ledger.tsx"),
+  route("balances", "balances/route.tsx"),
+  route("income", "income/route.tsx"),
+
+  ...accountRoutes,
+
   route("account-groups", "routes/account-groups.tsx"),
-  route("profit-loss", "routes/profit-loss-statement.tsx"),
   route("transactions", "routes/transactions.tsx"),
 ] satisfies RouteConfig;

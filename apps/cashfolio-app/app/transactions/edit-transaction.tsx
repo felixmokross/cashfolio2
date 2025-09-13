@@ -7,8 +7,8 @@ import {
 } from "~/platform/dialog";
 import { Field, FieldGroup } from "~/platform/forms/fieldset";
 import { Input } from "~/platform/forms/input";
-import type { AccountOption, TransactionWithBookings } from "~/types";
-import { AccountCombobox } from "./account-combobox";
+import type { AccountOption } from "~/types";
+import { AccountCombobox } from "~/accounts/account-combobox";
 import { DateInput } from "~/platform/forms/date-input";
 import {
   Table,
@@ -25,8 +25,9 @@ import { Form } from "react-router";
 import { createId } from "@paralleldrive/cuid2";
 import type { Serialize } from "~/serialization";
 import type { Booking } from "@prisma/client";
-import { CurrencyCombobox } from "./currency-combobox";
+import { CurrencyCombobox } from "../components/currency-combobox";
 import { formatISO } from "date-fns";
+import type { TransactionWithBookings } from "~/transactions/types";
 
 type BookingFormValues = Serialize<
   Pick<Booking, "id" | "date" | "description" | "accountId" | "currency">

@@ -1,0 +1,31 @@
+import { useLoaderData } from "react-router";
+import { serialize, type Serialize } from "~/serialization";
+import { getAccountGroupPath } from "~/utils";
+import { Page } from "./page";
+import { getAccounts } from "../data";
+import { getAccountGroups } from "~/account-groups/data";
+import { getAccountsTree } from "~/account-groups/accounts-tree";
+
+export async function loader() {
+  const [accounts, accountGroups] = await Promise.all([
+    getAccounts(),
+    getAccountGroups(),
+  ]);
+
+  const accountGroupsWithPath = accountGroups.map((ag) => ({
+    ...ag,
+    path: getAccountGroupPath(ag.id, accountGroups),
+  }));
+
+  const tree = getAccountsTree(accounts, accountGroupsWithPath);
+
+  return serialize({ tree, accounts, accountGroups: accountGroupsWithPath });
+}
+
+export type LoaderData = Serialize<Awaited<ReturnType<typeof loader>>>;
+
+export default function Route() {
+  const loaderData = useLoaderData<LoaderData>();
+
+  return <Page loaderData={loaderData} />;
+}

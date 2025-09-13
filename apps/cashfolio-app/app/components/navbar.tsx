@@ -52,9 +52,9 @@ export function Navbar() {
             <ScaleIcon />
             <SidebarLabel>Balances</SidebarLabel>
           </NavSidebarItem>
-          <NavSidebarItem href="/profit-loss">
+          <NavSidebarItem href="/income">
             <ArrowTrendingUpIcon />
-            <SidebarLabel>Profit/Loss</SidebarLabel>
+            <SidebarLabel>Income</SidebarLabel>
           </NavSidebarItem>
           <NavSidebarItem href="/allocations">
             <ChartPieIcon />

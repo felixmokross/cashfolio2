@@ -1,10 +1,4 @@
-import type {
-  Account,
-  AccountGroup,
-  Booking,
-  Prisma,
-  Transaction,
-} from "@prisma/client";
+import type { Account, AccountGroup, Prisma } from "@prisma/client";
 
 export type AccountOption = Pick<Account, "id" | "name" | "groupId"> & {
   path: string;
@@ -15,10 +9,6 @@ export type AccountGroupOption = Pick<
   "id" | "name" | "parentGroupId" | "type"
 > & {
   path: string;
-};
-
-export type TransactionWithBookings = Transaction & {
-  bookings: Booking[];
 };
 
 export type AccountsNode = AccountGroupNode | AccountNode;

@@ -15,7 +15,7 @@ import { prisma } from "~/prisma.server";
 import {
   EditTransaction,
   useEditTransaction,
-} from "~/components/edit-transaction";
+} from "~/transactions/edit-transaction";
 import {
   EllipsisVerticalIcon,
   PencilSquareIcon,
@@ -30,14 +30,14 @@ import {
 import {
   DeleteTransaction,
   useDeleteTransaction,
-} from "~/components/delete-transaction";
-import type { TransactionWithBookings } from "~/types";
+} from "~/transactions/delete-transaction";
 import { TextLink } from "~/platform/text";
 import { getAccountGroupPath } from "~/utils";
 import { serialize } from "~/serialization";
 import { formatDate, formatMoney } from "~/formatting";
 import { getExchangeRate } from "~/fx.server";
 import { refCurrency } from "~/config";
+import type { TransactionWithBookings } from "~/transactions/types";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const [account, bookings, allAccounts, accountGroups] = await Promise.all([

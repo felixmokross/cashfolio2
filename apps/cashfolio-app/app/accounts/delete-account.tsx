@@ -13,6 +13,7 @@ export function useDeleteAccount() {
   }
   return {
     deleteAccountProps: {
+      key: accountId,
       isOpen,
       onClose: () => setAlertOpen(false),
       accountId,
@@ -34,10 +35,11 @@ export function DeleteAccount({
     <Alert open={isOpen} onClose={onClose} size="sm">
       <Form
         className="contents"
-        action="/accounts"
-        method="DELETE"
+        action="/accounts/delete"
+        method="POST"
         onSubmit={() => onClose()}
       >
+        <input type="hidden" name="_action" value="delete" />
         <input type="hidden" name="accountId" value={accountId} />
         <AlertTitle>Are you sure you want to delete this account?</AlertTitle>
         <AlertActions>

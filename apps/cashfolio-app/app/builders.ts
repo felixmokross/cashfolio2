@@ -7,7 +7,8 @@ import {
   type Booking,
   type Transaction,
 } from "@prisma/client";
-import type { AccountWithBookings, TransactionWithBookings } from "./model";
+import type { AccountWithBookings } from "./accounts/types";
+import type { TransactionWithBookings } from "./transactions/types";
 
 export function buildAccountGroup(
   values: Partial<AccountGroup> = {},

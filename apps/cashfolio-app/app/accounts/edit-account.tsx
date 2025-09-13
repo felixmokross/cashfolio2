@@ -19,9 +19,9 @@ import {
 import { Input } from "~/platform/forms/input";
 import { Radio, RadioField, RadioGroup } from "~/platform/forms/radio";
 import type { Serialize } from "~/serialization";
-import { AccountGroupCombobox } from "./account-group-combobox";
+import { AccountGroupCombobox } from "~/account-groups/account-group-combobox";
 import type { AccountGroupOption } from "~/types";
-import { CurrencyCombobox } from "./currency-combobox";
+import { CurrencyCombobox } from "~/components/currency-combobox";
 
 export function useEditAccount({
   accountGroups,
@@ -69,9 +69,10 @@ export function EditAccount({
   return (
     <Dialog open={isOpen} onClose={onClose} size="3xl">
       <Form
-        method={account ? "PUT" : "POST"}
         onSubmit={() => onClose()}
         className="contents"
+        action={account ? "/accounts/update" : "/accounts/create"}
+        method="POST"
       >
         {!!account && <input type="hidden" name="id" value={account.id} />}
         <DialogTitle>
@@ -115,7 +116,7 @@ export function EditAccount({
                 <Label>Group</Label>
                 <AccountGroupCombobox
                   name="groupId"
-                  defaultValue={account?.id}
+                  defaultValue={account?.groupId}
                   accountGroups={accountGroups.filter(
                     (g) => g.type === selectedType,
                   )}

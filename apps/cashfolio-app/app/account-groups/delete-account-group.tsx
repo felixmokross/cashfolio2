@@ -13,6 +13,7 @@ export function useDeleteAccountGroup() {
   }
   return {
     deleteAccountGroupProps: {
+      key: accountGroupId,
       isOpen,
       onClose: () => setAlertOpen(false),
       accountGroupId,
