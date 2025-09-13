@@ -11,11 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from "~/platform/table";
-import type { loader } from "~/routes/balance-sheet";
 import type { Serialize } from "~/serialization";
 import type { AccountsNode } from "~/types";
-
-type LoaderData = Awaited<ReturnType<typeof loader>>;
+import type { LoaderData } from "~/routes/balance-sheet";
 
 export function BalanceSheetPage({
   loaderData: { balanceSheet },
@@ -66,33 +64,23 @@ export function BalanceSheetPage({
           <Table dense bleed grid striped>
             <TableHead>
               <TableRow>
-                <TableHeader>Net Worth</TableHeader>
+                <TableHeader>Equity</TableHeader>
                 <TableHeader className="text-right">
                   {formatMoney(balanceSheet.netWorth)}
                 </TableHeader>
               </TableRow>
             </TableHead>
             <TableBody>
-              <TableRow>
+              <TableRow href="/profit-loss">
                 <TableCell>Profit/Loss</TableCell>
-                <TableCell>
-                  {formatMoney(
-                    balanceSheet.profitAndLoss
-                      .map(([, v]) => v)
-                      .reduce((a, b) => a + b, 0),
-                  )}
-                  <pre>
-                    {JSON.stringify(balanceSheet.profitAndLoss, null, 2)}
-                  </pre>
+                <TableCell className="text-right">
+                  {formatMoney(balanceSheet.profitAndLoss)}
                 </TableCell>
               </TableRow>
             </TableBody>
           </Table>
         </div>
       </div>
-      <pre>{JSON.stringify(balanceSheet.fxBookings, null, 2)}</pre>
-      <pre>{JSON.stringify(balanceSheet.fxTransferBookings, null, 2)}</pre>
-      <pre>{JSON.stringify(balanceSheet.balanceByDate, null, 2)}</pre>
     </>
   );
 }

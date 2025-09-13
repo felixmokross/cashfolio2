@@ -5,15 +5,11 @@ import { prisma } from "~/prisma.server";
 import { serialize } from "~/serialization";
 import type { AccountsNode } from "~/types";
 import { getExchangeRate } from "~/fx.server";
-import {
-  completeFxTransaction,
-  generateFxBookingsForFxAccount,
-  getBalanceByDate,
-  getProfitLossStatement,
-} from "~/model";
-import { max, subDays } from "date-fns";
+import { getProfitLossStatement } from "~/model";
+import { subDays } from "date-fns";
 import { refCurrency } from "~/config";
 import { today } from "~/today";
+import { sum } from "~/utils";
 
 export async function loader() {
   // this date marks the end of what can be considered
@@ -107,52 +103,25 @@ export async function loader() {
       assets,
       liabilities,
       netWorth: assets.balance.plus(liabilities.balance),
-      profitAndLoss: Array.from(
-        await getProfitLossStatement(
-          accounts,
-          transactions,
-          async (date, from, to) => (await getExchangeRate(from, to, date))!,
-          endDate,
-        ),
+      profitAndLoss: sum(
+        Array.from(
+          (
+            await getProfitLossStatement(
+              accounts,
+              accountGroups,
+              transactions,
+              async (date, from, to) =>
+                (await getExchangeRate(from, to, date))!,
+              endDate,
+            )
+          ).valueByAccountId,
+        ).map(([, value]) => value),
       ),
-      fxBookings: await Promise.all(
-        accounts
-          .filter(
-            (a) =>
-              (a.type === "ASSET" || a.type === "LIABILITY") &&
-              a.currency !== refCurrency,
-          )
-          .map(
-            async (a) =>
-              await generateFxBookingsForFxAccount(
-                a,
-                async (date, from, to) =>
-                  (await getExchangeRate(from, to, date))!,
-                endDate,
-              ),
-          ),
-      ),
-      fxTransferBookings: await Promise.all(
-        transactions.map(async (t) => ({
-          id: `fx-transfer-${t.id}`,
-          description: `FX Transfer for transaction ${t.description}`,
-          date: max(t.bookings.map((b) => b.date)),
-          currency: refCurrency,
-          value: await completeFxTransaction(
-            t,
-            async (date, from, to) => (await getExchangeRate(from, to, date))!,
-          ),
-        })),
-      ),
-      balanceByDate: accounts.map((a) => [
-        a.id,
-        Array.from(getBalanceByDate(a)),
-      ]),
     },
   });
 }
 
-type LoaderData = Awaited<ReturnType<typeof loader>>;
+export type LoaderData = Awaited<ReturnType<typeof loader>>;
 
 export default function Route() {
   const { balanceSheet } = useLoaderData<LoaderData>();

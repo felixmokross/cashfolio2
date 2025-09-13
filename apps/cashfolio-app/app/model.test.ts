@@ -2,16 +2,18 @@ import { describe, expect, test } from "vitest";
 import {
   completeFxTransaction,
   generateFxBookingsForFxAccount,
+  getAccountsTree,
   getBalanceByDate,
   getProfitLossStatement,
 } from "./model";
 import {
   buildAccount,
+  buildAccountGroup,
   buildAccountWithBookings,
   buildBooking,
   buildTransactionWithBookings,
 } from "./builders";
-import { AccountType, Prisma } from "@prisma/client";
+import { AccountType, Prisma, type Account } from "@prisma/client";
 import { formatISODate } from "~/formatting";
 
 describe("getBalanceByDate", () => {
@@ -99,7 +101,7 @@ describe("generateFxBookingsForFxAccount", () => {
       }),
       expect.objectContaining({
         date: new Date("2025-01-03"),
-        value: new Prisma.Decimal(90),
+        value: new Prisma.Decimal(100),
       }),
       expect.objectContaining({
         date: new Date("2025-01-04"),
@@ -178,7 +180,7 @@ describe("getProfitLossStatement", () => {
       "2025-01-01_EUR_CHF": new Prisma.Decimal(1.2),
       "2025-01-02_EUR_CHF": new Prisma.Decimal(1.3),
       "2025-01-03_EUR_CHF": new Prisma.Decimal(1.2),
-      "2025-01-04_EUR_CHF": new Prisma.Decimal(0.95),
+      "2025-01-04_EUR_CHF": new Prisma.Decimal(0.9),
     };
 
     async function getFxRate(
@@ -242,60 +244,139 @@ describe("getProfitLossStatement", () => {
       currency: "CHF",
     });
 
-    const result = await getProfitLossStatement(
-      [
-        buildAccountWithBookings({
-          id: "asset-account-1",
-          type: AccountType.ASSET,
-          currency: "CHF",
-          bookings: [booking1, booking5, booking8],
-        }),
-        buildAccountWithBookings({
-          id: "asset-account-2",
-          type: AccountType.ASSET,
-          currency: "EUR",
-          bookings: [booking3, booking7],
-        }),
-        buildAccountWithBookings({
-          id: "opening-balances-account",
-          type: AccountType.EQUITY,
-          bookings: [booking2, booking4],
-        }),
-        buildAccountWithBookings({
-          id: "groceries-account",
-          type: AccountType.EQUITY,
-          bookings: [booking6],
-        }),
-      ],
-      [
-        buildTransactionWithBookings({
-          id: "transaction-1",
-          bookings: [booking1, booking2],
-        }),
-        buildTransactionWithBookings({
-          id: "transaction-2",
-          bookings: [booking3, booking4],
-        }),
-        buildTransactionWithBookings({
-          id: "transaction-3",
-          bookings: [booking5, booking6],
-        }),
-        buildTransactionWithBookings({
-          id: "transaction-4",
-          bookings: [booking7, booking8],
-        }),
-      ],
-      getFxRate,
-      new Date("2025-01-04"),
-    );
+    const result = (
+      await getProfitLossStatement(
+        [
+          buildAccountWithBookings({
+            id: "asset-account-1",
+            type: AccountType.ASSET,
+            currency: "CHF",
+            bookings: [booking1, booking5, booking8],
+          }),
+          buildAccountWithBookings({
+            id: "asset-account-2",
+            type: AccountType.ASSET,
+            currency: "EUR",
+            bookings: [booking3, booking7],
+          }),
+          buildAccountWithBookings({
+            id: "opening-balances-account",
+            type: AccountType.EQUITY,
+            bookings: [booking2, booking4],
+          }),
+          buildAccountWithBookings({
+            id: "groceries-account",
+            type: AccountType.EQUITY,
+            bookings: [booking6],
+          }),
+        ],
+        [buildAccountGroup({ id: "root-equity", type: AccountType.EQUITY })],
+        [
+          buildTransactionWithBookings({
+            id: "transaction-1",
+            bookings: [booking1, booking2],
+          }),
+          buildTransactionWithBookings({
+            id: "transaction-2",
+            bookings: [booking3, booking4],
+          }),
+          buildTransactionWithBookings({
+            id: "transaction-3",
+            bookings: [booking5, booking6],
+          }),
+          buildTransactionWithBookings({
+            id: "transaction-4",
+            bookings: [booking7, booking8],
+          }),
+        ],
+        getFxRate,
+        new Date("2025-01-04"),
+      )
+    ).valueByAccountId;
 
     expect(result).toEqual(
       new Map<string, Prisma.Decimal>([
-        ["opening-balances-account", new Prisma.Decimal(1550)],
         ["groceries-account", new Prisma.Decimal(-20)],
-        ["fx-asset-account-2", new Prisma.Decimal(30)],
-        ["fx-transfer", new Prisma.Decimal(-5)],
+        ["fx-conversion", new Prisma.Decimal(-5)],
+        ["fx-holding-asset-account-2", new Prisma.Decimal(-10)],
+        ["opening-balances-account", new Prisma.Decimal(1550)],
       ]),
     );
+  });
+});
+
+describe("getAccountsTree", () => {
+  test("builds the accounts tree", () => {
+    const result = getAccountsTree(
+      [
+        buildAccount({
+          id: "a1",
+          name: "Account 1",
+          type: AccountType.ASSET,
+          groupId: "ag1",
+        }),
+        buildAccount({
+          id: "a2",
+          name: "Account 2",
+          type: AccountType.ASSET,
+          groupId: "ag1",
+        }),
+        buildAccount({
+          id: "a3",
+          name: "Account 3",
+          type: AccountType.LIABILITY,
+          groupId: "ag2",
+        }),
+        buildAccount({
+          id: "a4",
+          name: "Account 4",
+          type: AccountType.LIABILITY,
+          groupId: "ag3",
+        }),
+      ],
+      [
+        buildAccountGroup({
+          id: "ag1",
+          name: "Account Group 1",
+          type: AccountType.ASSET,
+        }),
+        buildAccountGroup({
+          id: "ag2",
+          name: "Account Group 2",
+          type: AccountType.LIABILITY,
+        }),
+        buildAccountGroup({
+          id: "ag3",
+          name: "Account Group 3",
+          type: AccountType.LIABILITY,
+          parentGroupId: "ag2",
+        }),
+      ],
+    );
+
+    expect(result).toEqual({
+      ASSET: expect.objectContaining({
+        nodeType: "accountGroup",
+        id: "ag1",
+        children: [
+          expect.objectContaining({ nodeType: "account", id: "a1" }),
+          expect.objectContaining({ nodeType: "account", id: "a2" }),
+        ],
+      }),
+      LIABILITY: expect.objectContaining({
+        nodeType: "accountGroup",
+        id: "ag2",
+        children: [
+          expect.objectContaining({
+            nodeType: "accountGroup",
+            id: "ag3",
+            children: [
+              expect.objectContaining({ nodeType: "account", id: "a4" }),
+            ],
+          }),
+          expect.objectContaining({ nodeType: "account", id: "a3" }),
+        ],
+      }),
+    });
   });
 });

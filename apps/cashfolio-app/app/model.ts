@@ -2,6 +2,7 @@ import {
   AccountType,
   Prisma,
   type Account,
+  type AccountGroup,
   type Booking,
   type Transaction,
 } from "@prisma/client";
@@ -9,6 +10,69 @@ import { addDays, differenceInDays, formatISO, max } from "date-fns";
 import { refCurrency } from "~/config";
 import { formatISODate } from "~/formatting";
 import { sum } from "~/utils";
+import type { AccountsNode } from "./types";
+
+export function getAccountsTree(
+  accounts: Account[],
+  accountGroups: AccountGroup[],
+): { [K in AccountType]?: AccountsNode } {
+  const childrenByParentId: Record<string, AccountsNode[]> = {};
+  for (const g of accountGroups) {
+    if (!g.parentGroupId) continue;
+    if (!childrenByParentId[g.parentGroupId]) {
+      childrenByParentId[g.parentGroupId] = [];
+    }
+    childrenByParentId[g.parentGroupId].push({
+      ...g,
+      nodeType: "accountGroup",
+      balance: new Prisma.Decimal(0),
+      children: [],
+    });
+  }
+
+  for (const a of accounts) {
+    if (!childrenByParentId[a.groupId]) {
+      childrenByParentId[a.groupId] = [];
+    }
+    childrenByParentId[a.groupId].push({
+      ...a,
+      nodeType: "account",
+      balance: new Prisma.Decimal(0),
+      balanceInOriginalCurrency: new Prisma.Decimal(0),
+      children: [],
+    });
+  }
+
+  function getRootNode(type: AccountType) {
+    const rootGroup = accountGroups.find(
+      (g) => !g.parentGroupId && g.type === type,
+    );
+    if (!rootGroup) return undefined;
+    return getNodeWithChildren({
+      ...rootGroup,
+      nodeType: "accountGroup",
+      balance: new Prisma.Decimal(0),
+      children: [],
+    });
+  }
+
+  function getNodeWithChildren(node: AccountsNode): AccountsNode {
+    const children =
+      node.nodeType === "accountGroup" && childrenByParentId[node.id]
+        ? childrenByParentId[node.id].map(getNodeWithChildren)
+        : [];
+
+    return {
+      ...node,
+      children,
+    };
+  }
+  return {
+    ASSET: getRootNode(AccountType.ASSET),
+    LIABILITY: getRootNode(AccountType.LIABILITY),
+    EQUITY: getRootNode(AccountType.EQUITY),
+  };
+}
 
 export function getBalanceByDate(
   account: AccountWithBookings,
@@ -48,7 +112,6 @@ export async function generateFxBookingsForFxAccount(
   }
 
   const initialDate = fxAccount.bookings[0].date;
-  console.log(initialDate);
   const balanceByDate = getBalanceByDate(fxAccount);
 
   let balance = balanceByDate.get(formatISODate(initialDate));
@@ -109,11 +172,16 @@ export async function completeFxTransaction(
 
 export async function getProfitLossStatement(
   accounts: AccountWithBookings[],
+  accountGroups: AccountGroup[],
   transactions: TransactionWithBookings[],
   getFxRate: (date: Date, from: string, to: string) => Promise<Prisma.Decimal>,
   endDate: Date,
 ): Promise<ProfitLossStatement> {
   const equityAccounts = accounts.filter((a) => a.type === AccountType.EQUITY);
+
+  const equityRootGroup = accountGroups.find(
+    (g) => g.type === AccountType.EQUITY && !g.parentGroupId,
+  )!;
 
   const fxAccounts = await Promise.all(
     accounts
@@ -126,7 +194,7 @@ export async function getProfitLossStatement(
       .map(
         async (a) =>
           ({
-            id: `fx-${a.id}`,
+            id: `fx-holding-${a.id}`,
             type: AccountType.EQUITY,
             currency: refCurrency,
             bookings: await generateFxBookingsForFxAccount(
@@ -134,9 +202,9 @@ export async function getProfitLossStatement(
               getFxRate,
               endDate,
             ),
-            name: `FX P/L ${a.name}`,
-            slug: `fx-pl-${a.slug}`,
-            groupId: "fx-pl",
+            name: `FX Holding Gain/Loss for ${a.name}`,
+            slug: `fx-holding-${a.slug}`,
+            groupId: equityRootGroup.id,
             unit: a.unit,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -145,15 +213,15 @@ export async function getProfitLossStatement(
   );
 
   const fxTransferAccount = {
-    id: "fx-transfer",
-    name: "FX Transfer",
-    slug: "fx-transfer",
-    groupId: "fx-transfer",
+    id: "fx-conversion",
+    name: "FX Conversion Gain/Loss",
+    slug: "fx-conversion",
+    groupId: equityRootGroup.id,
     type: AccountType.EQUITY,
     currency: refCurrency,
     bookings: await Promise.all(
       transactions.map(async (t) => ({
-        id: `fx-transfer-${t.id}`,
+        id: `fx-conversion-${t.id}`,
         date: max(t.bookings.map((b) => b.date)),
         currency: refCurrency,
         value: await completeFxTransaction(t, getFxRate),
@@ -161,31 +229,39 @@ export async function getProfitLossStatement(
     ),
   } as AccountWithBookings;
 
-  return new Map<string, Prisma.Decimal>(
-    await Promise.all(
-      equityAccounts
-        .concat(fxAccounts)
-        .concat(fxTransferAccount)
-        .map(
-          async (a) =>
-            [
-              a.id,
-              sum(
-                await Promise.all(
-                  a.bookings.map(async (b) =>
-                    (await getFxRate(b.date, b.currency, refCurrency)).mul(
-                      b.value,
+  return {
+    virtualAccounts: fxAccounts.concat(fxTransferAccount),
+    virtualAccountGroups: [],
+    valueByAccountId: new Map<string, Prisma.Decimal>(
+      await Promise.all(
+        equityAccounts
+          .concat(fxAccounts)
+          .concat(fxTransferAccount)
+          .map(
+            async (a) =>
+              [
+                a.id,
+                sum(
+                  await Promise.all(
+                    a.bookings.map(async (b) =>
+                      (await getFxRate(b.date, b.currency, refCurrency)).mul(
+                        b.value,
+                      ),
                     ),
                   ),
-                ),
-              ).negated(),
-            ] as const,
-        ),
+                ).negated(),
+              ] as const,
+          ),
+      ),
     ),
-  );
+  };
 }
 
-export type ProfitLossStatement = Map<string, Prisma.Decimal>;
+export type ProfitLossStatement = {
+  virtualAccounts: Account[];
+  virtualAccountGroups: AccountGroup[];
+  valueByAccountId: Map<string, Prisma.Decimal>;
+};
 
 export type AccountWithBookings = Account & {
   bookings: Booking[];

@@ -32,6 +32,7 @@ export function useEditAccount({
   const [account, setAccount] = useState<Serialize<Account>>();
   return {
     editAccountProps: {
+      key: account?.id ?? "new",
       isOpen,
       onClose: () => setIsOpen(false),
       account,

@@ -3,10 +3,27 @@ import {
   AccountUnit,
   Prisma,
   type Account,
+  type AccountGroup,
   type Booking,
   type Transaction,
 } from "@prisma/client";
 import type { AccountWithBookings, TransactionWithBookings } from "./model";
+
+export function buildAccountGroup(
+  values: Partial<AccountGroup> = {},
+): AccountGroup {
+  return {
+    id: "group_1",
+    name: "My Account Group",
+    slug: "my-account-group",
+
+    parentGroupId: null,
+    type: AccountType.ASSET,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...values,
+  };
+}
 
 export function buildAccount(values: Partial<Account> = {}): Account {
   return {

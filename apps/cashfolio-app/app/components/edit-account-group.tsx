@@ -24,6 +24,7 @@ export function useEditAccountGroup({
   const [accountGroup, setAccountGroup] = useState<Serialize<AccountGroup>>();
   return {
     editAccountGroupProps: {
+      key: accountGroup?.id ?? "new",
       isOpen,
       onClose: () => setIsOpen(false),
       accountGroup,

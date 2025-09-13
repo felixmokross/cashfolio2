@@ -45,6 +45,7 @@ export function useEditTransaction({
 
   return {
     editTransactionProps: {
+      key: transaction?.id ?? "new",
       isOpen,
       onClose: () => setIsOpen(false),
       accounts,
@@ -76,7 +77,7 @@ export function EditTransaction({
   transaction?: Serialize<TransactionWithBookings>;
 }) {
   return (
-    <Dialog size="5xl" open={isOpen} onClose={onClose} key={transaction?.id}>
+    <Dialog size="5xl" open={isOpen} onClose={onClose}>
       <Form
         className="contents"
         action="/transactions"
