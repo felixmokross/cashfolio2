@@ -81,8 +81,8 @@ export function EditTransaction({
     <Dialog size="5xl" open={isOpen} onClose={onClose}>
       <Form
         className="contents"
-        action="/transactions"
-        method={transaction ? "PUT" : "POST"}
+        action={transaction ? "/transactions/update" : "/transactions/create"}
+        method="POST"
         onSubmit={() => onClose()}
       >
         <input

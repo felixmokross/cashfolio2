@@ -1,8 +1,14 @@
-import { Prisma, type Account, type Booking } from "@prisma/client";
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { Fragment } from "react/jsx-runtime";
-import { Button } from "~/platform/button";
+import {
+  EditTransaction,
+  useEditTransaction,
+} from "~/transactions/edit-transaction";
+import type { LoaderData } from "./route";
+import {
+  DeleteTransaction,
+  useDeleteTransaction,
+} from "~/transactions/delete-transaction";
 import { Heading } from "~/platform/heading";
+import { Button } from "~/platform/button";
 import {
   Table,
   TableBody,
@@ -11,11 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from "~/platform/table";
-import { prisma } from "~/prisma.server";
-import {
-  EditTransaction,
-  useEditTransaction,
-} from "~/transactions/edit-transaction";
+import { formatDate, formatMoney } from "~/formatting";
+import { Fragment } from "react/jsx-runtime";
+import { TextLink } from "~/platform/text";
 import {
   EllipsisVerticalIcon,
   PencilSquareIcon,
@@ -27,101 +31,12 @@ import {
   DropdownItem,
   DropdownMenu,
 } from "~/platform/dropdown";
-import {
-  DeleteTransaction,
-  useDeleteTransaction,
-} from "~/transactions/delete-transaction";
-import { TextLink } from "~/platform/text";
-import { getAccountGroupPath } from "~/utils";
-import { serialize } from "~/serialization";
-import { formatDate, formatMoney } from "~/formatting";
-import { getExchangeRate } from "~/fx.server";
-import { refCurrency } from "~/config";
-import type { TransactionWithBookings } from "~/transactions/types";
 
-export async function loader({ params }: LoaderFunctionArgs) {
-  const [account, bookings, allAccounts, accountGroups] = await Promise.all([
-    prisma.account.findUnique({
-      where: { id: params.accountId },
-      include: { group: { include: {} } },
-    }),
-    prisma.booking.findMany({
-      where: { accountId: params.accountId },
-      include: {
-        transaction: {
-          include: { bookings: true },
-        },
-      },
-      orderBy: [{ date: "asc" }, { transaction: { createdAt: "asc" } }],
-    }),
-    prisma.account.findMany({ orderBy: { name: "asc" } }),
-    prisma.accountGroup.findMany(),
-  ]);
-  if (!account) {
-    throw new Response("Not Found", { status: 404 });
-  }
-
-  function getAccountPath(account: Account) {
-    return `${getAccountGroupPath(account.groupId, accountGroups)} / ${
-      account.name
-    }`;
-  }
-
-  const ledgerCurrency = account.currency ?? refCurrency;
-
-  return serialize({
-    ledgerCurrency,
-    account: {
-      ...account,
-      path: getAccountPath(account),
-    },
-    ledgerRows: (await getLedgerRows(bookings, ledgerCurrency)).reverse(),
-    allAccounts: allAccounts
-      .map((a) => ({
-        ...a,
-        path: getAccountPath(a),
-      }))
-      .toSorted((a, b) => a.path.localeCompare(b.path)),
-  });
-}
-
-type BookingWithTransaction = Booking & {
-  transaction: TransactionWithBookings;
-};
-type LedgerRow = {
-  booking: BookingWithTransaction;
-  valueInAccountCurrency: Prisma.Decimal;
-  balance: Prisma.Decimal;
-};
-
-async function getLedgerRows(
-  bookings: BookingWithTransaction[],
-  ledgerCurrency: string,
-) {
-  const rows = new Array<LedgerRow>(bookings.length + 1);
-
-  let balance = new Prisma.Decimal(0);
-
-  for (let i = 0; i < bookings.length; i++) {
-    const valueInAccountCurrency = (await getExchangeRate(
-      bookings[i].currency,
-      ledgerCurrency,
-      bookings[i].date,
-    ))!.mul(bookings[i].value);
-    balance = balance.add(valueInAccountCurrency);
-    rows[i] = {
-      booking: bookings[i],
-      valueInAccountCurrency,
-      balance,
-    };
-  }
-
-  return rows;
-}
-
-export default function AccountLedger() {
-  const { account, ledgerRows, allAccounts, ledgerCurrency } =
-    useLoaderData<typeof loader>();
+export function Page({
+  loaderData: { account, allAccounts, ledgerCurrency, ledgerRows },
+}: {
+  loaderData: LoaderData;
+}) {
   const { editTransactionProps, onNewTransaction, onEditTransaction } =
     useEditTransaction({
       returnToAccountId: account.id,

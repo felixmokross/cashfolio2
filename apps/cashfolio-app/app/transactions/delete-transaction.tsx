@@ -47,8 +47,8 @@ export function DeleteTransaction({
     <Alert open={isOpen} onClose={onClose} size="sm">
       <Form
         className="contents"
-        action="/transactions"
-        method="DELETE"
+        action="/transactions/delete"
+        method="POST"
         onSubmit={() => onClose()}
       >
         <input
