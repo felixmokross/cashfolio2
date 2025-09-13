@@ -58,8 +58,10 @@ export function EditAccountGroup({
   return (
     <Dialog open={isOpen} onClose={onClose} size="3xl">
       <Form
-        method={accountGroup ? "PUT" : "POST"}
-        action="/account-groups"
+        action={
+          accountGroup ? "/account-groups/update" : "/account-groups/create"
+        }
+        method="POST"
         className="contents"
         onSubmit={() => onClose()}
       >

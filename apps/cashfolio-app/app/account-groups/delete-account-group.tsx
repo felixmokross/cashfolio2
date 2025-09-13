@@ -35,8 +35,8 @@ export function DeleteAccountGroup({
     <Alert open={isOpen} onClose={onClose} size="md">
       <Form
         className="contents"
-        action="/account-groups"
-        method="DELETE"
+        action="/account-groups/delete"
+        method="POST"
         onSubmit={() => onClose()}
       >
         <input type="hidden" name="accountGroupId" value={accountGroupId} />
