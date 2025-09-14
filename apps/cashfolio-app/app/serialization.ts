@@ -26,7 +26,12 @@ export function serialize<T>(input: T): Serialize<T> {
   }
 
   if (input instanceof Date) {
-    return input.toISOString() as Serialize<T>;
+    // TODO temporary workaround, remove
+    try {
+      return input.toISOString() as Serialize<T>;
+    } catch {
+      return "<invalid>" as Serialize<T>;
+    }
   }
 
   // Arrays / tuples

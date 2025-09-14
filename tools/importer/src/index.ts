@@ -7,6 +7,18 @@ import slugify from "slugify";
 import { createId } from "@paralleldrive/cuid2";
 import * as SourceModel from "./source-model";
 
+async function clearDatabase() {
+  await prisma.transaction.deleteMany();
+  await prisma.account.deleteMany();
+  await prisma.accountGroup.deleteMany();
+}
+
+program.command("clear").action(async () => {
+  console.log("Clearing database…");
+  await clearDatabase();
+  console.log("Done");
+});
+
 program
   .name("importer")
   .action(async () => {
@@ -17,9 +29,7 @@ program
     );
     try {
       // clear existing data in target DB
-      await prisma.transaction.deleteMany();
-      await prisma.account.deleteMany();
-      await prisma.accountGroup.deleteMany();
+      await clearDatabase();
 
       const assetsGroup = await prisma.accountGroup.create({
         data: {
@@ -95,13 +105,22 @@ program
         data: Object.values(accountGroupsBySourceAccountCategoryId),
       });
 
+      const sourceAccounts = (
+        await sourceDb
+          .collection<SourceModel.Account>("accounts")
+          .find()
+          .toArray()
+      ).filter(
+        (sa) =>
+          sa.unit.kind === SourceModel.AccountUnitKind.CURRENCY &&
+          !["ADA", "BCH", "BTC", "ETH"].includes(sa.unit.currency),
+      );
+
       const accountsBySourceAccountId = Object.fromEntries(
-        (
-          await sourceDb
-            .collection<SourceModel.Account>("accounts")
-            .find()
-            .toArray()
-        ).map((a) => [a._id.toString(), sourceAccountToTargetAccount(a)]),
+        sourceAccounts.map((a) => [
+          a._id.toString(),
+          sourceAccountToTargetAccount(a),
+        ]),
       );
 
       const accountsBySourceExpenseCategoryId = Object.fromEntries(
@@ -145,12 +164,64 @@ program
         data: accounts,
       });
 
+      // opening balances
+      const openingBalancesAccount = await prisma.account.create({
+        data: {
+          name: "Opening Balances",
+          slug: "opening-balances",
+          type: TargetModel.AccountType.EQUITY,
+          groupId: equityGroup.id,
+          unit: TargetModel.AccountUnit.CURRENCY,
+        },
+      });
+
+      for (const sourceAccount of sourceAccounts.filter(
+        (sa) =>
+          sa.unit.kind === SourceModel.AccountUnitKind.CURRENCY &&
+          !!sa.openingBalance &&
+          Number(sa.openingBalance.toString()) !== 0,
+      )) {
+        const openingBalance = new TargetModel.Prisma.Decimal(
+          sourceAccount.openingBalance!.toString(),
+        );
+        const currency = (sourceAccount.unit as SourceModel.CurrencyAccountUnit)
+          .currency;
+        const openingBalanceTransaction: TargetModel.Prisma.TransactionCreateInput =
+          {
+            description: "Opening Balance",
+            bookings: {
+              create: [
+                {
+                  date: new Date("2017-12-31"),
+                  description: "",
+                  value: openingBalance,
+                  accountId:
+                    accountsBySourceAccountId[sourceAccount._id.toString()].id,
+                  currency,
+                },
+                {
+                  date: new Date("2017-12-31"),
+                  description: "",
+                  value: openingBalance.negated(),
+                  accountId: openingBalancesAccount.id,
+                  currency,
+                },
+              ],
+            },
+          };
+
+        await prisma.transaction.create({
+          data: openingBalanceTransaction,
+        });
+      }
+
       const transactions = (
         await sourceDb
           .collection<SourceModel.Transaction>("transactions")
           .find()
           .toArray()
       ).map(sourceTransactionToTargetTransaction);
+
       console.log(`Creating ${transactions.length} transactions…`);
       for (let i = 0; i < transactions.length; i++) {
         await prisma.transaction.create({
@@ -254,6 +325,19 @@ program
                   b.type === SourceModel.BookingType.EXPENSE ||
                   b.type === SourceModel.BookingType.APPRECIATION ||
                   b.type === SourceModel.BookingType.DEPRECIATION,
+              )
+              .filter(
+                (b) =>
+                  (b.type !== SourceModel.BookingType.CHARGE &&
+                    b.type !== SourceModel.BookingType.DEPOSIT) ||
+                  (b.unit.kind === SourceModel.AccountUnitKind.CURRENCY &&
+                    !["ADA", "BCH", "BTC", "ETH"].includes(b.unit.currency)),
+              )
+              .filter(
+                (b) =>
+                  (b.type !== SourceModel.BookingType.EXPENSE &&
+                    b.type !== SourceModel.BookingType.INCOME) ||
+                  !["ADA", "BCH", "BTC", "ETH"].includes(b.currency),
               )
               .map((b) => {
                 return {
