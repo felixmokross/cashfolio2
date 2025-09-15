@@ -199,7 +199,7 @@ function BookingsTable({
             <TableCell>
               <CurrencyCombobox
                 name={`bookings[${i}][currency]`}
-                defaultValue={booking.currency}
+                defaultValue={booking.currency ?? ""}
               />
             </TableCell>
             <TableCell>

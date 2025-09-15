@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, Unit } from "@prisma/client";
 import type { BookingWithTransaction, LedgerRow } from "./types";
 import { getExchangeRate } from "~/fx.server";
 
@@ -11,11 +11,15 @@ export async function getLedgerRows(
   let balance = new Prisma.Decimal(0);
 
   for (let i = 0; i < bookings.length; i++) {
-    const valueInAccountCurrency = (await getExchangeRate(
-      bookings[i].currency,
-      ledgerCurrency,
-      bookings[i].date,
-    ))!.mul(bookings[i].value);
+    const valueInAccountCurrency =
+      bookings[i].unit === Unit.CURRENCY
+        ? (await getExchangeRate(
+            bookings[i].currency!,
+            ledgerCurrency,
+            bookings[i].date,
+          ))!.mul(bookings[i].value)
+        : // TODO: handle crypto properly
+          new Prisma.Decimal(0);
     balance = balance.add(valueInAccountCurrency);
     rows[i] = {
       booking: bookings[i],

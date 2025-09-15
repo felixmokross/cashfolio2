@@ -1,6 +1,7 @@
 import {
   AccountType,
   Prisma,
+  Unit,
   type Account,
   type AccountGroup,
   type Booking,
@@ -143,7 +144,10 @@ export async function completeFxTransaction(
   const bookingsSum = sum(
     await Promise.all(
       transaction.bookings.map(async (b) =>
-        (await getFxRate(b.date, b.currency, refCurrency)).mul(b.value),
+        b.unit === Unit.CURRENCY
+          ? (await getFxRate(b.date, b.currency!, refCurrency)).mul(b.value)
+          : // TODO handle crypto properly
+            new Prisma.Decimal(0),
       ),
     ),
   );
@@ -225,9 +229,11 @@ export async function getIncomeData(
                 sum(
                   await Promise.all(
                     a.bookings.map(async (b) =>
-                      (await getFxRate(b.date, b.currency, refCurrency)).mul(
-                        b.value,
-                      ),
+                      b.unit === Unit.CURRENCY
+                        ? (
+                            await getFxRate(b.date, b.currency!, refCurrency)
+                          ).mul(b.value)
+                        : new Prisma.Decimal(0),
                     ),
                   ),
                 ).negated(),

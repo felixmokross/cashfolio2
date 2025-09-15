@@ -1,4 +1,4 @@
-import type { Account, AccountType, AccountUnit } from "@prisma/client";
+import type { Account, AccountType, Unit } from "@prisma/client";
 import { useState } from "react";
 import { Form } from "react-router";
 import { Button } from "~/platform/button";
@@ -60,7 +60,7 @@ export function EditAccount({
   account?: Serialize<Account>;
   accountGroups: Serialize<AccountGroupOption>[];
 }) {
-  const [selectedUnit, setSelectedUnit] = useState<AccountUnit>(
+  const [selectedUnit, setSelectedUnit] = useState<Unit>(
     account?.unit ?? "CURRENCY",
   );
   const [selectedType, setSelectedType] = useState<AccountType>(
@@ -128,7 +128,7 @@ export function EditAccount({
                   <RadioGroup
                     name="unit"
                     defaultValue={account?.unit || "CURRENCY"}
-                    onChange={(v) => setSelectedUnit(v as AccountUnit)}
+                    onChange={(v) => setSelectedUnit(v as Unit)}
                   >
                     <RadioField>
                       <Radio value="CURRENCY" />

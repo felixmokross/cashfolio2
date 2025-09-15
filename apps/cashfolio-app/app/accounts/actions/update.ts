@@ -1,4 +1,4 @@
-import { AccountUnit } from "@prisma/client";
+import { Unit } from "@prisma/client";
 import { redirect } from "react-router";
 import slugify from "slugify";
 import { prisma } from "~/prisma.server";
@@ -21,7 +21,7 @@ export async function action({ request }: { request: Request }) {
   if (openingBalance && typeof openingBalance !== "string") {
     return new Response(null, { status: 400 });
   }
-  const unit = form.get("unit") as AccountUnit;
+  const unit = form.get("unit") as Unit;
   if (typeof unit !== "string") {
     return new Response(null, { status: 400 });
   }
@@ -37,7 +37,7 @@ export async function action({ request }: { request: Request }) {
       slug: slugify(name, { lower: true }),
       groupId,
       unit,
-      currency: unit === AccountUnit.CURRENCY ? currency : null,
+      currency: unit === Unit.CURRENCY ? currency : null,
     },
   });
 

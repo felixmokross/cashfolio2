@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, Unit } from "@prisma/client";
 import { prisma } from "~/prisma.server";
 import { parseBookings } from "./shared";
 import { redirect } from "react-router";
@@ -24,7 +24,9 @@ export async function action({ request }: { request: Request }) {
           date: new Date(b.date),
           description: b.description,
           account: { connect: { id: b.accountId } },
+          unit: Unit.CURRENCY,
           currency: b.currency,
+          cryptocurrency: null, // TODO
           value: new Prisma.Decimal(b.value),
         })),
       },

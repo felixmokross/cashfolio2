@@ -19,8 +19,9 @@ enum AccountType {
   EQUITY
 }
 
-enum AccountUnit {
+enum Unit {
   CURRENCY
+  CRYPTOCURRENCY
   SECURITY
 }
 
@@ -44,14 +45,15 @@ model AccountGroup {
 }
 
 model Account {
-  id       String       @default(cuid())
-  name     String
-  slug     String
-  type     AccountType
-  group    AccountGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
-  groupId  String
-  unit     AccountUnit
-  currency String?
+  id             String       @default(cuid())
+  name           String
+  slug           String
+  type           AccountType
+  group          AccountGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  groupId        String
+  unit           Unit?
+  currency       String?
+  cryptocurrency String?
 
   bookings Booking[]
 
@@ -85,7 +87,9 @@ model Booking {
   accountId String
   account   Account @relation(fields: [accountId], references: [id])
 
-  currency String
+  unit           Unit
+  currency       String?
+  cryptocurrency String?
 
   value Decimal
 

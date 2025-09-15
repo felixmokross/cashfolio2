@@ -79,7 +79,6 @@ program
           slug: "investment-gain-loss",
           type: TargetModel.AccountType.EQUITY,
           groupId: equityGroup.id,
-          unit: TargetModel.AccountUnit.CURRENCY,
         },
       });
 
@@ -110,11 +109,7 @@ program
           .collection<SourceModel.Account>("accounts")
           .find()
           .toArray()
-      ).filter(
-        (sa) =>
-          sa.unit.kind === SourceModel.AccountUnitKind.CURRENCY &&
-          !["ADA", "BCH", "BTC", "ETH"].includes(sa.unit.currency),
-      );
+      ).filter((sa) => sa.unit.kind === SourceModel.AccountUnitKind.CURRENCY);
 
       const accountsBySourceAccountId = Object.fromEntries(
         sourceAccounts.map((a) => [
@@ -171,15 +166,12 @@ program
           slug: "opening-balances",
           type: TargetModel.AccountType.EQUITY,
           groupId: equityGroup.id,
-          unit: TargetModel.AccountUnit.CURRENCY,
         },
       });
 
       for (const sourceAccount of sourceAccounts.filter(
         (sa) =>
-          sa.unit.kind === SourceModel.AccountUnitKind.CURRENCY &&
-          !!sa.openingBalance &&
-          Number(sa.openingBalance.toString()) !== 0,
+          !!sa.openingBalance && Number(sa.openingBalance.toString()) !== 0,
       )) {
         const openingBalance = new TargetModel.Prisma.Decimal(
           sourceAccount.openingBalance!.toString(),
@@ -197,6 +189,7 @@ program
                   value: openingBalance,
                   accountId:
                     accountsBySourceAccountId[sourceAccount._id.toString()].id,
+                  unit: TargetModel.Unit.CURRENCY,
                   currency,
                 },
                 {
@@ -204,6 +197,7 @@ program
                   description: "",
                   value: openingBalance.negated(),
                   accountId: openingBalancesAccount.id,
+                  unit: TargetModel.Unit.CURRENCY,
                   currency,
                 },
               ],
@@ -270,12 +264,22 @@ program
             accountGroupsBySourceAccountCategoryId[
               sourceAccount.categoryId.toString()
             ].id,
+          unit:
+            sourceAccount.unit.kind === SourceModel.AccountUnitKind.CURRENCY
+              ? isCryptocurrency(sourceAccount.unit.currency)
+                ? TargetModel.Unit.CRYPTOCURRENCY
+                : TargetModel.Unit.CURRENCY
+              : TargetModel.Unit.SECURITY,
           currency:
-            sourceAccount.unit.kind === "CURRENCY"
+            sourceAccount.unit.kind === SourceModel.AccountUnitKind.CURRENCY &&
+            !isCryptocurrency(sourceAccount.unit.currency)
               ? sourceAccount.unit.currency
               : null,
-          unit:
-            sourceAccount.unit.kind === "CURRENCY" ? "CURRENCY" : "SECURITY",
+          cryptocurrency:
+            sourceAccount.unit.kind === SourceModel.AccountUnitKind.CURRENCY &&
+            isCryptocurrency(sourceAccount.unit.currency)
+              ? sourceAccount.unit.currency
+              : null,
         };
       }
 
@@ -295,8 +299,9 @@ program
             type === SourceModel.BookingType.INCOME
               ? incomeGroup.id
               : expensesGroup.id,
+          unit: null,
           currency: null,
-          unit: TargetModel.AccountUnit.CURRENCY,
+          cryptocurrency: null,
         };
       }
 
@@ -330,16 +335,17 @@ program
                 (b) =>
                   (b.type !== SourceModel.BookingType.CHARGE &&
                     b.type !== SourceModel.BookingType.DEPOSIT) ||
-                  (b.unit.kind === SourceModel.AccountUnitKind.CURRENCY &&
-                    !["ADA", "BCH", "BTC", "ETH"].includes(b.unit.currency)),
-              )
-              .filter(
-                (b) =>
-                  (b.type !== SourceModel.BookingType.EXPENSE &&
-                    b.type !== SourceModel.BookingType.INCOME) ||
-                  !["ADA", "BCH", "BTC", "ETH"].includes(b.currency),
+                  b.unit.kind === SourceModel.AccountUnitKind.CURRENCY,
               )
               .map((b) => {
+                const isCrypto =
+                  b.type === SourceModel.BookingType.CHARGE ||
+                  b.type === SourceModel.BookingType.DEPOSIT
+                    ? isCryptocurrency(b.unit.currency)
+                    : b.type === SourceModel.BookingType.INCOME ||
+                        b.type === SourceModel.BookingType.EXPENSE
+                      ? isCryptocurrency(b.currency)
+                      : false;
                 return {
                   date: sourceTransaction.date,
                   description: "note" in b && b.note ? b.note : "",
@@ -369,14 +375,27 @@ program
                                 id: investmentGainLossAccount.id,
                               },
                   },
-                  currency:
-                    b.type === SourceModel.BookingType.DEPOSIT ||
-                    b.type === SourceModel.BookingType.CHARGE
+                  unit: isCrypto
+                    ? TargetModel.Unit.CRYPTOCURRENCY
+                    : TargetModel.Unit.CURRENCY,
+                  currency: !isCrypto
+                    ? b.type === SourceModel.BookingType.DEPOSIT ||
+                      b.type === SourceModel.BookingType.CHARGE
                       ? b.unit.currency
                       : b.type === SourceModel.BookingType.EXPENSE ||
                           b.type === SourceModel.BookingType.INCOME
                         ? b.currency
-                        : "CHF",
+                        : "CHF"
+                    : null,
+                  cryptocurrency: isCrypto
+                    ? b.type === SourceModel.BookingType.DEPOSIT ||
+                      b.type === SourceModel.BookingType.CHARGE
+                      ? b.unit.currency
+                      : b.type === SourceModel.BookingType.EXPENSE ||
+                          b.type === SourceModel.BookingType.INCOME
+                        ? b.currency
+                        : null
+                    : null,
                 };
               }),
           },
@@ -387,3 +406,7 @@ program
     }
   })
   .parse();
+
+function isCryptocurrency(currency: string) {
+  return ["ADA", "BCH", "BTC", "ETH"].includes(currency);
+}

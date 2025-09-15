@@ -27,7 +27,13 @@ export function AccountsTableRows({
             {node.nodeType === "account" ? node.unit : null}
           </TableCell>
           <TableCell>
-            {node.nodeType === "account" ? node.currency : null}
+            {node.nodeType === "account"
+              ? node.unit === "CURRENCY"
+                ? node.currency
+                : node.unit === "CRYPTOCURRENCY"
+                  ? node.cryptocurrency
+                  : null
+              : null}
           </TableCell>
           <TableCell>
             <div className="flex gap-2 items-center">
