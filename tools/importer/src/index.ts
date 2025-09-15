@@ -349,7 +349,15 @@ program
                 return {
                   date: sourceTransaction.date,
                   description: "note" in b && b.note ? b.note : "",
-                  value: new TargetModel.Prisma.Decimal(b.amount.toString()),
+                  value: new TargetModel.Prisma.Decimal(
+                    b.amount.toString(),
+                  ).mul(
+                    b.type === SourceModel.BookingType.CHARGE ||
+                      b.type === SourceModel.BookingType.EXPENSE ||
+                      b.type === SourceModel.BookingType.DEPRECIATION
+                      ? -1
+                      : 1,
+                  ),
                   account: {
                     connect:
                       b.type === SourceModel.BookingType.DEPOSIT ||
