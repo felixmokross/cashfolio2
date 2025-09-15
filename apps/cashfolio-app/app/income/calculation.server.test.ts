@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
   completeFxTransaction,
   generateFxBookingsForFxAccount,
@@ -12,8 +12,33 @@ import {
   buildBooking,
   buildTransactionWithBookings,
 } from "../builders";
-import { AccountType, Prisma, type Account } from "@prisma/client";
+import { AccountType, Prisma } from "@prisma/client";
 import { formatISODate } from "~/formatting";
+import { getExchangeRate } from "~/fx.server";
+
+const mockGetExchangeRate = vi.fn();
+
+vi.mock("~/fx.server", async () => ({
+  convert,
+  getExchangeRate: (...args: Parameters<typeof mockGetExchangeRate>) =>
+    mockGetExchangeRate(...args),
+}));
+
+// needs to be redefined, because the real function will not use the mocked 'getExchangeRate' since it is in the same module
+async function convert(
+  value: Prisma.Decimal,
+  sourceCurrency: string,
+  targetCurrency: string,
+  date: Date,
+) {
+  return (await getExchangeRate(sourceCurrency, targetCurrency, date))!.mul(
+    value,
+  );
+}
+
+beforeEach(() => {
+  mockGetExchangeRate.mockReset();
+});
 
 describe("getBalanceByDate", () => {
   test("returns the balance by date", () => {
@@ -70,6 +95,10 @@ describe("generateFxBookingsForFxAccount", () => {
       return fxRates[key as keyof typeof fxRates];
     }
 
+    mockGetExchangeRate.mockImplementation(
+      (from: string, to: string, date: Date) => getFxRate(date, from, to),
+    );
+
     const result = await generateFxBookingsForFxAccount(
       {
         ...buildAccount({ id: "fx-account", currency: "EUR" }),
@@ -85,7 +114,6 @@ describe("generateFxBookingsForFxAccount", () => {
           }),
         ],
       },
-      getFxRate,
       new Date("2025-01-04"),
     );
 
@@ -115,7 +143,6 @@ describe("generateFxBookingsForFxAccount", () => {
         ...buildAccount({ id: "fx-account", currency: "EUR" }),
         bookings: [],
       },
-      async () => new Prisma.Decimal(1),
       new Date("2025-01-04"),
     );
 
@@ -142,31 +169,32 @@ describe("completeFxTransaction", () => {
       return fxRates[key as keyof typeof fxRates];
     }
 
-    const result = await completeFxTransaction(
-      {
-        id: "transaction_1",
-        description: "FX transaction",
-        bookings: [
-          buildBooking({
-            id: "booking_1",
-            accountId: "account_1",
-            date: new Date("2025-01-03"),
-            value: new Prisma.Decimal(-100),
-            currency: "EUR",
-          }),
-          buildBooking({
-            id: "booking_2",
-            date: new Date("2025-01-04"),
-            accountId: "account_2",
-            value: new Prisma.Decimal(88),
-            currency: "CHF",
-          }),
-        ],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      getFxRate,
+    mockGetExchangeRate.mockImplementation(
+      (from: string, to: string, date: Date) => getFxRate(date, from, to),
     );
+
+    const result = await completeFxTransaction({
+      id: "transaction_1",
+      description: "FX transaction",
+      bookings: [
+        buildBooking({
+          id: "booking_1",
+          accountId: "account_1",
+          date: new Date("2025-01-03"),
+          value: new Prisma.Decimal(-100),
+          currency: "EUR",
+        }),
+        buildBooking({
+          id: "booking_2",
+          date: new Date("2025-01-04"),
+          accountId: "account_2",
+          value: new Prisma.Decimal(88),
+          currency: "CHF",
+        }),
+      ],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
     expect(result).toEqual(new Prisma.Decimal(2));
   });
@@ -194,6 +222,10 @@ describe("getProfitLossStatement", () => {
 
       return fxRates[key as keyof typeof fxRates];
     }
+
+    mockGetExchangeRate.mockImplementation(
+      (from: string, to: string, date: Date) => getFxRate(date, from, to),
+    );
 
     // ref currency opening balance
     const booking1 = buildBooking({
@@ -288,7 +320,6 @@ describe("getProfitLossStatement", () => {
             bookings: [booking7, booking8],
           }),
         ],
-        getFxRate,
         new Date("2025-01-04"),
       )
     ).valueByAccountId;

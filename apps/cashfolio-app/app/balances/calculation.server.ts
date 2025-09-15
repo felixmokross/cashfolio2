@@ -5,7 +5,7 @@ import {
 import type { BalancesAccountsNode } from "./types";
 import { sum } from "~/utils";
 import { refCurrency } from "~/config";
-import { getExchangeRate } from "~/fx.server";
+import { convert } from "~/fx.server";
 import type { AccountGroup } from "@prisma/client";
 import type { AccountWithBookings } from "~/accounts/types";
 
@@ -49,8 +49,11 @@ async function getBalances(
     ...node,
     balanceInOriginalCurrency:
       node.currency !== refCurrency ? balanceInOriginalCurrency : undefined,
-    balance: (await getExchangeRate(node.currency!, refCurrency, date))!.mul(
+    balance: await convert(
       balanceInOriginalCurrency,
+      node.currency!,
+      refCurrency,
+      date,
     ),
   };
 }

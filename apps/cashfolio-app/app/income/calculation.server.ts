@@ -13,7 +13,7 @@ import { formatISODate } from "~/formatting";
 import type { TransactionWithBookings } from "~/transactions/types";
 import { sum } from "~/utils";
 import type { IncomeAccountsNode, IncomeData } from "./types";
-import { getExchangeRate } from "~/fx.server";
+import { convert, getExchangeRate } from "~/fx.server";
 import {
   getAccountsTree,
   type AccountsNode,
@@ -29,7 +29,6 @@ export async function getIncomeStatement(
     accounts,
     accountGroups,
     transactions,
-    async (date, from, to) => (await getExchangeRate(from, to, date))!,
     endDate,
   );
 
@@ -86,7 +85,6 @@ export function getBalanceByDate(
 
 export async function generateFxBookingsForFxAccount(
   fxAccount: AccountWithBookings,
-  getFxRate: (date: Date, from: string, to: string) => Promise<Prisma.Decimal>,
   endDate: Date,
 ): Promise<Booking[]> {
   if (fxAccount.bookings.length === 0) {
@@ -101,7 +99,11 @@ export async function generateFxBookingsForFxAccount(
     throw new Error("Initial balance not found");
   }
 
-  let fxRate = await getFxRate(initialDate, fxAccount.currency!, refCurrency);
+  let fxRate = (await getExchangeRate(
+    fxAccount.currency!,
+    refCurrency,
+    initialDate,
+  ))!;
 
   const startDate = addDays(initialDate, 1);
   const numberOfDays = differenceInDays(endDate, startDate);
@@ -114,7 +116,11 @@ export async function generateFxBookingsForFxAccount(
   let date = startDate;
 
   for (let i = 0; i <= numberOfDays; i++, date = addDays(date, 1)) {
-    const newFxRate = await getFxRate(date, fxAccount.currency!, refCurrency);
+    const newFxRate = (await getExchangeRate(
+      fxAccount.currency!,
+      refCurrency,
+      date,
+    ))!;
     const fxRateDiff = newFxRate.minus(fxRate);
 
     bookings[i] = {
@@ -140,13 +146,12 @@ export async function generateFxBookingsForFxAccount(
 
 export async function completeFxTransaction(
   transaction: TransactionWithBookings,
-  getFxRate: (date: Date, from: string, to: string) => Promise<Prisma.Decimal>,
 ): Promise<Prisma.Decimal> {
   const bookingsSum = sum(
     await Promise.all(
       transaction.bookings.map(async (b) =>
         b.unit === Unit.CURRENCY
-          ? (await getFxRate(b.date, b.currency!, refCurrency)).mul(b.value)
+          ? await convert(b.value, b.currency!, refCurrency, b.date)
           : // TODO handle crypto properly
             new Prisma.Decimal(0),
       ),
@@ -160,7 +165,6 @@ export async function getIncomeData(
   accounts: AccountWithBookings[],
   accountGroups: AccountGroup[],
   transactions: TransactionWithBookings[],
-  getFxRate: (date: Date, from: string, to: string) => Promise<Prisma.Decimal>,
   endDate: Date,
 ): Promise<IncomeData> {
   const equityAccounts = accounts.filter((a) => a.type === AccountType.EQUITY);
@@ -184,11 +188,7 @@ export async function getIncomeData(
           ({
             id: `fx-holding-${a.id}`,
             type: AccountType.EQUITY,
-            bookings: await generateFxBookingsForFxAccount(
-              a,
-              getFxRate,
-              endDate,
-            ),
+            bookings: await generateFxBookingsForFxAccount(a, endDate),
             name: `FX Holding Gain/Loss for ${a.name}`,
             slug: `fx-holding-${a.slug}`,
             groupId: equityRootGroup.id,
@@ -210,7 +210,7 @@ export async function getIncomeData(
         date: max(t.bookings.map((b) => b.date)),
         unit: Unit.CURRENCY,
         currency: refCurrency,
-        value: await completeFxTransaction(t, getFxRate),
+        value: await completeFxTransaction(t),
       })),
     ),
   } as AccountWithBookings;
@@ -231,9 +231,12 @@ export async function getIncomeData(
                   await Promise.all(
                     a.bookings.map(async (b) =>
                       b.unit === Unit.CURRENCY
-                        ? (
-                            await getFxRate(b.date, b.currency!, refCurrency)
-                          ).mul(b.value)
+                        ? await convert(
+                            b.value,
+                            b.currency!,
+                            refCurrency,
+                            b.date,
+                          )
                         : new Prisma.Decimal(0),
                     ),
                   ),

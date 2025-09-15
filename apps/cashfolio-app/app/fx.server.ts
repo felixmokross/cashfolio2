@@ -4,6 +4,21 @@ import { redis } from "~/redis.server";
 
 const fxRateBaseCurrency = "USD";
 
+export async function convert(
+  value: Prisma.Decimal,
+  sourceCurrency: string,
+  targetCurrency: string,
+  date: Date,
+) {
+  const rate = await getExchangeRate(sourceCurrency, targetCurrency, date);
+  if (!rate) {
+    throw new Error(
+      `No FX rate for ${sourceCurrency} to ${targetCurrency} on ${date}`,
+    );
+  }
+  return rate.mul(value);
+}
+
 export async function getExchangeRate(
   sourceCurrency: string,
   targetCurrency: string,
