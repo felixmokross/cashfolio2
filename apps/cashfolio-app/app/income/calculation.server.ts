@@ -106,7 +106,7 @@ export async function generateFxBookingsForFxAccount(
   const startDate = addDays(initialDate, 1);
   const numberOfDays = differenceInDays(endDate, startDate);
   if (numberOfDays < 0) {
-    // TODO test
+    // TODO test this
     return [];
   }
 
@@ -122,6 +122,7 @@ export async function generateFxBookingsForFxAccount(
       date,
       accountId: fxAccount.id,
       value: balance.mul(fxRateDiff).negated(),
+      unit: Unit.CURRENCY,
       currency: refCurrency,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -174,14 +175,15 @@ export async function getIncomeData(
         (a) =>
           (
             [AccountType.ASSET, AccountType.LIABILITY] as AccountType[]
-          ).includes(a.type) && a.currency !== refCurrency,
+          ).includes(a.type) &&
+          a.unit === Unit.CURRENCY &&
+          a.currency !== refCurrency,
       )
       .map(
         async (a) =>
           ({
             id: `fx-holding-${a.id}`,
             type: AccountType.EQUITY,
-            currency: refCurrency,
             bookings: await generateFxBookingsForFxAccount(
               a,
               getFxRate,
@@ -190,7 +192,6 @@ export async function getIncomeData(
             name: `FX Holding Gain/Loss for ${a.name}`,
             slug: `fx-holding-${a.slug}`,
             groupId: equityRootGroup.id,
-            unit: a.unit,
             createdAt: new Date(),
             updatedAt: new Date(),
           }) as AccountWithBookings,
@@ -203,11 +204,11 @@ export async function getIncomeData(
     slug: "fx-conversion",
     groupId: equityRootGroup.id,
     type: AccountType.EQUITY,
-    currency: refCurrency,
     bookings: await Promise.all(
       transactions.map(async (t) => ({
         id: `fx-conversion-${t.id}`,
         date: max(t.bookings.map((b) => b.date)),
+        unit: Unit.CURRENCY,
         currency: refCurrency,
         value: await completeFxTransaction(t, getFxRate),
       })),
