@@ -1,6 +1,9 @@
 import type { Account, AccountGroup, Prisma } from "@prisma/client";
 
-export type AccountOption = Pick<Account, "id" | "name" | "groupId"> & {
+export type AccountOption = Pick<
+  Account,
+  "id" | "name" | "groupId" | "unit" | "currency" | "cryptocurrency"
+> & {
   path: string;
 };
 

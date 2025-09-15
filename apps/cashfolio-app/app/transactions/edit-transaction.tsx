@@ -28,9 +28,19 @@ import type { Booking } from "@prisma/client";
 import { CurrencyCombobox } from "../components/currency-combobox";
 import { formatISO } from "date-fns";
 import type { TransactionWithBookings } from "~/transactions/types";
+import { CryptocurrencyCombobox } from "~/components/cryptocurrency-combobox";
 
 type BookingFormValues = Serialize<
-  Pick<Booking, "id" | "date" | "description" | "accountId" | "currency">
+  Pick<
+    Booking,
+    | "id"
+    | "date"
+    | "description"
+    | "accountId"
+    | "currency"
+    | "cryptocurrency"
+    | "unit"
+  >
 > & { value: string; isAccountLocked?: true };
 
 export function useEditTransaction({
@@ -157,70 +167,97 @@ function BookingsTable({
         </TableRow>
       </TableHead>
       <TableBody>
-        {bookings.map((booking, i) => (
-          <TableRow key={booking.id}>
-            <TableCell>
-              <DateInput
-                name={`bookings[${i}][date]`}
-                defaultValue={booking.date}
-                onChange={(d) => {
-                  setBookings(
-                    bookings.map((b) =>
-                      b.id === booking.id
-                        ? { ...b, date: d ? d.toString() : "" }
-                        : b,
-                    ),
-                  );
-                }}
-              />
-            </TableCell>
-            <TableCell>
-              <AccountCombobox
-                disabled={booking.isAccountLocked}
-                name={`bookings[${i}][accountId]`}
-                accounts={accounts}
-                defaultValue={booking.accountId}
-              />
-              {booking.isAccountLocked && (
-                <input
-                  type="hidden"
-                  name={`bookings[${i}][accountId]`}
-                  value={booking.accountId}
+        {bookings.map((booking, i) => {
+          const selectedAccount = accounts.find(
+            (a) => a.id === booking.accountId,
+          );
+          return (
+            <TableRow key={booking.id}>
+              <TableCell>
+                <DateInput
+                  name={`bookings[${i}][date]`}
+                  defaultValue={booking.date}
+                  onChange={(d) => {
+                    setBookings(
+                      bookings.map((b) =>
+                        b.id === booking.id
+                          ? { ...b, date: d ? d.toString() : "" }
+                          : b,
+                      ),
+                    );
+                  }}
                 />
-              )}
-            </TableCell>
-            <TableCell>
-              <Input
-                name={`bookings[${i}][description]`}
-                type="text"
-                defaultValue={booking.description}
-              />
-            </TableCell>
-            <TableCell>
-              <CurrencyCombobox
-                name={`bookings[${i}][currency]`}
-                defaultValue={booking.currency ?? ""}
-              />
-            </TableCell>
-            <TableCell>
-              <FormattedNumberInput
-                name={`bookings[${i}][value]`}
-                defaultValue={booking.value}
-              />
-            </TableCell>
-            <TableCell>
-              <Button
-                disabled={bookings.length <= 2 || booking.isAccountLocked}
-                hierarchy="tertiary"
-                onClick={() =>
-                  setBookings(bookings.filter((b) => b.id !== booking.id))
-                }
-              >
-                <TrashIcon />
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))}
+              </TableCell>
+              <TableCell>
+                <AccountCombobox
+                  disabled={booking.isAccountLocked}
+                  name={`bookings[${i}][accountId]`}
+                  accounts={accounts}
+                  defaultValue={booking.accountId}
+                  onChange={(accountId) => {
+                    setBookings(
+                      bookings.map((b) =>
+                        b.id === booking.id
+                          ? { ...b, accountId: accountId ?? "" }
+                          : b,
+                      ),
+                    );
+                  }}
+                />
+                {booking.isAccountLocked && (
+                  <input
+                    type="hidden"
+                    name={`bookings[${i}][accountId]`}
+                    value={booking.accountId}
+                  />
+                )}
+              </TableCell>
+              <TableCell>
+                <Input
+                  name={`bookings[${i}][description]`}
+                  type="text"
+                  defaultValue={booking.description}
+                />
+              </TableCell>
+              <TableCell>
+                {selectedAccount?.unit === "CURRENCY" ? (
+                  <CurrencyCombobox
+                    name={`bookings[${i}][currency]`}
+                    defaultValue={booking.currency ?? ""}
+                  />
+                ) : selectedAccount?.unit === "CRYPTOCURRENCY" ? (
+                  <CryptocurrencyCombobox
+                    name={`bookings[${i}][cryptocurrency]`}
+                    defaultValue={booking.cryptocurrency ?? ""}
+                  />
+                ) : (
+                  // TODO determine how we solve this. An Equity account does not have a unit because bookings can have any unit
+                  <CurrencyCombobox
+                    name={`bookings[${i}][currency]`}
+                    defaultValue={booking.currency ?? ""}
+                  />
+                )}
+              </TableCell>
+              <TableCell>
+                <FormattedNumberInput
+                  name={`bookings[${i}][value]`}
+                  defaultValue={booking.value}
+                />
+              </TableCell>
+              <TableCell>
+                <Button
+                  disabled={bookings.length <= 2 || booking.isAccountLocked}
+                  hierarchy="tertiary"
+                  onClick={() =>
+                    setBookings(bookings.filter((b) => b.id !== booking.id))
+                  }
+                >
+                  <TrashIcon />
+                </Button>
+              </TableCell>
+            </TableRow>
+          );
+        })}
         <TableRow>
           <TableCell colSpan={5} className="text-center">
             <Button

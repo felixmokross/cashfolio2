@@ -14,7 +14,7 @@ import {
 } from "../builders";
 import { AccountType, Prisma } from "@prisma/client";
 import { formatISODate } from "~/formatting";
-import { getExchangeRate } from "~/fx.server";
+import { getExchangeRate, type Unit } from "~/fx.server";
 
 const mockGetExchangeRate = vi.fn();
 
@@ -27,13 +27,11 @@ vi.mock("~/fx.server", async () => ({
 // needs to be redefined, because the real function will not use the mocked 'getExchangeRate' since it is in the same module
 async function convert(
   value: Prisma.Decimal,
-  sourceCurrency: string,
-  targetCurrency: string,
+  sourceUnit: Unit,
+  targetUnit: Unit,
   date: Date,
 ) {
-  return (await getExchangeRate(sourceCurrency, targetCurrency, date))!.mul(
-    value,
-  );
+  return (await getExchangeRate(sourceUnit, targetUnit, date)).mul(value);
 }
 
 beforeEach(() => {
@@ -86,17 +84,20 @@ describe("generateFxBookingsForFxAccount", () => {
 
     async function getFxRate(
       date: Date,
-      from: string,
-      to: string,
+      from: Unit,
+      to: Unit,
     ): Promise<Prisma.Decimal> {
-      const key = `${formatISODate(date)}_${from}_${to}`;
+      if (from.unit !== "CURRENCY") throw new Error("Only currency supported");
+      if (to.unit !== "CURRENCY") throw new Error("Only currency supported");
+
+      const key = `${formatISODate(date)}_${from.currency}_${to.currency}`;
       if (!(key in fxRates)) throw new Error(`Unexpected FX rate: ${key}`);
 
       return fxRates[key as keyof typeof fxRates];
     }
 
-    mockGetExchangeRate.mockImplementation(
-      (from: string, to: string, date: Date) => getFxRate(date, from, to),
+    mockGetExchangeRate.mockImplementation((from: Unit, to: Unit, date: Date) =>
+      getFxRate(date, from, to),
     );
 
     const result = await generateFxBookingsForFxAccount(
@@ -158,19 +159,24 @@ describe("completeFxTransaction", () => {
 
     async function getFxRate(
       date: Date,
-      from: string,
-      to: string,
+      from: Unit,
+      to: Unit,
     ): Promise<Prisma.Decimal> {
-      if (from === to) return new Prisma.Decimal(1);
+      if (from.unit !== "CURRENCY") throw new Error("Only currency supported");
+      if (to.unit !== "CURRENCY") throw new Error("Only currency supported");
 
-      const key = `${formatISODate(date)}_${from}_${to}`;
+      if (from.currency === to.currency) {
+        return new Prisma.Decimal(1);
+      }
+
+      const key = `${formatISODate(date)}_${from.currency}_${to.currency}`;
       if (!(key in fxRates)) throw new Error(`Unexpected FX rate: ${key}`);
 
       return fxRates[key as keyof typeof fxRates];
     }
 
-    mockGetExchangeRate.mockImplementation(
-      (from: string, to: string, date: Date) => getFxRate(date, from, to),
+    mockGetExchangeRate.mockImplementation((from: Unit, to: Unit, date: Date) =>
+      getFxRate(date, from, to),
     );
 
     const result = await completeFxTransaction({
@@ -212,21 +218,25 @@ describe("getProfitLossStatement", () => {
 
     async function getFxRate(
       date: Date,
-      from: string,
-      to: string,
+      from: Unit,
+      to: Unit,
     ): Promise<Prisma.Decimal> {
-      if (from === to) return new Prisma.Decimal(1);
+      if (from.unit !== "CURRENCY") throw new Error("Only currency supported");
+      if (to.unit !== "CURRENCY") throw new Error("Only currency supported");
 
-      const key = `${formatISODate(date)}_${from}_${to}`;
+      if (from.currency === to.currency) {
+        return new Prisma.Decimal(1);
+      }
+
+      const key = `${formatISODate(date)}_${from.currency}_${to.currency}`;
       if (!(key in fxRates)) throw new Error(`Unexpected FX rate: ${key}`);
 
       return fxRates[key as keyof typeof fxRates];
     }
 
-    mockGetExchangeRate.mockImplementation(
-      (from: string, to: string, date: Date) => getFxRate(date, from, to),
+    mockGetExchangeRate.mockImplementation((from: Unit, to: Unit, date: Date) =>
+      getFxRate(date, from, to),
     );
-
     // ref currency opening balance
     const booking1 = buildBooking({
       date: new Date("2024-12-31"),

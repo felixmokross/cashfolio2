@@ -6,7 +6,7 @@ import type { BalancesAccountsNode } from "./types";
 import { sum } from "~/utils";
 import { refCurrency } from "~/config";
 import { convert } from "~/fx.server";
-import type { AccountGroup } from "@prisma/client";
+import { Unit, type AccountGroup } from "@prisma/client";
 import type { AccountWithBookings } from "~/accounts/types";
 
 export async function getBalanceSheet(
@@ -51,8 +51,10 @@ async function getBalances(
       node.currency !== refCurrency ? balanceInOriginalCurrency : undefined,
     balance: await convert(
       balanceInOriginalCurrency,
-      node.currency!,
-      refCurrency,
+      node.unit === Unit.CURRENCY
+        ? { unit: Unit.CURRENCY, currency: node.currency! }
+        : { unit: Unit.CRYPTOCURRENCY, cryptocurrency: node.cryptocurrency! },
+      { unit: Unit.CURRENCY, currency: refCurrency },
       date,
     ),
   };

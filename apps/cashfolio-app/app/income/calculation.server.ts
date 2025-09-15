@@ -99,11 +99,19 @@ export async function generateFxBookingsForFxAccount(
     throw new Error("Initial balance not found");
   }
 
-  let fxRate = (await getExchangeRate(
-    fxAccount.currency!,
-    refCurrency,
+  const fxAccountUnit =
+    fxAccount.unit === Unit.CURRENCY
+      ? { unit: Unit.CURRENCY, currency: fxAccount.currency! }
+      : {
+          unit: Unit.CRYPTOCURRENCY,
+          cryptocurrency: fxAccount.cryptocurrency!,
+        };
+
+  let fxRate = await getExchangeRate(
+    fxAccountUnit,
+    { unit: Unit.CURRENCY, currency: refCurrency },
     initialDate,
-  ))!;
+  );
 
   const startDate = addDays(initialDate, 1);
   const numberOfDays = differenceInDays(endDate, startDate);
@@ -116,11 +124,11 @@ export async function generateFxBookingsForFxAccount(
   let date = startDate;
 
   for (let i = 0; i <= numberOfDays; i++, date = addDays(date, 1)) {
-    const newFxRate = (await getExchangeRate(
-      fxAccount.currency!,
-      refCurrency,
+    const newFxRate = await getExchangeRate(
+      fxAccountUnit,
+      { unit: Unit.CURRENCY, currency: refCurrency },
       date,
-    ))!;
+    );
     const fxRateDiff = newFxRate.minus(fxRate);
 
     bookings[i] = {
@@ -149,11 +157,19 @@ export async function completeFxTransaction(
 ): Promise<Prisma.Decimal> {
   const bookingsSum = sum(
     await Promise.all(
-      transaction.bookings.map(async (b) =>
-        b.unit === Unit.CURRENCY
-          ? await convert(b.value, b.currency!, refCurrency, b.date)
-          : // TODO handle crypto properly
-            new Prisma.Decimal(0),
+      transaction.bookings.map(
+        async (b) =>
+          await convert(
+            b.value,
+            b.unit === Unit.CURRENCY
+              ? { unit: Unit.CURRENCY, currency: b.currency! }
+              : {
+                  unit: Unit.CRYPTOCURRENCY,
+                  cryptocurrency: b.cryptocurrency!,
+                },
+            { unit: Unit.CURRENCY, currency: refCurrency },
+            b.date,
+          ),
       ),
     ),
   );
@@ -229,15 +245,19 @@ export async function getIncomeData(
                 a.id,
                 sum(
                   await Promise.all(
-                    a.bookings.map(async (b) =>
-                      b.unit === Unit.CURRENCY
-                        ? await convert(
-                            b.value,
-                            b.currency!,
-                            refCurrency,
-                            b.date,
-                          )
-                        : new Prisma.Decimal(0),
+                    a.bookings.map(
+                      async (b) =>
+                        await convert(
+                          b.value,
+                          b.unit === Unit.CURRENCY
+                            ? { unit: Unit.CURRENCY, currency: b.currency! }
+                            : {
+                                unit: Unit.CRYPTOCURRENCY,
+                                cryptocurrency: b.cryptocurrency!,
+                              },
+                          { unit: Unit.CURRENCY, currency: refCurrency },
+                          b.date,
+                        ),
                     ),
                   ),
                 ).negated(),

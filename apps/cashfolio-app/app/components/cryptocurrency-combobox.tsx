@@ -1,12 +1,12 @@
 import type { ComponentPropsWithoutRef } from "react";
-import { currencies } from "~/currencies";
+import { cryptocurrencies } from "~/cryptocurrencies";
 import {
   Combobox,
   ComboboxOption,
   ComboboxLabel,
 } from "~/platform/forms/combobox";
 
-export function CurrencyCombobox(
+export function CryptocurrencyCombobox(
   props: Omit<
     ComponentPropsWithoutRef<typeof Combobox<string>>,
     "displayValue" | "options" | "children"
@@ -15,7 +15,7 @@ export function CurrencyCombobox(
   return (
     <Combobox<string>
       displayValue={(o) => o ?? ""}
-      options={Object.keys(currencies)}
+      options={Object.keys(cryptocurrencies)}
       {...props}
     >
       {(option) => (
