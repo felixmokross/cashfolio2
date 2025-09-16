@@ -22,12 +22,14 @@ export function Table({
   striped = false,
   className,
   children,
+  fixedLayout = false,
   ...props
 }: {
   bleed?: boolean;
   dense?: boolean;
   grid?: boolean;
   striped?: boolean;
+  fixedLayout?: boolean;
 } & React.ComponentPropsWithoutRef<"div">) {
   return (
     <TableContext.Provider
@@ -51,7 +53,12 @@ export function Table({
               !bleed && "sm:px-(--gutter)",
             )}
           >
-            <table className="min-w-full text-left text-sm/6 text-neutral-950 dark:text-white">
+            <table
+              className={clsx(
+                "w-full min-w-full text-left text-sm/6 text-neutral-950 dark:text-white",
+                fixedLayout && "table-fixed",
+              )}
+            >
               {children}
             </table>
           </div>

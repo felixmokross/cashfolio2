@@ -20,8 +20,8 @@ export function Page({
     <>
       <Heading>Balances</Heading>
       <Text>Reference Currency: CHF</Text>
-      <div className="grid grid-cols-2 gap-12 mt-8">
-        <Table dense bleed striped>
+      <div className="xl:grid grid-cols-2 gap-12 mt-8">
+        <Table dense bleed striped fixedLayout>
           <TableHead>
             <TableRow>
               <TableHeader>{balanceSheet.assets.name}</TableHeader>
@@ -38,7 +38,7 @@ export function Page({
           </TableBody>
         </Table>
         <div className="space-y-12">
-          <Table bleed dense striped>
+          <Table bleed dense striped fixedLayout>
             <TableHead>
               <TableRow>
                 <TableHeader>{balanceSheet.liabilities.name}</TableHeader>
@@ -57,7 +57,7 @@ export function Page({
               />
             </TableBody>
           </Table>
-          <Table dense bleed grid striped>
+          <Table dense bleed grid striped fixedLayout>
             <TableBody>
               <TableRow>
                 <TableHeader>Equity</TableHeader>

@@ -101,6 +101,10 @@ export const Grid: Story = { args: { ...Default.args, grid: true } };
 
 export const Striped: Story = { args: { ...Default.args, striped: true } };
 
+export const FixedLayout: Story = {
+  args: { ...Default.args, fixedLayout: true },
+};
+
 export const WithRowLinks: Story = {
   args: { ...Default.args },
   render: (args) => (

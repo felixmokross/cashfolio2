@@ -46,7 +46,7 @@ export function AccountsNodeTableRow<TData = {}>({
           : {})}
       >
         <TableCell>
-          <span
+          <div
             className={clsx({
               "pl-0": level === 0,
               "pl-4": level === 1,
@@ -62,14 +62,14 @@ export function AccountsNodeTableRow<TData = {}>({
             })}
           >
             {node.nodeType === "account" ? (
-              <span className="inline-flex gap-2 items-center">
-                <WalletIcon className="size-4" />
-                {node.name}
-              </span>
+              <div className="flex gap-2 items-center">
+                <WalletIcon className="size-4 shrink-0" />
+                <span className="truncate">{node.name}</span>
+              </div>
             ) : (
               node.name
             )}
-          </span>
+          </div>
         </TableCell>
         {children?.(node)}
       </TableRow>
