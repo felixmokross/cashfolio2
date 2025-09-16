@@ -65,7 +65,7 @@ export function Page({
           <TableRow>
             <TableHeader>Name</TableHeader>
             <TableHeader>Unit</TableHeader>
-            <TableHeader>Currency/Symbol</TableHeader>
+            <TableHeader>Ccy./Symbol</TableHeader>
             <TableHeader className="w-10">
               <span className="sr-only">Actions</span>
             </TableHeader>

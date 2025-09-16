@@ -29,6 +29,14 @@ export async function action({ request }: { request: Request }) {
   if (currency && typeof currency !== "string") {
     return new Response(null, { status: 400 });
   }
+  const cryptocurrency = form.get("cryptocurrency");
+  if (cryptocurrency && typeof cryptocurrency !== "string") {
+    return new Response(null, { status: 400 });
+  }
+  const symbol = form.get("symbol");
+  if (symbol && typeof symbol !== "string") {
+    return new Response(null, { status: 400 });
+  }
 
   await prisma.account.create({
     data: {
@@ -38,6 +46,8 @@ export async function action({ request }: { request: Request }) {
       type: type as AccountType,
       unit,
       currency: unit === Unit.CURRENCY ? currency : null,
+      cryptocurrency: unit === Unit.CRYPTOCURRENCY ? cryptocurrency : null,
+      symbol: unit === Unit.SECURITY ? symbol : null,
     },
   });
 

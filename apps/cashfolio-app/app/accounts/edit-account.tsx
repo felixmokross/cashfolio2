@@ -22,6 +22,8 @@ import type { Serialize } from "~/serialization";
 import { AccountGroupCombobox } from "~/account-groups/account-group-combobox";
 import type { AccountGroupOption } from "~/types";
 import { CurrencyCombobox } from "~/components/currency-combobox";
+import { refCurrency } from "~/config";
+import { CryptocurrencyCombobox } from "~/components/cryptocurrency-combobox";
 
 export function useEditAccount({
   accountGroups,
@@ -133,18 +135,14 @@ export function EditAccount({
                     <RadioField>
                       <Radio value="CURRENCY" />
                       <Label>Currency</Label>
-                      <Description>
-                        Customers can resell or transfer their tickets if they
-                        can’t make it to the event.
-                      </Description>
+                    </RadioField>
+                    <RadioField>
+                      <Radio value="CRYPTOCURRENCY" />
+                      <Label>Cryptocurrency</Label>
                     </RadioField>
                     <RadioField>
                       <Radio value="SECURITY" />
                       <Label>Security</Label>
-                      <Description>
-                        Tickets cannot be resold or transferred to another
-                        person.
-                      </Description>
                     </RadioField>
                   </RadioGroup>
                 </Field>
@@ -153,8 +151,23 @@ export function EditAccount({
                     <Label>Currency</Label>
                     <CurrencyCombobox
                       name="currency"
-                      defaultValue={account?.currency || "CHF"}
+                      defaultValue={account?.currency || refCurrency}
                     />
+                  </Field>
+                )}
+                {selectedUnit === "CRYPTOCURRENCY" && (
+                  <Field>
+                    <Label>Cryptocurrency</Label>
+                    <CryptocurrencyCombobox
+                      name="cryptocurrency"
+                      defaultValue={account?.cryptocurrency || ""}
+                    />
+                  </Field>
+                )}
+                {selectedUnit === "SECURITY" && (
+                  <Field>
+                    <Label>Symbol</Label>
+                    <Input name="symbol" defaultValue={account?.symbol || ""} />
                   </Field>
                 )}
               </div>

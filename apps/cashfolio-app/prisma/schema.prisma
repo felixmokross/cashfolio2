@@ -54,6 +54,7 @@ model Account {
   unit           Unit?
   currency       String?
   cryptocurrency String?
+  symbol         String?
 
   bookings Booking[]
 
@@ -90,6 +91,7 @@ model Booking {
   unit           Unit
   currency       String?
   cryptocurrency String?
+  symbol         String?
 
   value Decimal
 

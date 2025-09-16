@@ -32,7 +32,7 @@ export function AccountsTableRows({
                 ? node.currency
                 : node.unit === "CRYPTOCURRENCY"
                   ? node.cryptocurrency
-                  : null
+                  : node.symbol
               : null}
           </TableCell>
           <TableCell>

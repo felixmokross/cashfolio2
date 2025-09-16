@@ -4,6 +4,13 @@ export enum AccountCategoryType {
   ASSET = "ASSET",
   LIABILITY = "LIABILITY",
 }
+export interface Stock {
+  _id?: ObjectId;
+  symbol: string;
+  tradingCurrency: string;
+  startDate?: Date;
+  endDate?: Date;
+}
 
 export interface AccountCategory {
   _id?: ObjectId;
