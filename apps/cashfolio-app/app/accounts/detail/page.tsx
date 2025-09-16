@@ -61,6 +61,7 @@ export function Page({
       <DeleteTransaction {...deleteTransactionProps} />
 
       <Table
+        fixedLayout
         dense
         bleed
         striped
@@ -71,7 +72,7 @@ export function Page({
             <TableHeader className="w-32">Date</TableHeader>
             <TableHeader>Account(s)</TableHeader>
             <TableHeader>Description</TableHeader>
-            <TableHeader className="w-24">Currency</TableHeader>
+            <TableHeader className="w-8">Ccy.</TableHeader>
             <TableHeader className="w-32 text-right">Value</TableHeader>
             <TableHeader className="w-32 text-right">
               Value ({ledgerCurrency})
@@ -86,7 +87,7 @@ export function Page({
           {ledgerRows.map((lr) => (
             <TableRow key={lr.booking?.id ?? "opening-balance"}>
               <TableCell>{formatDate(lr.booking.date)}</TableCell>
-              <TableCell>
+              <TableCell className="truncate">
                 {Array.from(
                   new Set(
                     lr.booking.transaction.bookings
@@ -96,13 +97,13 @@ export function Page({
                 ).map((accountId, i, arr) => (
                   <Fragment key={accountId}>
                     <TextLink href={`/accounts/${accountId}`}>
-                      {allAccounts.find((a) => a.id === accountId)?.path}
+                      {allAccounts.find((a) => a.id === accountId)?.name}
                     </TextLink>
                     {i < arr.length - 1 ? ", " : null}
                   </Fragment>
                 ))}
               </TableCell>
-              <TableCell>
+              <TableCell className="truncate">
                 {lr.booking.transaction.description} {lr.booking.description}
               </TableCell>
               <TableCell>{lr.booking.currency}</TableCell>
