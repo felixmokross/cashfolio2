@@ -1,5 +1,5 @@
 import { prisma } from "~/prisma.server";
-import { parseBookings } from "./shared";
+import { parseBookings, purgeCachedBalances } from "./shared";
 import { Prisma, Unit } from "@prisma/client";
 import { redirect } from "react-router";
 
@@ -17,6 +17,14 @@ export async function action({ request }: { request: Request }) {
   const returnToAccountId = form.get("returnToAccountId");
   if (typeof returnToAccountId !== "string") {
     return new Response("Bad Request", { status: 400 });
+  }
+
+  const transactionBeforeUpdate = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    include: { bookings: true },
+  });
+  if (!transactionBeforeUpdate) {
+    return new Response("Not Found", { status: 404 });
   }
 
   const bookings = parseBookings(form);
@@ -39,6 +47,12 @@ export async function action({ request }: { request: Request }) {
       },
     },
   });
+
+  await purgeCachedBalances(
+    bookings
+      .map((b) => ({ date: new Date(b.date), accountId: b.accountId }))
+      .concat(transactionBeforeUpdate.bookings),
+  );
 
   return redirect(`/accounts/${returnToAccountId}`);
 }

@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/platform/table";
-import { formatDate, formatMoney } from "~/formatting";
+import { formatDate, formatISODate, formatMoney } from "~/formatting";
 import { Fragment } from "react/jsx-runtime";
 import { TextLink } from "~/platform/text";
 import {
@@ -31,9 +31,20 @@ import {
   PencilSquareIcon,
   TrashIcon,
 } from "~/platform/icons/standard";
+import { Field, Label } from "~/platform/forms/fieldset";
+import { DateInput } from "~/platform/forms/date-input";
+import { Form } from "react-router";
 
 export function Page({
-  loaderData: { account, allAccounts, ledgerCurrency, ledgerRows },
+  loaderData: {
+    fromDate,
+    toDate,
+    account,
+    allAccounts,
+    ledgerCurrency,
+    openingBalance,
+    ledgerRows,
+  },
 }: {
   loaderData: LoaderData;
 }) {
@@ -59,6 +70,26 @@ export function Page({
 
       <EditTransaction {...editTransactionProps} />
       <DeleteTransaction {...deleteTransactionProps} />
+
+      <Form className="flex gap-4 mt-8 items-end" replace={true}>
+        <Field>
+          <Label>From</Label>
+          <DateInput
+            name="from"
+            defaultValue={
+              fromDate ? formatISODate(new Date(fromDate)) : undefined
+            }
+          />
+        </Field>
+        <Field>
+          <Label>To</Label>
+          <DateInput
+            name="to"
+            defaultValue={toDate ? formatISODate(new Date(toDate)) : undefined}
+          />
+        </Field>
+        <Button type="submit">Submit</Button>
+      </Form>
 
       <Table
         fixedLayout
@@ -111,7 +142,7 @@ export function Page({
                 {formatMoney(lr.booking.value)}
               </TableCell>
               <TableCell className="text-right">
-                {formatMoney(lr.valueInAccountCurrency)}
+                {formatMoney(lr.valueInLedgerCurrency)}
               </TableCell>
               <TableCell className="text-right">
                 {formatMoney(lr.balance)}
@@ -141,6 +172,17 @@ export function Page({
               </TableCell>
             </TableRow>
           ))}
+          {openingBalance != null && (
+            <TableRow>
+              <TableCell colSpan={6}>
+                <em>Opening balance</em>
+              </TableCell>
+              <TableCell className="text-right">
+                {formatMoney(openingBalance)}
+              </TableCell>
+              <TableCell />
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </>

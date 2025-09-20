@@ -1,6 +1,6 @@
 import { Prisma, Unit } from "@prisma/client";
 import { prisma } from "~/prisma.server";
-import { parseBookings } from "./shared";
+import { parseBookings, purgeCachedBalances } from "./shared";
 import { redirect } from "react-router";
 
 export async function action({ request }: { request: Request }) {
@@ -33,5 +33,8 @@ export async function action({ request }: { request: Request }) {
     },
   });
 
+  await purgeCachedBalances(
+    bookings.map((b) => ({ date: new Date(b.date), accountId: b.accountId })),
+  );
   return redirect(`/accounts/${returnToAccountId}`);
 }
