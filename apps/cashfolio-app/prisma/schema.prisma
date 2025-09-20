@@ -19,6 +19,12 @@ enum AccountType {
   EQUITY
 }
 
+enum EquityAccountSubtype {
+  GAIN_LOSS
+  INCOME
+  EXPENSE
+}
+
 enum Unit {
   CURRENCY
   CRYPTOCURRENCY
@@ -45,12 +51,15 @@ model AccountGroup {
 }
 
 model Account {
-  id             String       @default(cuid())
-  name           String
-  slug           String
-  type           AccountType
-  group          AccountGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
-  groupId        String
+  id                   String                @default(cuid())
+  name                 String
+  slug                 String
+  type                 AccountType
+  equityAccountSubtype EquityAccountSubtype?
+
+  group   AccountGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  groupId String
+
   unit           Unit?
   currency       String?
   cryptocurrency String?

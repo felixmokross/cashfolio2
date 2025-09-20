@@ -1,4 +1,9 @@
-import { AccountType, Prisma, type Account } from "@prisma/client";
+import {
+  AccountType,
+  EquityAccountSubtype,
+  Prisma,
+  type Account,
+} from "@prisma/client";
 import { redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { prisma } from "~/prisma.server";
 import { getAccountGroupPath } from "~/utils";
@@ -104,8 +109,27 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       ...account,
       path: getAccountPath(account),
     },
-    openingBalance,
-    ledgerRows: ledgerRows.reverse(),
+    openingBalance:
+      account.type === AccountType.LIABILITY
+        ? openingBalance?.neg()
+        : openingBalance,
+    ledgerRows: ledgerRows
+      .map((lr) =>
+        account.type === AccountType.LIABILITY ||
+        (account.type === AccountType.EQUITY &&
+          account.equityAccountSubtype === EquityAccountSubtype.EXPENSE)
+          ? {
+              ...lr,
+              balance: lr.balance.neg(),
+              valueInLedgerCurrency: lr.valueInLedgerCurrency.neg(),
+              booking: {
+                ...lr.booking,
+                value: lr.booking.value.neg(),
+              },
+            }
+          : lr,
+      )
+      .reverse(),
     allAccounts: allAccounts
       .map((a) => ({
         ...a,

@@ -78,6 +78,7 @@ program
           name: "Investment Gain/Loss",
           slug: "investment-gain-loss",
           type: TargetModel.AccountType.EQUITY,
+          equityAccountSubtype: TargetModel.EquityAccountSubtype.GAIN_LOSS,
           groupId: equityGroup.id,
         },
       });
@@ -172,6 +173,7 @@ program
           name: "Opening Balances",
           slug: "opening-balances",
           type: TargetModel.AccountType.EQUITY,
+          equityAccountSubtype: TargetModel.EquityAccountSubtype.GAIN_LOSS,
           groupId: equityGroup.id,
         },
       });
@@ -267,6 +269,7 @@ program
             sourceAccount.categoryType === "ASSET"
               ? TargetModel.AccountType.ASSET
               : TargetModel.AccountType.LIABILITY,
+          equityAccountSubtype: null,
           groupId:
             accountGroupsBySourceAccountCategoryId[
               sourceAccount.categoryId.toString()
@@ -311,6 +314,10 @@ program
             slugify(sourceIncomeExpenseCategory.name, { lower: true }) +
             `-${id}`,
           type: TargetModel.AccountType.EQUITY,
+          equityAccountSubtype:
+            type === SourceModel.BookingType.INCOME
+              ? TargetModel.EquityAccountSubtype.INCOME
+              : TargetModel.EquityAccountSubtype.EXPENSE,
           groupId:
             type === SourceModel.BookingType.INCOME
               ? incomeGroup.id

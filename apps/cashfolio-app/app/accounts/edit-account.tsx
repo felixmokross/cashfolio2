@@ -1,4 +1,4 @@
-import type { Account, AccountType, Unit } from "@prisma/client";
+import { AccountType, type Account, type Unit } from "@prisma/client";
 import { useState } from "react";
 import { Form } from "react-router";
 import { Button } from "~/platform/button";
@@ -9,13 +9,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "~/platform/dialog";
-import {
-  Description,
-  Field,
-  FieldGroup,
-  Fieldset,
-  Label,
-} from "~/platform/forms/fieldset";
+import { Field, FieldGroup, Fieldset, Label } from "~/platform/forms/fieldset";
 import { Input } from "~/platform/forms/input";
 import { Radio, RadioField, RadioGroup } from "~/platform/forms/radio";
 import type { Serialize } from "~/serialization";
@@ -114,6 +108,28 @@ export function EditAccount({
                   </RadioGroup>
                 </Field>
               </div>
+              {selectedType === AccountType.EQUITY && (
+                <Field>
+                  <Label>Subtype</Label>
+                  <RadioGroup
+                    name="equityAccountSubtype"
+                    defaultValue={account?.equityAccountSubtype || "GAIN_LOSS"}
+                  >
+                    <RadioField>
+                      <Radio value="GAIN_LOSS" />
+                      <Label>Gain/Loss</Label>
+                    </RadioField>
+                    <RadioField>
+                      <Radio value="INCOME" />
+                      <Label>Income</Label>
+                    </RadioField>
+                    <RadioField>
+                      <Radio value="EXPENSE" />
+                      <Label>Expense</Label>
+                    </RadioField>
+                  </RadioGroup>
+                </Field>
+              )}
               <Field>
                 <Label>Group</Label>
                 <AccountGroupCombobox

@@ -34,6 +34,7 @@ import {
 import { Field, Label } from "~/platform/forms/fieldset";
 import { DateInput } from "~/platform/forms/date-input";
 import { Form } from "react-router";
+import { Badge } from "~/platform/badge";
 
 export function Page({
   loaderData: {
@@ -58,7 +59,10 @@ export function Page({
   return (
     <>
       <div className="flex justify-between items-center">
-        <Heading>{account.path}</Heading>
+        <Heading className="flex items-center gap-4">
+          {account.path}
+          <Badge>{ledgerCurrency}</Badge>
+        </Heading>
 
         <Button hierarchy="primary" onClick={() => onNewTransaction()}>
           New Transaction
@@ -104,11 +108,10 @@ export function Page({
             <TableHeader className="w-32">Date</TableHeader>
             <TableHeader>Account(s)</TableHeader>
             <TableHeader>Description</TableHeader>
-            <TableHeader className="w-8">Ccy.</TableHeader>
+            {account.type === "EQUITY" && (
+              <TableHeader className="w-32 text-right">Value (FX)</TableHeader>
+            )}
             <TableHeader className="w-32 text-right">Value</TableHeader>
-            <TableHeader className="w-32 text-right">
-              Value ({ledgerCurrency})
-            </TableHeader>
             <TableHeader className="w-32 text-right">Balance</TableHeader>
             <TableHeader className="w-4">
               <span className="sr-only">Actions</span>
@@ -141,10 +144,13 @@ export function Page({
               <TableCell className="truncate">
                 {lr.booking.transaction.description} {lr.booking.description}
               </TableCell>
-              <TableCell>{lr.booking.currency}</TableCell>
-              <TableCell className="text-right">
-                {formatMoney(lr.booking.value)}
-              </TableCell>
+              {account.type === "EQUITY" && (
+                <TableCell className="text-right">
+                  {lr.booking.currency !== ledgerCurrency
+                    ? `${lr.booking.currency} ${formatMoney(lr.booking.value)}`
+                    : null}
+                </TableCell>
+              )}
               <TableCell className="text-right">
                 {formatMoney(lr.valueInLedgerCurrency)}
               </TableCell>
@@ -181,7 +187,9 @@ export function Page({
           ))}
           {openingBalance != null && (
             <TableRow>
-              <TableCell colSpan={6}>
+              <TableCell />
+              <TableCell />
+              <TableCell colSpan={2}>
                 <em>Opening balance</em>
               </TableCell>
               <TableCell className="text-right">
