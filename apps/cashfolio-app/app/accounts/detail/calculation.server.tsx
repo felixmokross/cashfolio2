@@ -1,12 +1,46 @@
-import { Prisma, Unit, type Booking } from "@prisma/client";
+import { Prisma, Unit as UnitEnum, type Booking } from "@prisma/client";
 import type { BookingWithTransaction, LedgerRow } from "./types";
 import { convert } from "~/fx.server";
+import { redis } from "~/redis.server";
+import { formatISODate } from "~/formatting";
+import { prisma } from "~/prisma.server";
+import type { Unit } from "~/fx";
 
-export async function getBalance(bookings: Booking[], ledgerCurrency: string) {
+export async function getBalanceCached(
+  accountId: string,
+  ledgerUnit: Unit,
+  date: Date,
+) {
+  const balanceString = await redis.get(
+    `account:${accountId}:balance:${formatISODate(date)}`,
+  );
+
+  if (balanceString) {
+    return new Prisma.Decimal(balanceString);
+  }
+
+  const balance = await getBalance(
+    await prisma.booking.findMany({
+      where: {
+        accountId,
+        date: { lte: date },
+      },
+    }),
+    ledgerUnit,
+  );
+  await redis.set(
+    `account:${accountId}:balance:${formatISODate(date)}`,
+    balance.toString(),
+  );
+
+  return balance;
+}
+
+export async function getBalance(bookings: Booking[], ledgerUnit: Unit) {
   let balance = new Prisma.Decimal(0);
   for (let i = 0; i < bookings.length; i++) {
     balance = balance.add(
-      await getBookingValueInLedgerCurrency(bookings[i], ledgerCurrency),
+      await getBookingValueInLedgerUnit(bookings[i], ledgerUnit),
     );
   }
   return balance;
@@ -14,7 +48,7 @@ export async function getBalance(bookings: Booking[], ledgerCurrency: string) {
 
 export async function getLedgerRows(
   bookings: BookingWithTransaction[],
-  ledgerCurrency: string, // TODO this should be of type Unit
+  ledgerUnit: Unit,
   openingBalance?: Prisma.Decimal,
 ) {
   const rows = new Array<LedgerRow>(bookings.length + 1);
@@ -22,14 +56,14 @@ export async function getLedgerRows(
   let balance = openingBalance ?? new Prisma.Decimal(0);
 
   for (let i = 0; i < bookings.length; i++) {
-    const valueInLedgerCurrency = await getBookingValueInLedgerCurrency(
+    const valueInLedgerUnit = await getBookingValueInLedgerUnit(
       bookings[i],
-      ledgerCurrency,
+      ledgerUnit,
     );
-    balance = balance.add(valueInLedgerCurrency);
+    balance = balance.add(valueInLedgerUnit);
     rows[i] = {
       booking: bookings[i],
-      valueInLedgerCurrency,
+      valueInLedgerUnit,
       balance,
     };
   }
@@ -37,25 +71,22 @@ export async function getLedgerRows(
   return rows;
 }
 
-async function getBookingValueInLedgerCurrency(
-  booking: Booking,
-  ledgerCurrency: string,
-) {
+async function getBookingValueInLedgerUnit(booking: Booking, ledgerUnit: Unit) {
   return await convert(
     booking.value,
-    booking.unit === Unit.CURRENCY
-      ? { unit: Unit.CURRENCY, currency: booking.currency! }
-      : booking.unit === Unit.CRYPTOCURRENCY
+    booking.unit === UnitEnum.CURRENCY
+      ? { unit: UnitEnum.CURRENCY, currency: booking.currency! }
+      : booking.unit === UnitEnum.CRYPTOCURRENCY
         ? {
-            unit: Unit.CRYPTOCURRENCY,
+            unit: UnitEnum.CRYPTOCURRENCY,
             cryptocurrency: booking.cryptocurrency!,
           }
         : {
-            unit: Unit.SECURITY,
+            unit: UnitEnum.SECURITY,
             symbol: booking.symbol!,
             tradeCurrency: booking.tradeCurrency!,
           },
-    { unit: Unit.CURRENCY, currency: ledgerCurrency },
+    ledgerUnit,
     booking.date,
   );
 }

@@ -7,7 +7,7 @@ export type BookingWithTransaction = Booking & {
 
 export type LedgerRow = {
   booking: BookingWithTransaction;
-  valueInLedgerCurrency: Prisma.Decimal;
+  valueInLedgerUnit: Prisma.Decimal;
   balance: Prisma.Decimal;
 };
 

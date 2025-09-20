@@ -1,7 +1,7 @@
 import {
   AccountType,
   EquityAccountSubtype,
-  Prisma,
+  Unit as UnitEnum,
   type Account,
 } from "@prisma/client";
 import { redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
@@ -12,11 +12,11 @@ import { refCurrency } from "~/config";
 import { Page } from "./page";
 import { getAccountGroups } from "~/account-groups/data";
 import { getAccounts } from "../data";
-import { getLedgerRows, getBalance } from "./calculation.server";
+import { getLedgerRows, getBalanceCached } from "./calculation.server";
 import { today } from "~/today";
 import { startOfMonth, subDays, subMonths } from "date-fns";
 import { formatISODate } from "~/formatting";
-import { redis } from "~/redis.server";
+import type { Unit } from "~/fx";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const from = new URL(request.url).searchParams.get("from");
@@ -65,46 +65,36 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     }`;
   }
 
-  const ledgerCurrency = account.currency ?? refCurrency;
+  const ledgerUnit: Unit = account.unit
+    ? account.unit === UnitEnum.CURRENCY
+      ? { unit: UnitEnum.CURRENCY, currency: account.currency! }
+      : account.unit === UnitEnum.CRYPTOCURRENCY
+        ? {
+            unit: UnitEnum.CRYPTOCURRENCY,
+            cryptocurrency: account.cryptocurrency!,
+          }
+        : {
+            unit: UnitEnum.SECURITY,
+            symbol: account.symbol!,
+            tradeCurrency: account.tradeCurrency!,
+          }
+    : { unit: UnitEnum.CURRENCY, currency: refCurrency };
 
-  let openingBalance: Prisma.Decimal | undefined = undefined;
-  if (fromDate && account.type !== AccountType.EQUITY) {
-    const openingBalanceDate = subDays(fromDate, 1);
-    const openingBalanceString = fromDate
-      ? await redis.get(
-          `account:${account.id}:balance:${formatISODate(openingBalanceDate)}`,
-        )
+  const openingBalance =
+    fromDate && account.type !== AccountType.EQUITY
+      ? await getBalanceCached(account.id, ledgerUnit, subDays(fromDate, 1))
       : undefined;
-
-    if (openingBalanceString) {
-      openingBalance = new Prisma.Decimal(openingBalanceString);
-    } else {
-      openingBalance = await getBalance(
-        await prisma.booking.findMany({
-          where: {
-            accountId: params.accountId,
-            date: { lte: openingBalanceDate },
-          },
-        }),
-        ledgerCurrency,
-      );
-      await redis.set(
-        `account:${account.id}:balance:${formatISODate(openingBalanceDate)}`,
-        openingBalance.toString(),
-      );
-    }
-  }
 
   const ledgerRows = await getLedgerRows(
     bookingsForPeriod,
-    ledgerCurrency,
+    ledgerUnit,
     openingBalance,
   );
 
   return serialize({
     fromDate,
     toDate,
-    ledgerCurrency,
+    ledgerUnit,
     account: {
       ...account,
       path: getAccountPath(account),
@@ -121,7 +111,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
           ? {
               ...lr,
               balance: lr.balance.neg(),
-              valueInLedgerCurrency: lr.valueInLedgerCurrency.neg(),
+              valueInLedgerUnit: lr.valueInLedgerUnit.neg(),
               booking: {
                 ...lr.booking,
                 value: lr.booking.value.neg(),

@@ -2,6 +2,7 @@ import { Prisma, Unit as UnitEnum } from "@prisma/client";
 import { formatISODate } from "./formatting";
 import { redis } from "~/redis.server";
 import { subDays } from "date-fns";
+import { isSameUnit, type Unit } from "./fx";
 
 const baseCurrency = "USD";
 const baseUnit: Unit = { unit: UnitEnum.CURRENCY, currency: baseCurrency };
@@ -160,42 +161,11 @@ async function getSecurityPrice(
   return new Prisma.Decimal(cacheEntry);
 }
 
-export type Unit = CurrencyUnit | CryptocurrencyUnit | SecurityUnit;
-
-type CurrencyUnit = {
-  unit: typeof UnitEnum.CURRENCY;
-  currency: string;
-};
-
-type CryptocurrencyUnit = {
-  unit: typeof UnitEnum.CRYPTOCURRENCY;
-  cryptocurrency: string;
-};
-
-type SecurityUnit = {
-  unit: typeof UnitEnum.SECURITY;
-  symbol: string;
-  tradeCurrency: string;
-};
-
 function unitToString(unit: Unit) {
   switch (unit.unit) {
     case UnitEnum.CURRENCY:
       return unit.currency;
     case UnitEnum.CRYPTOCURRENCY:
       return `${unit.cryptocurrency} (crypto)`;
-  }
-}
-
-function isSameUnit(unitA: Unit, unitB: Unit) {
-  if (unitA.unit !== unitB.unit) return false;
-
-  switch (unitA.unit) {
-    case UnitEnum.CURRENCY:
-      return unitA.currency === (unitB as CurrencyUnit).currency;
-    case UnitEnum.CRYPTOCURRENCY:
-      return (
-        unitA.cryptocurrency === (unitB as CryptocurrencyUnit).cryptocurrency
-      );
   }
 }

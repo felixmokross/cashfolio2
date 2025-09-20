@@ -35,6 +35,8 @@ import { Field, Label } from "~/platform/forms/fieldset";
 import { DateInput } from "~/platform/forms/date-input";
 import { Form } from "react-router";
 import { Badge } from "~/platform/badge";
+import { Unit } from "@prisma/client";
+import { isSameUnit } from "~/fx";
 
 export function Page({
   loaderData: {
@@ -42,7 +44,7 @@ export function Page({
     toDate,
     account,
     allAccounts,
-    ledgerCurrency,
+    ledgerUnit,
     openingBalance,
     ledgerRows,
   },
@@ -61,7 +63,15 @@ export function Page({
       <div className="flex justify-between items-center">
         <Heading className="flex items-center gap-4">
           {account.path}
-          <Badge>{ledgerCurrency}</Badge>
+          <Badge>
+            {ledgerUnit.unit === Unit.CURRENCY
+              ? ledgerUnit.currency!
+              : ledgerUnit.unit === Unit.CRYPTOCURRENCY
+                ? ledgerUnit.cryptocurrency!
+                : ledgerUnit.unit === Unit.SECURITY
+                  ? ledgerUnit.symbol
+                  : null}
+          </Badge>
         </Heading>
 
         <Button hierarchy="primary" onClick={() => onNewTransaction()}>
@@ -146,13 +156,27 @@ export function Page({
               </TableCell>
               {account.type === "EQUITY" && (
                 <TableCell className="text-right">
-                  {lr.booking.currency !== ledgerCurrency
+                  {isSameUnit(
+                    lr.booking.unit === "CURRENCY"
+                      ? { unit: "CURRENCY", currency: account.currency! }
+                      : account.unit === "CRYPTOCURRENCY"
+                        ? {
+                            unit: "CRYPTOCURRENCY",
+                            cryptocurrency: account.cryptocurrency!,
+                          }
+                        : {
+                            unit: "SECURITY",
+                            symbol: account.symbol!,
+                            tradeCurrency: account.tradeCurrency!,
+                          },
+                    ledgerUnit,
+                  )
                     ? `${lr.booking.currency} ${formatMoney(lr.booking.value)}`
                     : null}
                 </TableCell>
               )}
               <TableCell className="text-right">
-                {formatMoney(lr.valueInLedgerCurrency)}
+                {formatMoney(lr.valueInLedgerUnit)}
               </TableCell>
               <TableCell className="text-right">
                 {formatMoney(lr.balance)}

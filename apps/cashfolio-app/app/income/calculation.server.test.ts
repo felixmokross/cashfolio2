@@ -14,7 +14,8 @@ import {
 } from "../builders";
 import { AccountType, Prisma } from "@prisma/client";
 import { formatISODate } from "~/formatting";
-import { getExchangeRate, type Unit } from "~/fx.server";
+import { getExchangeRate } from "~/fx.server";
+import type { Unit } from "~/fx";
 
 const mockGetExchangeRate = vi.fn();
 
