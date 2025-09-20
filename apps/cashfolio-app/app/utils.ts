@@ -12,6 +12,11 @@ export function getAccountGroupPath(
   return prefix + accountGroup.name;
 }
 
-export function sum(values: Prisma.Decimal[]): Prisma.Decimal {
-  return values.reduce((prev, curr) => prev.plus(curr), new Prisma.Decimal(0));
+export function sum(
+  values: (Prisma.Decimal | string | number)[],
+): Prisma.Decimal {
+  return values.reduce<Prisma.Decimal>(
+    (prev, curr) => prev.plus(curr),
+    new Prisma.Decimal(0),
+  );
 }

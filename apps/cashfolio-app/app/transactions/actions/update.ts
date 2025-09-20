@@ -1,22 +1,27 @@
 import { prisma } from "~/prisma.server";
-import { parseBookings, purgeCachedBalances } from "./shared";
+import {
+  hasErrors,
+  parseBookings,
+  purgeCachedBalances,
+  validate,
+} from "./shared";
 import { Prisma, Unit } from "@prisma/client";
-import { redirect } from "react-router";
+import { data } from "react-router";
+import invariant from "tiny-invariant";
 
 export async function action({ request }: { request: Request }) {
   const form = await request.formData();
-  const transactionId = form.get("transactionId");
-  if (typeof transactionId !== "string") {
-    return new Response("Bad Request", { status: 400 });
-  }
 
+  const transactionId = form.get("transactionId");
+  invariant(typeof transactionId === "string");
   const description = form.get("description");
-  if (typeof description !== "string") {
-    return new Response("Bad Request", { status: 400 });
-  }
-  const returnToAccountId = form.get("returnToAccountId");
-  if (typeof returnToAccountId !== "string") {
-    return new Response("Bad Request", { status: 400 });
+  invariant(typeof description === "string");
+
+  const bookings = parseBookings(form);
+
+  const errors = validate(bookings);
+  if (hasErrors(errors)) {
+    return data({ success: false, errors }, { status: 400 });
   }
 
   const transactionBeforeUpdate = await prisma.transaction.findUnique({
@@ -26,8 +31,6 @@ export async function action({ request }: { request: Request }) {
   if (!transactionBeforeUpdate) {
     return new Response("Not Found", { status: 404 });
   }
-
-  const bookings = parseBookings(form);
 
   await prisma.transaction.update({
     where: { id: transactionId },
@@ -54,5 +57,5 @@ export async function action({ request }: { request: Request }) {
       .concat(transactionBeforeUpdate.bookings),
   );
 
-  return redirect(`/accounts/${returnToAccountId}`);
+  return data({ success: true });
 }

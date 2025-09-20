@@ -5,7 +5,7 @@ import {
   DialogBody,
   DialogTitle,
 } from "~/platform/dialog";
-import { Field, FieldGroup } from "~/platform/forms/fieldset";
+import { ErrorMessage, Field, FieldGroup } from "~/platform/forms/fieldset";
 import { Input } from "~/platform/forms/input";
 import type { AccountOption } from "~/types";
 import { AccountCombobox } from "~/accounts/account-combobox";
@@ -19,9 +19,9 @@ import {
   TableRow,
 } from "~/platform/table";
 import { FormattedNumberInput } from "~/platform/forms/formatted-number-input";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PlusIcon, TrashIcon } from "~/platform/icons/standard";
-import { Form } from "react-router";
+import { useFetcher } from "react-router";
 import { createId } from "@paralleldrive/cuid2";
 import type { Serialize } from "~/serialization";
 import type { Booking } from "@prisma/client";
@@ -29,6 +29,7 @@ import { CurrencyCombobox } from "../components/currency-combobox";
 import { formatISO } from "date-fns";
 import type { TransactionWithBookings } from "~/transactions/types";
 import { CryptocurrencyCombobox } from "~/components/cryptocurrency-combobox";
+import type { action } from "./actions/create";
 
 type BookingFormValues = Serialize<
   Pick<
@@ -43,24 +44,15 @@ type BookingFormValues = Serialize<
   >
 > & { value: string; isAccountLocked?: true };
 
-export function useEditTransaction({
-  accounts,
-  returnToAccountId,
-}: {
-  accounts: AccountOption[];
-  returnToAccountId: string;
-}) {
+export function useEditTransaction() {
   const [isOpen, setIsOpen] = useState(false);
   const [transaction, setTransaction] =
     useState<Serialize<TransactionWithBookings>>();
 
   return {
     editTransactionProps: {
-      key: transaction?.id ?? "new",
       isOpen,
       onClose: () => setIsOpen(false),
-      accounts,
-      returnToAccountId,
       transaction,
     },
     onNewTransaction: () => {
@@ -78,28 +70,39 @@ export function EditTransaction({
   isOpen,
   onClose,
   accounts,
-  returnToAccountId,
   transaction,
+  lockedAccountId,
 }: {
   isOpen: boolean;
   onClose: () => void;
   accounts: AccountOption[];
-  returnToAccountId: string;
   transaction?: Serialize<TransactionWithBookings>;
+  lockedAccountId: string;
 }) {
+  const [submitCount, setSubmitCount] = useState(0);
+  const fetcher = useFetcher<typeof action>({
+    key: `${transaction?.id ?? "new"}-${submitCount}`,
+  });
+
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data?.success) {
+      onDialogClose();
+    }
+  }, [fetcher.state, fetcher.data?.success, onClose]);
+
+  function onDialogClose() {
+    onClose();
+    // delay a bit for the dialog close animation
+    setTimeout(() => setSubmitCount((v) => v + 1), 500);
+  }
+
   return (
-    <Dialog size="5xl" open={isOpen} onClose={onClose}>
-      <Form
+    <Dialog size="5xl" open={isOpen} onClose={onDialogClose}>
+      <fetcher.Form
         className="contents"
         action={transaction ? "/transactions/update" : "/transactions/create"}
         method="POST"
-        onSubmit={() => onClose()}
       >
-        <input
-          type="hidden"
-          name="returnToAccountId"
-          value={returnToAccountId}
-        />
         <input type="hidden" name="transactionId" value={transaction?.id} />
         <DialogTitle>
           {transaction ? "Edit Transaction" : "New Transaction"}
@@ -112,22 +115,38 @@ export function EditTransaction({
                 name="description"
                 placeholder="Description"
                 defaultValue={transaction?.description}
+                invalid={!!fetcher.data?.errors?.description}
               />
             </Field>
             <BookingsTable
               transaction={transaction}
               accounts={accounts}
-              returnToAccountId={returnToAccountId}
+              lockedAccountId={lockedAccountId}
+              data={fetcher.data}
             />
+            {fetcher.data?.errors?.form && (
+              <ErrorMessage>{fetcher.data.errors.form}</ErrorMessage>
+            )}
           </FieldGroup>
         </DialogBody>
         <DialogActions>
-          <Button hierarchy="tertiary" onClick={onClose}>
+          <Button hierarchy="tertiary" onClick={onDialogClose}>
             Cancel
           </Button>
-          <Button type="submit">{transaction ? "Save" : "Create"}</Button>
+          <Button
+            type="submit"
+            disabled={fetcher.state !== "idle" || fetcher.data?.success}
+          >
+            {fetcher.state === "idle"
+              ? transaction
+                ? "Save"
+                : "Create"
+              : transaction
+                ? "Saving…"
+                : "Creating…"}
+          </Button>
         </DialogActions>
-      </Form>
+      </fetcher.Form>
     </Dialog>
   );
 }
@@ -135,11 +154,13 @@ export function EditTransaction({
 function BookingsTable({
   transaction,
   accounts,
-  returnToAccountId,
+  lockedAccountId,
+  data,
 }: {
   transaction?: Serialize<TransactionWithBookings>;
   accounts: AccountOption[];
-  returnToAccountId: string;
+  lockedAccountId: string;
+  data: ReturnType<typeof useFetcher<typeof action>>["data"];
 }) {
   const [bookings, setBookings] = useState<BookingFormValues[]>(
     transaction
@@ -148,9 +169,7 @@ function BookingsTable({
           date: formatISO(b.date, { representation: "date" }),
           value: b.value.toString(),
         }))
-      : addNewBooking(
-          addNewBooking([], { lockedAccountId: returnToAccountId }),
-        ),
+      : addNewBooking(addNewBooking([], { lockedAccountId })),
   );
   return (
     <Table bleed className="[--gutter:--spacing(8)]">
@@ -186,6 +205,7 @@ function BookingsTable({
                       ),
                     );
                   }}
+                  invalid={!!data?.errors?.[`bookings[${i}][date]`]}
                 />
               </TableCell>
               <TableCell>
@@ -203,6 +223,7 @@ function BookingsTable({
                       ),
                     );
                   }}
+                  invalid={!!data?.errors?.[`bookings[${i}][accountId]`]}
                 />
                 {booking.isAccountLocked && (
                   <input
@@ -217,24 +238,29 @@ function BookingsTable({
                   name={`bookings[${i}][description]`}
                   type="text"
                   defaultValue={booking.description}
+                  invalid={!!data?.errors?.[`bookings[${i}][description]`]}
                 />
               </TableCell>
               <TableCell>
+                {/* TODO support SECURITY accounts */}
                 {selectedAccount?.unit === "CURRENCY" ? (
                   <CurrencyCombobox
                     name={`bookings[${i}][currency]`}
                     defaultValue={booking.currency ?? ""}
+                    invalid={!!data?.errors?.[`bookings[${i}][currency]`]}
                   />
                 ) : selectedAccount?.unit === "CRYPTOCURRENCY" ? (
                   <CryptocurrencyCombobox
                     name={`bookings[${i}][cryptocurrency]`}
                     defaultValue={booking.cryptocurrency ?? ""}
+                    invalid={!!data?.errors?.[`bookings[${i}][cryptocurrency]`]}
                   />
                 ) : (
                   // TODO determine how we solve this. An Equity account does not have a unit because bookings can have any unit
                   <CurrencyCombobox
                     name={`bookings[${i}][currency]`}
                     defaultValue={booking.currency ?? ""}
+                    invalid={!!data?.errors?.[`bookings[${i}][currency]`]}
                   />
                 )}
               </TableCell>
@@ -242,6 +268,7 @@ function BookingsTable({
                 <FormattedNumberInput
                   name={`bookings[${i}][value]`}
                   defaultValue={booking.value}
+                  invalid={!!data?.errors?.[`bookings[${i}][value]`]}
                 />
               </TableCell>
               <TableCell>

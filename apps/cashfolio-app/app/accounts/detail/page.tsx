@@ -49,10 +49,7 @@ export function Page({
   loaderData: LoaderData;
 }) {
   const { editTransactionProps, onNewTransaction, onEditTransaction } =
-    useEditTransaction({
-      returnToAccountId: account.id,
-      accounts: allAccounts,
-    });
+    useEditTransaction();
 
   const { deleteTransactionProps, onDeleteTransaction } = useDeleteTransaction({
     returnToAccountId: account.id,
@@ -68,7 +65,11 @@ export function Page({
         </Button>
       </div>
 
-      <EditTransaction {...editTransactionProps} />
+      <EditTransaction
+        {...editTransactionProps}
+        accounts={allAccounts}
+        lockedAccountId={account.id}
+      />
       <DeleteTransaction {...deleteTransactionProps} />
 
       <Form className="flex gap-4 mt-8 items-end" replace={true}>
