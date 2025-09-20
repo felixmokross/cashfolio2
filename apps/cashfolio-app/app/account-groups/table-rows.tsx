@@ -66,7 +66,13 @@ export function AccountsNodeTableRow<TData = {}>({
       <TableRow
         {...(node.nodeType === "account"
           ? { href: `/accounts/${node.id}` }
-          : {})}
+          : {
+              href: "#",
+              onClick: (e) => {
+                e.preventDefault();
+                toggleExpanded();
+              },
+            })}
       >
         <TableCell>
           <div
@@ -88,10 +94,7 @@ export function AccountsNodeTableRow<TData = {}>({
               {node.nodeType === "account" ? (
                 <WalletIcon className="size-4 shrink-0" />
               ) : (
-                <ExpandCollapseIcon
-                  className="size-4 shrink-0"
-                  onClick={() => toggleExpanded()}
-                />
+                <ExpandCollapseIcon className="size-4 shrink-0" />
               )}
               <span className="truncate">{node.name}</span>
             </div>

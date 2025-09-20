@@ -5,6 +5,7 @@ import { AccountsNodeChildrenTableRows } from "~/account-groups/table-rows";
 import { Button } from "~/platform/button";
 import { TableCell } from "~/platform/table";
 import type { Serialize } from "~/serialization";
+import { Badge } from "~/platform/badge";
 
 export function AccountsTableRows({
   node,
@@ -23,23 +24,23 @@ export function AccountsTableRows({
     <AccountsNodeChildrenTableRows node={node} viewPrefix="accounts-list">
       {(node) => (
         <>
-          <TableCell>
-            {node.nodeType === "account" ? node.unit : null}
-          </TableCell>
-          <TableCell>
-            {node.nodeType === "account"
-              ? node.unit === "CURRENCY"
-                ? node.currency
-                : node.unit === "CRYPTOCURRENCY"
-                  ? node.cryptocurrency
-                  : node.symbol
-              : null}
+          <TableCell className="w-32">
+            {node.nodeType === "account" && (
+              <Badge>
+                {node.unit === "CURRENCY"
+                  ? node.currency
+                  : node.unit === "CRYPTOCURRENCY"
+                    ? node.cryptocurrency
+                    : node.symbol}
+              </Badge>
+            )}
           </TableCell>
           <TableCell>
             <div className="flex gap-2 items-center">
               <button
                 className="z-10"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (node.nodeType === "account") {
                     onEditAccount(node);
                   } else {
