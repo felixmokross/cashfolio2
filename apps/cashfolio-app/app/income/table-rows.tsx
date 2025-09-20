@@ -10,7 +10,7 @@ export function IncomeTableRows({
   node: Serialize<IncomeAccountsNode>;
 }) {
   return (
-    <AccountsNodeChildrenTableRows node={node}>
+    <AccountsNodeChildrenTableRows node={node} viewPrefix="income">
       {(node) => (
         <>
           <TableCell className="text-right">

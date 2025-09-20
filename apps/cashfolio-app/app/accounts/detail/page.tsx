@@ -117,7 +117,10 @@ export function Page({
         </TableHead>
         <TableBody>
           {ledgerRows.map((lr) => (
-            <TableRow key={lr.booking?.id ?? "opening-balance"}>
+            <TableRow
+              key={lr.booking?.id ?? "opening-balance"}
+              className="group"
+            >
               <TableCell>{formatDate(lr.booking.date)}</TableCell>
               <TableCell className="truncate">
                 {Array.from(
@@ -150,8 +153,11 @@ export function Page({
               </TableCell>
               <TableCell>
                 <Dropdown>
-                  <DropdownButton hierarchy="tertiary">
-                    <EllipsisVerticalIcon />
+                  <DropdownButton
+                    as="button"
+                    className="opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  >
+                    <EllipsisVerticalIcon className="-mb-0.5 size-4" />
                   </DropdownButton>
                   <DropdownMenu anchor="bottom end">
                     <DropdownItem

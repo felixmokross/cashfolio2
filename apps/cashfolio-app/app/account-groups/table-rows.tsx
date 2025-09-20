@@ -3,18 +3,24 @@ import { TableCell, TableRow } from "~/platform/table";
 import clsx from "clsx";
 import type { AccountsNode } from "./accounts-tree";
 import type { Account } from "@prisma/client";
-import type { ReactNode } from "react";
-import { WalletIcon } from "~/platform/icons/standard";
+import { useState, type ReactNode } from "react";
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  WalletIcon,
+} from "~/platform/icons/standard";
 
 export function AccountsNodeChildrenTableRows<TData = {}>({
   node,
   level = 0,
   children,
+  viewPrefix,
 }: {
   node: Serialize<AccountsNode<Account, TData>>;
   level?: number;
   negated?: boolean;
   children?: (node: Serialize<AccountsNode<Account, TData>>) => ReactNode;
+  viewPrefix: string;
 }) {
   if (node.nodeType === "account") {
     return null;
@@ -25,6 +31,7 @@ export function AccountsNodeChildrenTableRows<TData = {}>({
       node={child}
       level={level}
       children={children}
+      viewPrefix={viewPrefix}
     />
   ));
 }
@@ -33,11 +40,27 @@ export function AccountsNodeTableRow<TData = {}>({
   node,
   level,
   children,
+  viewPrefix,
 }: {
   node: Serialize<AccountsNode<Account, TData>>;
   level: number;
   children?: (node: Serialize<AccountsNode<Account, TData>>) => ReactNode;
+  viewPrefix: string;
 }) {
+  const expandedStateKey = `${viewPrefix}-account-group-${node.id}-expanded`;
+  const [isExpanded, setIsExpanded] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      sessionStorage.getItem(expandedStateKey) === "true",
+  );
+
+  const ExpandCollapseIcon = isExpanded ? ChevronDownIcon : ChevronRightIcon;
+
+  function toggleExpanded() {
+    const newValue = !isExpanded;
+    sessionStorage.setItem(expandedStateKey, newValue ? "true" : "false");
+    setIsExpanded(newValue);
+  }
   return (
     <>
       <TableRow
@@ -61,24 +84,30 @@ export function AccountsNodeTableRow<TData = {}>({
               "pl-40": level === 10,
             })}
           >
-            {node.nodeType === "account" ? (
-              <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center">
+              {node.nodeType === "account" ? (
                 <WalletIcon className="size-4 shrink-0" />
-                <span className="truncate">{node.name}</span>
-              </div>
-            ) : (
-              node.name
-            )}
+              ) : (
+                <ExpandCollapseIcon
+                  className="size-4 shrink-0"
+                  onClick={() => toggleExpanded()}
+                />
+              )}
+              <span className="truncate">{node.name}</span>
+            </div>
           </div>
         </TableCell>
         {children?.(node)}
       </TableRow>
 
-      <AccountsNodeChildrenTableRows
-        node={node}
-        level={level + 1}
-        children={children}
-      />
+      {isExpanded && (
+        <AccountsNodeChildrenTableRows
+          node={node}
+          level={level + 1}
+          children={children}
+          viewPrefix={viewPrefix}
+        />
+      )}
     </>
   );
 }

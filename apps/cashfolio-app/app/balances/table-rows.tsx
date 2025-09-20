@@ -12,7 +12,7 @@ export function BalancesTableRows({
   negated?: boolean;
 }) {
   return (
-    <AccountsNodeChildrenTableRows node={node}>
+    <AccountsNodeChildrenTableRows node={node} viewPrefix="balances">
       {(node) => (
         <>
           <TableCell className="text-right">

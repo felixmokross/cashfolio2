@@ -1,4 +1,4 @@
-import { Prisma, type Account } from "@prisma/client";
+import { AccountType, Prisma, type Account } from "@prisma/client";
 import { redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { prisma } from "~/prisma.server";
 import { getAccountGroupPath } from "~/utils";
@@ -63,7 +63,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   const ledgerCurrency = account.currency ?? refCurrency;
 
   let openingBalance: Prisma.Decimal | undefined = undefined;
-  if (fromDate) {
+  if (fromDate && account.type !== AccountType.EQUITY) {
     const openingBalanceDate = subDays(fromDate, 1);
     const openingBalanceString = fromDate
       ? await redis.get(

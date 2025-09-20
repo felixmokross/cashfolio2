@@ -20,7 +20,7 @@ export function AccountsTableRows({
   onDeleteAccountGroup: (accountGroupId: string) => void;
 }) {
   return (
-    <AccountsNodeChildrenTableRows node={node}>
+    <AccountsNodeChildrenTableRows node={node} viewPrefix="accounts-list">
       {(node) => (
         <>
           <TableCell>
@@ -37,8 +37,8 @@ export function AccountsTableRows({
           </TableCell>
           <TableCell>
             <div className="flex gap-2 items-center">
-              <Button
-                hierarchy="tertiary"
+              <button
+                className="z-10"
                 onClick={() => {
                   if (node.nodeType === "account") {
                     onEditAccount(node);
@@ -47,11 +47,11 @@ export function AccountsTableRows({
                   }
                 }}
               >
-                <PencilSquareIcon />
-              </Button>
-              <Button
+                <PencilSquareIcon className="size-4" />
+              </button>
+              <button
                 type="submit"
-                hierarchy="tertiary"
+                className="z-10"
                 onClick={() => {
                   if (node.nodeType === "accountGroup") {
                     onDeleteAccountGroup(node.id);
@@ -60,8 +60,8 @@ export function AccountsTableRows({
                   }
                 }}
               >
-                <TrashIcon />
-              </Button>
+                <TrashIcon className="size-4" />
+              </button>
             </div>
           </TableCell>
         </>
