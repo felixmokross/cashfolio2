@@ -155,24 +155,29 @@ export async function generateFxBookingsForFxAccount(
 export async function completeFxTransaction(
   transaction: TransactionWithBookings,
 ): Promise<Prisma.Decimal> {
-  const bookingsSum = sum(
-    await Promise.all(
-      transaction.bookings.map(
-        async (b) =>
-          await convert(
-            b.value,
-            b.unit === Unit.CURRENCY
-              ? { unit: Unit.CURRENCY, currency: b.currency! }
-              : {
-                  unit: Unit.CRYPTOCURRENCY,
-                  cryptocurrency: b.cryptocurrency!,
-                },
-            { unit: Unit.CURRENCY, currency: refCurrency },
-            b.date,
-          ),
-      ),
-    ),
-  );
+  const values = new Array(transaction.bookings.length);
+  for (let i = 0; i < transaction.bookings.length; i++) {
+    const b = transaction.bookings[i];
+    values[i] = await convert(
+      b.value,
+      b.unit === Unit.CURRENCY
+        ? { unit: Unit.CURRENCY, currency: b.currency! }
+        : b.unit === Unit.CRYPTOCURRENCY
+          ? {
+              unit: Unit.CRYPTOCURRENCY,
+              cryptocurrency: b.cryptocurrency!,
+            }
+          : {
+              unit: Unit.SECURITY,
+              symbol: b.symbol!,
+              tradeCurrency: b.tradeCurrency!,
+            },
+      { unit: Unit.CURRENCY, currency: refCurrency },
+      b.date,
+    );
+  }
+
+  const bookingsSum = sum(values);
 
   return bookingsSum.negated();
 }
@@ -189,30 +194,40 @@ export async function getIncomeData(
     (g) => g.type === AccountType.EQUITY && !g.parentGroupId,
   )!;
 
-  const fxAccounts = await Promise.all(
-    accounts
-      .filter(
-        (a) =>
-          (
-            [AccountType.ASSET, AccountType.LIABILITY] as AccountType[]
-          ).includes(a.type) &&
-          a.unit === Unit.CURRENCY &&
-          a.currency !== refCurrency,
-      )
-      .map(
-        async (a) =>
-          ({
-            id: `fx-holding-${a.id}`,
-            type: AccountType.EQUITY,
-            bookings: await generateFxBookingsForFxAccount(a, endDate),
-            name: `FX Holding Gain/Loss for ${a.name}`,
-            slug: `fx-holding-${a.slug}`,
-            groupId: equityRootGroup.id,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }) as AccountWithBookings,
-      ),
+  const filteredAccounts = accounts.filter(
+    (a) =>
+      ([AccountType.ASSET, AccountType.LIABILITY] as AccountType[]).includes(
+        a.type,
+      ) &&
+      a.unit === Unit.CURRENCY &&
+      a.currency !== refCurrency,
   );
+  const fxAccounts = new Array<AccountWithBookings>(filteredAccounts.length);
+  for (let i = 0; i < filteredAccounts.length; i++) {
+    const a = filteredAccounts[i];
+    fxAccounts[i] = {
+      id: `fx-holding-${a.id}`,
+      type: AccountType.EQUITY,
+      bookings: await generateFxBookingsForFxAccount(a, endDate),
+      name: `FX Holding Gain/Loss for ${a.name}`,
+      slug: `fx-holding-${a.slug}`,
+      groupId: equityRootGroup.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as AccountWithBookings;
+  }
+
+  const bookings = new Array<Booking>(transactions.length);
+  for (let i = 0; i < transactions.length; i++) {
+    const t = transactions[i];
+    bookings[i] = {
+      id: `fx-conversion-${t.id}`,
+      date: max(t.bookings.map((b) => b.date)),
+      unit: Unit.CURRENCY,
+      currency: refCurrency,
+      value: await completeFxTransaction(t),
+    } as Booking;
+  }
 
   const fxTransferAccount = {
     id: "fx-conversion",
@@ -220,50 +235,47 @@ export async function getIncomeData(
     slug: "fx-conversion",
     groupId: equityRootGroup.id,
     type: AccountType.EQUITY,
-    bookings: await Promise.all(
-      transactions.map(async (t) => ({
-        id: `fx-conversion-${t.id}`,
-        date: max(t.bookings.map((b) => b.date)),
-        unit: Unit.CURRENCY,
-        currency: refCurrency,
-        value: await completeFxTransaction(t),
-      })),
-    ),
+    bookings,
   } as AccountWithBookings;
+
+  const allEquityAccounts = equityAccounts
+    .concat(fxAccounts)
+    .concat(fxTransferAccount);
+  const valueByAccountIdEntries = new Array<[string, Prisma.Decimal]>(
+    allEquityAccounts.length,
+  );
+
+  for (let i = 0; i < allEquityAccounts.length; i++) {
+    const a = allEquityAccounts[i];
+
+    const values = new Array<Prisma.Decimal>(a.bookings.length);
+    for (let j = 0; j < a.bookings.length; j++) {
+      const b = a.bookings[j];
+      values[j] = await convert(
+        b.value,
+        b.unit === Unit.CURRENCY
+          ? { unit: Unit.CURRENCY, currency: b.currency! }
+          : b.unit === Unit.CRYPTOCURRENCY
+            ? {
+                unit: Unit.CRYPTOCURRENCY,
+                cryptocurrency: b.cryptocurrency!,
+              }
+            : {
+                unit: Unit.SECURITY,
+                symbol: b.symbol!,
+                tradeCurrency: b.tradeCurrency!,
+              },
+        { unit: Unit.CURRENCY, currency: refCurrency },
+        b.date,
+      );
+    }
+
+    valueByAccountIdEntries[i] = [a.id, sum(values).negated()] as const;
+  }
 
   return {
     virtualAccounts: fxAccounts.concat(fxTransferAccount),
     virtualAccountGroups: [],
-    valueByAccountId: new Map<string, Prisma.Decimal>(
-      await Promise.all(
-        equityAccounts
-          .concat(fxAccounts)
-          .concat(fxTransferAccount)
-          .map(
-            async (a) =>
-              [
-                a.id,
-                sum(
-                  await Promise.all(
-                    a.bookings.map(
-                      async (b) =>
-                        await convert(
-                          b.value,
-                          b.unit === Unit.CURRENCY
-                            ? { unit: Unit.CURRENCY, currency: b.currency! }
-                            : {
-                                unit: Unit.CRYPTOCURRENCY,
-                                cryptocurrency: b.cryptocurrency!,
-                              },
-                          { unit: Unit.CURRENCY, currency: refCurrency },
-                          b.date,
-                        ),
-                    ),
-                  ),
-                ).negated(),
-              ] as const,
-          ),
-      ),
-    ),
+    valueByAccountId: new Map<string, Prisma.Decimal>(valueByAccountIdEntries),
   };
 }

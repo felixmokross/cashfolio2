@@ -1,6 +1,7 @@
 import { Prisma, Unit as UnitEnum } from "@prisma/client";
 import { formatISODate } from "./formatting";
 import { redis } from "~/redis.server";
+import { subDays } from "date-fns";
 
 const baseCurrency = "USD";
 const baseUnit: Unit = { unit: UnitEnum.CURRENCY, currency: baseCurrency };
@@ -11,6 +12,10 @@ export async function convert(
   targetUnit: Unit,
   date: Date,
 ) {
+  if (value.isZero()) {
+    return new Prisma.Decimal(0);
+  }
+
   const rate = await getExchangeRate(sourceUnit, targetUnit, date);
   if (!rate) {
     throw new Error(
@@ -47,6 +52,10 @@ async function getBaseRate(date: Date, unit: Unit) {
     case UnitEnum.CRYPTOCURRENCY:
       const cryptoPrices = await getCryptocurrencyPrices(date);
       return new Prisma.Decimal(1).dividedBy(cryptoPrices[unit.cryptocurrency]);
+    case UnitEnum.SECURITY:
+      return new Prisma.Decimal(1).dividedBy(
+        await getSecurityPrice(date, unit.symbol, unit.tradeCurrency),
+      );
   }
 }
 
@@ -90,7 +99,68 @@ async function getCryptocurrencyPrices(date: Date) {
   return JSON.parse(cacheEntry) as Record<string, number>;
 }
 
-export type Unit = CurrencyUnit | CryptocurrencyUnit;
+async function getSecurityPrice(
+  date: Date,
+  symbol: string,
+  tradeCurrency: string,
+  backtrackCount = 0,
+): Promise<Prisma.Decimal> {
+  const key = `security:${symbol}:${formatISODate(date)}`;
+  const cacheEntry = await redis.get(key);
+  if (!cacheEntry) {
+    console.log(`Fetching security price for ${key}...`);
+    const response = await fetch(
+      `http://api.marketstack.com/v2/eod/${formatISODate(date)}?access_key=${process.env.MARKETSTACK_API_KEY}&symbols=${symbol}`,
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Security price fetch failed for ${symbol} on ${formatISODate(date)}`,
+      );
+    }
+    const data = await response.json();
+    if (!data || !data.data || !data.data.length) {
+      if (backtrackCount >= 5) {
+        throw new Error(
+          `No security price data for ${symbol} on ${formatISODate(date)} after ${backtrackCount} attempts`,
+        );
+      }
+      const backtrackedPrice = await getSecurityPrice(
+        subDays(date, 1),
+        symbol,
+        tradeCurrency,
+        backtrackCount + 1,
+      );
+
+      // cache the backtracked price only until the next day
+      await redis.set(key, backtrackedPrice.toString(), {
+        expiration: {
+          type: "EX",
+          value:
+            // 24 hours
+            86400,
+        },
+      });
+
+      return backtrackedPrice;
+    }
+
+    const price = data.data[0].close as number;
+
+    const priceInBaseCurrency = await convert(
+      new Prisma.Decimal(price),
+      { unit: UnitEnum.CURRENCY, currency: tradeCurrency },
+      baseUnit,
+      date,
+    );
+
+    await redis.set(key, priceInBaseCurrency.toString());
+    return new Prisma.Decimal(priceInBaseCurrency);
+  }
+
+  return new Prisma.Decimal(cacheEntry);
+}
+
+export type Unit = CurrencyUnit | CryptocurrencyUnit | SecurityUnit;
 
 type CurrencyUnit = {
   unit: typeof UnitEnum.CURRENCY;
@@ -100,6 +170,12 @@ type CurrencyUnit = {
 type CryptocurrencyUnit = {
   unit: typeof UnitEnum.CRYPTOCURRENCY;
   cryptocurrency: string;
+};
+
+type SecurityUnit = {
+  unit: typeof UnitEnum.SECURITY;
+  symbol: string;
+  tradeCurrency: string;
 };
 
 function unitToString(unit: Unit) {

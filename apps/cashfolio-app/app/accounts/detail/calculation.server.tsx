@@ -15,10 +15,16 @@ export async function getLedgerRows(
       bookings[i].value,
       bookings[i].unit === Unit.CURRENCY
         ? { unit: Unit.CURRENCY, currency: bookings[i].currency! }
-        : {
-            unit: Unit.CRYPTOCURRENCY,
-            cryptocurrency: bookings[i].cryptocurrency!,
-          },
+        : bookings[i].unit === Unit.CRYPTOCURRENCY
+          ? {
+              unit: Unit.CRYPTOCURRENCY,
+              cryptocurrency: bookings[i].cryptocurrency!,
+            }
+          : {
+              unit: Unit.SECURITY,
+              symbol: bookings[i].symbol!,
+              tradeCurrency: bookings[i].tradeCurrency!,
+            },
       { unit: Unit.CURRENCY, currency: ledgerCurrency },
       bookings[i].date,
     );

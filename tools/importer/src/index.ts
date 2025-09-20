@@ -289,7 +289,12 @@ program
               : null,
           symbol:
             sourceAccount.unit.kind === SourceModel.AccountUnitKind.STOCK
-              ? sourceStocksById[sourceAccount.unit.stockId.toString()].symbol
+              ? getSymbol(sourceAccount.unit.stockId.toString())
+              : null,
+          tradeCurrency:
+            sourceAccount.unit.kind === SourceModel.AccountUnitKind.STOCK
+              ? sourceStocksById[sourceAccount.unit.stockId.toString()]
+                  .tradingCurrency
               : null,
         };
       }
@@ -314,6 +319,7 @@ program
           currency: null,
           cryptocurrency: null,
           symbol: null,
+          tradeCurrency: null,
         };
       }
 
@@ -400,13 +406,28 @@ program
                   b.type === SourceModel.BookingType.DEPOSIT ||
                   b.type === SourceModel.BookingType.CHARGE
                     ? b.unit.kind === SourceModel.AccountUnitKind.STOCK
-                      ? sourceStocksById[b.unit.stockId.toString()].symbol
+                      ? getSymbol(b.unit.stockId.toString())
+                      : null
+                    : null,
+                tradeCurrency:
+                  b.type === SourceModel.BookingType.DEPOSIT ||
+                  b.type === SourceModel.BookingType.CHARGE
+                    ? b.unit.kind === SourceModel.AccountUnitKind.STOCK
+                      ? sourceStocksById[b.unit.stockId.toString()]
+                          .tradingCurrency
                       : null
                     : null,
               };
             }),
           },
         };
+      }
+
+      function getSymbol(stockId: string) {
+        const symbol = sourceStocksById[stockId]?.symbol;
+        const mappedSymbol =
+          symbolMapping[symbol as keyof typeof symbolMapping] ?? symbol;
+        return mappedSymbol;
       }
     } finally {
       sourceDbClient.close();
@@ -417,3 +438,11 @@ program
 function isCryptocurrency(currency: string) {
   return ["ADA", "BCH", "BTC", "ETH"].includes(currency);
 }
+
+const symbolMapping = {
+  "IUSN-GY": "IUSN.DE",
+  "IWDA-NA": "IWDA.AS",
+  "AEEM-FP": "AEEM.PA",
+  "EMIM-NA": "EMIM.AS",
+  "VWCE.XETRA": "VWCE.DE",
+};

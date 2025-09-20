@@ -16,10 +16,8 @@ export async function getBalanceSheet(
 ) {
   const accountsTree = getAccountsTree(accounts, accountGroups);
 
-  const [assets, liabilities] = await Promise.all([
-    getBalances(accountsTree.ASSET!, date),
-    getBalances(accountsTree.LIABILITY!, date),
-  ]);
+  const assets = await getBalances(accountsTree.ASSET!, date);
+  const liabilities = await getBalances(accountsTree.LIABILITY!, date);
   return {
     assets,
     liabilities,
@@ -32,9 +30,13 @@ async function getBalances(
   date: Date,
 ): Promise<BalancesAccountsNode> {
   if (node.nodeType === "accountGroup") {
-    const children = await Promise.all(
-      node.children.map((c) => getBalances(c, date)),
-    );
+    const children: BalancesAccountsNode[] = [];
+    for (const child of node.children) {
+      const balances = await getBalances(child, date);
+      if (!balances.balance.isZero()) {
+        children.push(balances);
+      }
+    }
     return {
       ...node,
       children,
@@ -53,7 +55,13 @@ async function getBalances(
       balanceInOriginalCurrency,
       node.unit === Unit.CURRENCY
         ? { unit: Unit.CURRENCY, currency: node.currency! }
-        : { unit: Unit.CRYPTOCURRENCY, cryptocurrency: node.cryptocurrency! },
+        : node.unit === Unit.CRYPTOCURRENCY
+          ? { unit: Unit.CRYPTOCURRENCY, cryptocurrency: node.cryptocurrency! }
+          : {
+              unit: Unit.SECURITY,
+              symbol: node.symbol!,
+              tradeCurrency: node.tradeCurrency!,
+            },
       { unit: Unit.CURRENCY, currency: refCurrency },
       date,
     ),
