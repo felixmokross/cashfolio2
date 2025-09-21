@@ -1,33 +1,24 @@
-import { redirect } from "react-router";
+import { data } from "react-router";
 import slugify from "slugify";
 import { prisma } from "~/prisma.server";
+import { getFormValues, hasErrors, validate } from "./shared";
 
 export async function action({ request }: { request: Request }) {
-  const form = await request.formData();
+  const values = await getFormValues(request);
 
-  const id = form.get("id");
-  if (typeof id !== "string") {
-    return new Response(null, { status: 400 });
-  }
-
-  const name = form.get("name");
-  if (typeof name !== "string") {
-    return new Response(null, { status: 400 });
-  }
-
-  const parentGroupId = form.get("parentGroupId");
-  if (parentGroupId && typeof parentGroupId !== "string") {
-    return new Response(null, { status: 400 });
+  const errors = validate(values);
+  if (hasErrors(errors)) {
+    return data({ success: false, errors }, { status: 400 });
   }
 
   await prisma.accountGroup.update({
-    where: { id },
+    where: { id: values.id },
     data: {
-      name,
-      slug: slugify(name, { lower: true }),
-      parentGroupId: parentGroupId || null,
+      name: values.name,
+      slug: slugify(values.name, { lower: true }),
+      parentGroupId: values.parentGroupId || null,
     },
   });
 
-  return redirect("/accounts");
+  return { success: true };
 }

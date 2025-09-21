@@ -16,7 +16,6 @@ export function useDeleteAccount() {
   }
   return {
     deleteAccountProps: {
-      key: accountId,
       isOpen,
       onClose: () => setAlertOpen(false),
       accountId,

@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { Form } from "react-router";
 import { Alert, AlertActions, AlertTitle } from "~/platform/alert";
-import { Button } from "~/platform/button";
+import {
+  CancelButton,
+  DeleteButton,
+  FormDialog,
+} from "~/platform/forms/form-dialog";
 
 export function useDeleteAccountGroup() {
   const [isOpen, setAlertOpen] = useState(false);
@@ -13,7 +16,6 @@ export function useDeleteAccountGroup() {
   }
   return {
     deleteAccountGroupProps: {
-      key: accountGroupId,
       isOpen,
       onClose: () => setAlertOpen(false),
       accountGroupId,
@@ -32,26 +34,21 @@ export function DeleteAccountGroup({
   accountGroupId?: string;
 }) {
   return (
-    <Alert open={isOpen} onClose={onClose} size="md">
-      <Form
-        className="contents"
-        action="/account-groups/delete"
-        method="POST"
-        onSubmit={() => onClose()}
-      >
-        <input type="hidden" name="accountGroupId" value={accountGroupId} />
-        <AlertTitle>
-          Are you sure you want to delete this account group?
-        </AlertTitle>
-        <AlertActions>
-          <Button hierarchy="tertiary" onClick={() => onClose()}>
-            Cancel
-          </Button>
-          <Button type="submit" variant="destructive">
-            Delete
-          </Button>
-        </AlertActions>
-      </Form>
-    </Alert>
+    <FormDialog
+      dialogComponent={Alert}
+      open={isOpen}
+      onClose={onClose}
+      size="md"
+      action="/account-groups/delete"
+    >
+      <input type="hidden" name="accountGroupId" value={accountGroupId} />
+      <AlertTitle>
+        Are you sure you want to delete this account group?
+      </AlertTitle>
+      <AlertActions>
+        <CancelButton />
+        <DeleteButton />
+      </AlertActions>
+    </FormDialog>
   );
 }

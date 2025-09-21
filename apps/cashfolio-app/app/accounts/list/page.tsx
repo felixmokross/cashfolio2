@@ -29,7 +29,7 @@ export function Page({
 }) {
   const { editAccountProps, onNewAccount, onEditAccount } = useEditAccount();
   const { editAccountGroupProps, onNewAccountGroup, onEditAccountGroup } =
-    useEditAccountGroup({ accountGroups });
+    useEditAccountGroup();
 
   const { deleteAccountGroupProps, onDeleteAccountGroup } =
     useDeleteAccountGroup();
@@ -50,7 +50,10 @@ export function Page({
         </div>
       </div>
       <EditAccount {...editAccountProps} accountGroups={accountGroups} />
-      <EditAccountGroup {...editAccountGroupProps} />
+      <EditAccountGroup
+        {...editAccountGroupProps}
+        accountGroups={accountGroups}
+      />
       <DeleteAccount {...deleteAccountProps} />
       <DeleteAccountGroup {...deleteAccountGroupProps} />
       <Table
