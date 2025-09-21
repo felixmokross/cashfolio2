@@ -27,9 +27,7 @@ export function Page({
 }: {
   loaderData: LoaderData;
 }) {
-  const { editAccountProps, onNewAccount, onEditAccount } = useEditAccount({
-    accountGroups,
-  });
+  const { editAccountProps, onNewAccount, onEditAccount } = useEditAccount();
   const { editAccountGroupProps, onNewAccountGroup, onEditAccountGroup } =
     useEditAccountGroup({ accountGroups });
 
@@ -51,7 +49,7 @@ export function Page({
           </Button>
         </div>
       </div>
-      <EditAccount {...editAccountProps} />
+      <EditAccount {...editAccountProps} accountGroups={accountGroups} />
       <EditAccountGroup {...editAccountGroupProps} />
       <DeleteAccount {...deleteAccountProps} />
       <DeleteAccountGroup {...deleteAccountGroupProps} />

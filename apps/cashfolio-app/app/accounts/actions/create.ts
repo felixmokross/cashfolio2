@@ -1,55 +1,30 @@
 import { AccountType, Unit } from "@prisma/client";
-import { redirect } from "react-router";
+import { data } from "react-router";
 import slugify from "slugify";
 import { prisma } from "~/prisma.server";
+import { getFormValues, hasErrors, validate } from "./shared";
 
 export async function action({ request }: { request: Request }) {
-  const form = await request.formData();
-  const name = form.get("name");
-  if (typeof name !== "string") {
-    return new Response(null, { status: 400 });
-  }
-  const type = form.get("type");
-  if (typeof type !== "string") {
-    return new Response(null, { status: 400 });
-  }
-  const groupId = form.get("groupId");
-  if (typeof groupId !== "string") {
-    return new Response(null, { status: 400 });
-  }
-  const openingBalance = form.get("openingBalance");
-  if (openingBalance && typeof openingBalance !== "string") {
-    return new Response(null, { status: 400 });
-  }
-  const unit = form.get("unit") as Unit;
-  if (typeof unit !== "string") {
-    return new Response(null, { status: 400 });
-  }
-  const currency = form.get("currency");
-  if (currency && typeof currency !== "string") {
-    return new Response(null, { status: 400 });
-  }
-  const cryptocurrency = form.get("cryptocurrency");
-  if (cryptocurrency && typeof cryptocurrency !== "string") {
-    return new Response(null, { status: 400 });
-  }
-  const symbol = form.get("symbol");
-  if (symbol && typeof symbol !== "string") {
-    return new Response(null, { status: 400 });
+  const values = await getFormValues(request);
+  const errors = validate(values);
+
+  if (hasErrors(errors)) {
+    return data({ success: false, errors });
   }
 
   await prisma.account.create({
     data: {
-      name,
-      slug: slugify(name, { lower: true }),
-      groupId,
-      type: type as AccountType,
-      unit,
-      currency: unit === Unit.CURRENCY ? currency : null,
-      cryptocurrency: unit === Unit.CRYPTOCURRENCY ? cryptocurrency : null,
-      symbol: unit === Unit.SECURITY ? symbol : null,
+      name: values.name,
+      slug: slugify(values.name, { lower: true }),
+      groupId: values.groupId,
+      type: values.type as AccountType,
+      unit: values.unit as Unit,
+      currency: values.unit === Unit.CURRENCY ? values.currency : null,
+      cryptocurrency:
+        values.unit === Unit.CRYPTOCURRENCY ? values.cryptocurrency : null,
+      symbol: values.unit === Unit.SECURITY ? values.symbol : null,
     },
   });
 
-  return redirect("/accounts");
+  return data({ success: true });
 }

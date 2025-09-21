@@ -1,6 +1,5 @@
 import { Prisma, type Booking } from "@prisma/client";
 import { redis } from "~/redis.server";
-import { isAfter, isEqual } from "date-fns";
 import { sum } from "~/utils";
 
 export function validate(bookings: BookingFormData[]) {

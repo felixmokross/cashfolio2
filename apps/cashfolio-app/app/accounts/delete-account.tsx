@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { Form } from "react-router";
 import { Alert, AlertActions, AlertTitle } from "~/platform/alert";
-import { Button } from "~/platform/button";
+import {
+  CancelButton,
+  DeleteButton,
+  FormDialog,
+} from "~/platform/forms/form-dialog";
 
 export function useDeleteAccount() {
   const [isOpen, setAlertOpen] = useState(false);
@@ -32,25 +35,20 @@ export function DeleteAccount({
   accountId?: string;
 }) {
   return (
-    <Alert open={isOpen} onClose={onClose} size="sm">
-      <Form
-        className="contents"
-        action="/accounts/delete"
-        method="POST"
-        onSubmit={() => onClose()}
-      >
-        <input type="hidden" name="_action" value="delete" />
-        <input type="hidden" name="accountId" value={accountId} />
-        <AlertTitle>Are you sure you want to delete this account?</AlertTitle>
-        <AlertActions>
-          <Button hierarchy="tertiary" onClick={() => onClose()}>
-            Cancel
-          </Button>
-          <Button type="submit" variant="destructive">
-            Delete
-          </Button>
-        </AlertActions>
-      </Form>
-    </Alert>
+    <FormDialog
+      dialogComponent={Alert}
+      open={isOpen}
+      onClose={onClose}
+      size="sm"
+      action="/accounts/delete"
+    >
+      <input type="hidden" name="_action" value="delete" />
+      <input type="hidden" name="accountId" value={accountId} />
+      <AlertTitle>Are you sure you want to delete this account?</AlertTitle>
+      <AlertActions>
+        <CancelButton />
+        <DeleteButton />
+      </AlertActions>
+    </FormDialog>
   );
 }

@@ -1,11 +1,6 @@
 import { Button } from "~/platform/button";
-import {
-  Dialog,
-  DialogActions,
-  DialogBody,
-  DialogTitle,
-} from "~/platform/dialog";
-import { ErrorMessage, Field, FieldGroup } from "~/platform/forms/fieldset";
+import { DialogActions, DialogBody, DialogTitle } from "~/platform/dialog";
+import { Field, FieldGroup } from "~/platform/forms/fieldset";
 import { Input } from "~/platform/forms/input";
 import type { AccountOption } from "~/types";
 import { AccountCombobox } from "~/accounts/account-combobox";
@@ -19,7 +14,7 @@ import {
   TableRow,
 } from "~/platform/table";
 import { FormattedNumberInput } from "~/platform/forms/formatted-number-input";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PlusIcon, TrashIcon } from "~/platform/icons/standard";
 import { useFetcher } from "react-router";
 import { createId } from "@paralleldrive/cuid2";
@@ -30,6 +25,12 @@ import { formatISO } from "date-fns";
 import type { TransactionWithBookings } from "~/transactions/types";
 import { CryptocurrencyCombobox } from "~/components/cryptocurrency-combobox";
 import type { action } from "./actions/create";
+import {
+  CancelButton,
+  FormDialog,
+  FormErrorMessage,
+  CreateOrSaveButton,
+} from "~/platform/forms/form-dialog";
 
 type BookingFormValues = Serialize<
   Pick<
@@ -79,75 +80,47 @@ export function EditTransaction({
   transaction?: Serialize<TransactionWithBookings>;
   lockedAccountId: string;
 }) {
-  const [submitCount, setSubmitCount] = useState(0);
-  const fetcher = useFetcher<typeof action>({
-    key: `${transaction?.id ?? "new"}-${submitCount}`,
-  });
-
-  useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data?.success) {
-      onDialogClose();
-    }
-  }, [fetcher.state, fetcher.data?.success, onClose]);
-
-  function onDialogClose() {
-    onClose();
-    // delay a bit for the dialog close animation
-    setTimeout(() => setSubmitCount((v) => v + 1), 500);
-  }
-
   return (
-    <Dialog size="5xl" open={isOpen} onClose={onDialogClose}>
-      <fetcher.Form
-        className="contents"
-        action={transaction ? "/transactions/update" : "/transactions/create"}
-        method="POST"
-      >
-        <input type="hidden" name="transactionId" value={transaction?.id} />
-        <DialogTitle>
-          {transaction ? "Edit Transaction" : "New Transaction"}
-        </DialogTitle>
-        <DialogBody>
-          <FieldGroup>
-            <Field>
-              <Input
-                type="text"
-                name="description"
-                placeholder="Description"
-                defaultValue={transaction?.description}
-                invalid={!!fetcher.data?.errors?.description}
+    <FormDialog
+      size="5xl"
+      open={isOpen}
+      onClose={onClose}
+      action={transaction ? "/transactions/update" : "/transactions/create"}
+      entityId={transaction?.id}
+    >
+      {({ fetcher }) => (
+        <>
+          <input type="hidden" name="transactionId" value={transaction?.id} />
+          <DialogTitle>
+            {transaction ? "Edit Transaction" : "New Transaction"}
+          </DialogTitle>
+          <DialogBody>
+            <FieldGroup>
+              <Field>
+                <Input
+                  type="text"
+                  name="description"
+                  placeholder="Description"
+                  defaultValue={transaction?.description}
+                  invalid={!!fetcher.data?.errors?.description}
+                />
+              </Field>
+              <BookingsTable
+                transaction={transaction}
+                accounts={accounts}
+                lockedAccountId={lockedAccountId}
+                data={fetcher.data}
               />
-            </Field>
-            <BookingsTable
-              transaction={transaction}
-              accounts={accounts}
-              lockedAccountId={lockedAccountId}
-              data={fetcher.data}
-            />
-            {fetcher.data?.errors?.form && (
-              <ErrorMessage>{fetcher.data.errors.form}</ErrorMessage>
-            )}
-          </FieldGroup>
-        </DialogBody>
-        <DialogActions>
-          <Button hierarchy="tertiary" onClick={onDialogClose}>
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={fetcher.state !== "idle" || fetcher.data?.success}
-          >
-            {fetcher.state === "idle"
-              ? transaction
-                ? "Save"
-                : "Create"
-              : transaction
-                ? "Saving…"
-                : "Creating…"}
-          </Button>
-        </DialogActions>
-      </fetcher.Form>
-    </Dialog>
+              <FormErrorMessage />
+            </FieldGroup>
+          </DialogBody>
+          <DialogActions>
+            <CancelButton />
+            <CreateOrSaveButton />
+          </DialogActions>
+        </>
+      )}
+    </FormDialog>
   );
 }
 
