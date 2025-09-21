@@ -67,21 +67,12 @@ export function parseBookings(formData: FormData) {
 export async function purgeCachedBalances(
   bookings: Pick<Booking, "accountId" | "date">[],
 ) {
-  const keysToDelete = new Set<string>(
-    (
-      await Promise.all(
-        bookings.map(async (b) => {
-          const keys = await redis.keys(`account:${b.accountId}:balance:*`);
-          return keys.filter((k) => {
-            const keyDate = new Date(k.substring(k.lastIndexOf(":") + 1));
-            return isAfter(keyDate, b.date) || isEqual(keyDate, b.date);
-          });
-        }),
-      )
-    ).flat(),
+  await Promise.all(
+    bookings.map(async (b) => {
+      const cacheKey = `account:${b.accountId}:balance`;
+      if (await redis.exists(cacheKey)) {
+        await redis.ts.del(cacheKey, b.date.getTime(), "+");
+      }
+    }),
   );
-
-  if (keysToDelete.size > 0) {
-    await redis.del([...keysToDelete]);
-  }
 }

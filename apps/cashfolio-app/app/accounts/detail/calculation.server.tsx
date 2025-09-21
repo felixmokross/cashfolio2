@@ -2,36 +2,44 @@ import { Prisma, Unit as UnitEnum, type Booking } from "@prisma/client";
 import type { BookingWithTransaction, LedgerRow } from "./types";
 import { convert } from "~/fx.server";
 import { redis } from "~/redis.server";
-import { formatISODate } from "~/formatting";
 import { prisma } from "~/prisma.server";
 import type { Unit } from "~/fx";
+import { isEqual } from "date-fns";
 
 export async function getBalanceCached(
   accountId: string,
   ledgerUnit: Unit,
   date: Date,
 ) {
-  const balanceString = await redis.get(
-    `account:${accountId}:balance:${formatISODate(date)}`,
-  );
+  const cacheKey = `account:${accountId}:balance`;
+  const [cacheEntry] = (await redis.exists(cacheKey))
+    ? await redis.ts.REVRANGE(cacheKey, "-", date.getTime(), { COUNT: 1 })
+    : [];
 
-  if (balanceString) {
-    return new Prisma.Decimal(balanceString);
+  if (cacheEntry && isEqual(cacheEntry.timestamp, date)) {
+    console.log("Cache hit for account balance", accountId, date);
+    return new Prisma.Decimal(cacheEntry.value);
   }
 
-  const balance = await getBalance(
-    await prisma.booking.findMany({
-      where: {
-        accountId,
-        date: { lte: date },
+  const bookings = await prisma.booking.findMany({
+    where: {
+      accountId,
+      date: {
+        lte: date,
+        gt: cacheEntry ? new Date(cacheEntry.timestamp) : undefined,
       },
-    }),
-    ledgerUnit,
+    },
+  });
+
+  const balance = (
+    cacheEntry ? new Prisma.Decimal(cacheEntry.value) : new Prisma.Decimal(0)
+  ).plus(await getBalance(bookings, ledgerUnit));
+  console.log(
+    `Basis date: ${cacheEntry ? new Date(cacheEntry.timestamp) : "none"}`,
   );
-  await redis.set(
-    `account:${accountId}:balance:${formatISODate(date)}`,
-    balance.toString(),
-  );
+  console.log(`bookings: ${bookings.length}`);
+
+  await redis.ts.add(cacheKey, date.getTime(), balance.toNumber());
 
   return balance;
 }
