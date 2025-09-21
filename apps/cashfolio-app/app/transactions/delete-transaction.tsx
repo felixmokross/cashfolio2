@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Form } from "react-router";
+import { useEffect, useState } from "react";
+import { Form, useFetcher } from "react-router";
 import {
   Alert,
   AlertActions,
@@ -7,26 +7,21 @@ import {
   AlertTitle,
 } from "~/platform/alert";
 import { Button } from "~/platform/button";
+import { action } from "~/transactions/actions/delete";
 
-export function useDeleteTransaction({
-  returnToAccountId,
-}: {
-  returnToAccountId: string;
-}) {
-  const [isOpen, setAlertOpen] = useState(false);
+export function useDeleteTransaction() {
+  const [isOpen, setIsOpen] = useState(false);
   const [transactionId, setTransactionId] = useState<string>();
 
   function onDeleteTransaction(transactionId: string) {
     setTransactionId(transactionId);
-    setAlertOpen(true);
+    setIsOpen(true);
   }
   return {
     deleteTransactionProps: {
-      key: transactionId, // TODO key seems to cause problems with animation, think of different way (e.g. reset form)
       isOpen,
-      onClose: () => setAlertOpen(false),
+      onClose: () => setIsOpen(false),
       transactionId,
-      returnToAccountId,
     },
     onDeleteTransaction,
   };
@@ -36,26 +31,36 @@ export function DeleteTransaction({
   isOpen,
   onClose,
   transactionId,
-  returnToAccountId,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  returnToAccountId: string;
   transactionId?: string;
 }) {
+  const [submitCount, setSubmitCount] = useState(0);
+  const fetcher = useFetcher<typeof action>({
+    key: `${transactionId ?? "new"}-${submitCount}`,
+  });
+
+  // TODO make this reusable
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data?.success) {
+      onDialogClose();
+    }
+  }, [fetcher.state, fetcher.data?.success, onClose]);
+
+  function onDialogClose() {
+    onClose();
+    // delay a bit for the dialog close animation
+    setTimeout(() => setSubmitCount((v) => v + 1), 500);
+  }
+
   return (
-    <Alert open={isOpen} onClose={onClose} size="sm">
-      <Form
+    <Alert open={isOpen} onClose={onDialogClose} size="sm">
+      <fetcher.Form
         className="contents"
         action="/transactions/delete"
         method="POST"
-        onSubmit={() => onClose()}
       >
-        <input
-          type="hidden"
-          name="returnToAccountId"
-          value={returnToAccountId}
-        />
         <input type="hidden" name="transactionId" value={transactionId} />
         <AlertTitle>
           Are you sure you want to delete this transaction?
@@ -64,14 +69,14 @@ export function DeleteTransaction({
           This will delete the transaction and all its associated bookings.
         </AlertDescription>
         <AlertActions>
-          <Button hierarchy="tertiary" onClick={() => onClose()}>
+          <Button hierarchy="tertiary" onClick={() => onDialogClose()}>
             Cancel
           </Button>
           <Button type="submit" variant="destructive">
             Delete
           </Button>
         </AlertActions>
-      </Form>
+      </fetcher.Form>
     </Alert>
   );
 }

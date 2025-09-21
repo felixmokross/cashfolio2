@@ -3,7 +3,7 @@ import { TableCell, TableRow } from "~/platform/table";
 import clsx from "clsx";
 import type { AccountsNode } from "./accounts-tree";
 import type { Account } from "@prisma/client";
-import { useState, type ReactNode } from "react";
+import { useLayoutEffect, useState, type ReactNode } from "react";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
@@ -48,11 +48,11 @@ export function AccountsNodeTableRow<TData = {}>({
   viewPrefix: string;
 }) {
   const expandedStateKey = `${viewPrefix}-account-group-${node.id}-expanded`;
-  const [isExpanded, setIsExpanded] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      sessionStorage.getItem(expandedStateKey) === "true",
-  );
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  useLayoutEffect(() => {
+    setIsExpanded(sessionStorage.getItem(expandedStateKey) === "true");
+  }, [expandedStateKey]);
 
   const ExpandCollapseIcon = isExpanded ? ChevronDownIcon : ChevronRightIcon;
 

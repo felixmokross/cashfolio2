@@ -1,4 +1,4 @@
-import { redirect } from "react-router";
+import { data } from "react-router";
 import { prisma } from "~/prisma.server";
 import { purgeCachedBalances } from "./shared";
 
@@ -6,11 +6,12 @@ export async function action({ request }: { request: Request }) {
   const form = await request.formData();
   const transactionId = form.get("transactionId");
   if (typeof transactionId !== "string") {
-    return new Response("Bad Request", { status: 400 });
-  }
-  const returnToAccountId = form.get("returnToAccountId");
-  if (typeof returnToAccountId !== "string") {
-    return new Response("Bad Request", { status: 400 });
+    return data(
+      { success: false, errors: { transactionId: "This field is required" } },
+      {
+        status: 400,
+      },
+    );
   }
 
   const transaction = await prisma.transaction.findUnique({
@@ -27,5 +28,5 @@ export async function action({ request }: { request: Request }) {
 
   await purgeCachedBalances(transaction.bookings);
 
-  return redirect(`/accounts/${returnToAccountId}`);
+  return data({ success: true });
 }

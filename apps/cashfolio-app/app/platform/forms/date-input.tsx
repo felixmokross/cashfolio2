@@ -1,6 +1,6 @@
 import * as Headless from "@headlessui/react";
 import type { ReactNode } from "react";
-import { useId, useRef } from "react";
+import { useRef } from "react";
 import type {
   AriaButtonProps,
   AriaDatePickerProps,
@@ -47,6 +47,7 @@ type DateInputProps = {
   invalid?: boolean;
   disabled?: boolean;
   onChange?: (value: CalendarDate | null) => void;
+  "aria-labelledby"?: string;
 };
 
 export function DateInput({
@@ -56,11 +57,13 @@ export function DateInput({
   invalid,
   onChange,
   disabled = false,
+  "aria-labelledby": labelledby,
 }: DateInputProps) {
   const props: AriaDatePickerProps<CalendarDate> = {
     defaultValue: defaultValue ? parseDate(defaultValue) : undefined,
     isDisabled: disabled,
     onChange,
+    "aria-labelledby": labelledby,
   };
 
   const state = useDatePickerState(props);

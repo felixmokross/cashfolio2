@@ -37,6 +37,7 @@ import { Form } from "react-router";
 import { Badge } from "~/platform/badge";
 import { Unit } from "@prisma/client";
 import { isSameUnit } from "~/fx";
+import { useId } from "react";
 
 export function Page({
   loaderData: {
@@ -54,9 +55,11 @@ export function Page({
   const { editTransactionProps, onNewTransaction, onEditTransaction } =
     useEditTransaction();
 
-  const { deleteTransactionProps, onDeleteTransaction } = useDeleteTransaction({
-    returnToAccountId: account.id,
-  });
+  const { deleteTransactionProps, onDeleteTransaction } =
+    useDeleteTransaction();
+
+  const fromDateLabelId = `from-date-label-${useId()}`;
+  const toDateLabelId = `to-date-label-${useId()}`;
 
   return (
     <>
@@ -88,19 +91,21 @@ export function Page({
 
       <Form className="flex gap-4 mt-8 items-end" replace={true}>
         <Field>
-          <Label>From</Label>
+          <Label id={fromDateLabelId}>From</Label>
           <DateInput
             name="from"
             defaultValue={
               fromDate ? formatISODate(new Date(fromDate)) : undefined
             }
+            aria-labelledby={fromDateLabelId}
           />
         </Field>
         <Field>
-          <Label>To</Label>
+          <Label id={toDateLabelId}>To</Label>
           <DateInput
             name="to"
             defaultValue={toDate ? formatISODate(new Date(toDate)) : undefined}
+            aria-labelledby={toDateLabelId}
           />
         </Field>
         <Button type="submit">Submit</Button>
