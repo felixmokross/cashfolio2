@@ -351,8 +351,8 @@ program
                 description: "note" in b && b.note ? b.note : "",
                 value: new TargetModel.Prisma.Decimal(b.amount.toString()).mul(
                   b.type === SourceModel.BookingType.CHARGE ||
-                    b.type === SourceModel.BookingType.EXPENSE ||
-                    b.type === SourceModel.BookingType.DEPRECIATION
+                    b.type === SourceModel.BookingType.INCOME ||
+                    b.type === SourceModel.BookingType.APPRECIATION
                     ? -1
                     : 1,
                 ),

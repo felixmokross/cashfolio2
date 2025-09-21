@@ -107,7 +107,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       .map((lr) =>
         account.type === AccountType.LIABILITY ||
         (account.type === AccountType.EQUITY &&
-          account.equityAccountSubtype === EquityAccountSubtype.EXPENSE)
+          account.equityAccountSubtype !== EquityAccountSubtype.EXPENSE)
           ? {
               ...lr,
               balance: lr.balance.neg(),
