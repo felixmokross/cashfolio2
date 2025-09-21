@@ -67,9 +67,7 @@ export function AccountsNodeTableRow<TData = {}>({
         {...(node.nodeType === "account"
           ? { href: `/accounts/${node.id}` }
           : {
-              href: "#",
-              onClick: (e) => {
-                e.preventDefault();
+              onClick: () => {
                 toggleExpanded();
               },
             })}

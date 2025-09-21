@@ -2,6 +2,7 @@ import clsx from "clsx";
 import type React from "react";
 import { createContext, useContext, useState } from "react";
 import { Link } from "./link";
+import * as Headless from "@headlessui/react";
 
 const TableContext = createContext<{
   bleed: boolean;
@@ -86,22 +87,26 @@ export function TableBody(props: React.ComponentPropsWithoutRef<"tbody">) {
 
 const TableRowContext = createContext<{
   href?: string;
+  onClick?: (e: React.MouseEvent) => void;
   target?: string;
   title?: string;
 }>({
   href: undefined,
+  onClick: undefined,
   target: undefined,
   title: undefined,
 });
 
 export function TableRow({
   href,
+  onClick,
   target,
   title,
   className,
   ...props
 }: {
   href?: string;
+  onClick?: (e: React.MouseEvent) => void;
   target?: string;
   title?: string;
 } & React.ComponentPropsWithoutRef<"tr">) {
@@ -110,18 +115,22 @@ export function TableRow({
   return (
     <TableRowContext.Provider
       value={
-        { href, target, title } as React.ContextType<typeof TableRowContext>
+        { href, onClick, target, title } as React.ContextType<
+          typeof TableRowContext
+        >
       }
     >
       <tr
         {...props}
         className={clsx(
           className,
-          href &&
+          (href || onClick) &&
             "has-[[data-row-link][data-focus]]:outline-2 has-[[data-row-link][data-focus]]:-outline-offset-2 has-[[data-row-link][data-focus]]:outline-accent-neutral-500 dark:focus-within:bg-white/2.5",
           striped && "even:bg-neutral-950/2.5 dark:even:bg-white/2.5",
-          href && striped && "hover:bg-neutral-950/5 dark:hover:bg-white/5",
-          href &&
+          (href || onClick) &&
+            striped &&
+            "hover:bg-neutral-950/5 dark:hover:bg-white/5",
+          (href || onClick) &&
             !striped &&
             "hover:bg-neutral-950/2.5 dark:hover:bg-white/2.5",
         )}
@@ -156,12 +165,14 @@ export function TableCell({
   ...props
 }: React.ComponentPropsWithoutRef<"td">) {
   let { bleed, dense, grid, striped } = useContext(TableContext);
-  let { href, target, title } = useContext(TableRowContext);
+  let { href, onClick, target, title } = useContext(TableRowContext);
   let [cellRef, setCellRef] = useState<HTMLElement | null>(null);
 
+  const linkOrButtonTabIndex =
+    cellRef?.previousElementSibling === null ? 0 : -1;
   return (
     <td
-      ref={href ? setCellRef : undefined}
+      ref={href || onClick ? setCellRef : undefined}
       {...props}
       className={clsx(
         className,
@@ -179,9 +190,20 @@ export function TableCell({
           href={href}
           target={target}
           aria-label={title}
-          tabIndex={cellRef?.previousElementSibling === null ? 0 : -1}
+          tabIndex={linkOrButtonTabIndex}
           className="absolute inset-0 focus:outline-hidden"
         />
+      )}
+      {onClick && (
+        <Headless.DataInteractive>
+          <button
+            data-row-link
+            onClick={onClick}
+            aria-label={title}
+            tabIndex={linkOrButtonTabIndex}
+            className="absolute inset-0 focus:outline-hidden"
+          />
+        </Headless.DataInteractive>
       )}
       {children}
     </td>
