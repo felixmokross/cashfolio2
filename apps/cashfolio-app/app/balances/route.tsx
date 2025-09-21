@@ -4,7 +4,7 @@ import { serialize } from "~/serialization";
 import { subDays } from "date-fns";
 import { today } from "~/today";
 import { getBalanceSheet } from "./calculation.server";
-import { getAccountsWithBookings } from "~/accounts/data";
+import { getAccounts } from "~/accounts/data";
 import { getAccountGroups } from "~/account-groups/data";
 
 export async function loader() {
@@ -12,7 +12,7 @@ export async function loader() {
   const date = subDays(today, 1);
 
   const [accounts, accountGroups] = await Promise.all([
-    getAccountsWithBookings(date),
+    getAccounts(),
     getAccountGroups(),
   ]);
 
