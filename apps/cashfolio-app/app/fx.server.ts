@@ -41,7 +41,7 @@ export async function getExchangeRate(
   return baseToTargetRate.dividedBy(baseToSourceRate);
 }
 
-async function getBaseRate(date: Date, unit: Unit) {
+async function getBaseRate(date: Date, unit: Unit): Promise<Prisma.Decimal> {
   if (isSameUnit(unit, baseUnit)) {
     return new Prisma.Decimal(1);
   }
@@ -55,7 +55,12 @@ async function getBaseRate(date: Date, unit: Unit) {
       return new Prisma.Decimal(1).dividedBy(cryptoPrices[unit.cryptocurrency]);
     case UnitEnum.SECURITY:
       return new Prisma.Decimal(1).dividedBy(
-        await getSecurityPrice(date, unit.symbol, unit.tradeCurrency),
+        await convert(
+          await getSecurityPrice(date, unit.symbol),
+          { unit: UnitEnum.CURRENCY, currency: unit.tradeCurrency },
+          baseUnit,
+          date,
+        ),
       );
   }
 }
@@ -103,7 +108,6 @@ async function getCryptocurrencyPrices(date: Date) {
 async function getSecurityPrice(
   date: Date,
   symbol: string,
-  tradeCurrency: string,
   backtrackCount = 0,
 ): Promise<Prisma.Decimal> {
   const key = `security:${symbol}:${formatISODate(date)}`;
@@ -128,7 +132,6 @@ async function getSecurityPrice(
       const backtrackedPrice = await getSecurityPrice(
         subDays(date, 1),
         symbol,
-        tradeCurrency,
         backtrackCount + 1,
       );
 
@@ -146,16 +149,9 @@ async function getSecurityPrice(
     }
 
     const price = data.data[0].close as number;
+    await redis.set(key, price.toString());
 
-    const priceInBaseCurrency = await convert(
-      new Prisma.Decimal(price),
-      { unit: UnitEnum.CURRENCY, currency: tradeCurrency },
-      baseUnit,
-      date,
-    );
-
-    await redis.set(key, priceInBaseCurrency.toString());
-    return new Prisma.Decimal(priceInBaseCurrency);
+    return new Prisma.Decimal(price);
   }
 
   return new Prisma.Decimal(cacheEntry);

@@ -1,12 +1,13 @@
 import {
   AccountType,
+  EquityAccountSubtype,
   Prisma,
   Unit,
   type Account,
   type AccountGroup,
   type Booking,
 } from "@prisma/client";
-import { addDays, differenceInDays, formatISO, max } from "date-fns";
+import { addDays, differenceInDays, formatISO, max, subDays } from "date-fns";
 import type { AccountWithBookings } from "~/accounts/types";
 import { refCurrency } from "~/config";
 import { formatISODate } from "~/formatting";
@@ -18,22 +19,27 @@ import {
   getAccountsTree,
   type AccountsNode,
 } from "~/account-groups/accounts-tree";
+import { getBalanceCached } from "~/accounts/detail/calculation.server";
 
 export async function getIncomeStatement(
   accounts: AccountWithBookings[],
   accountGroups: AccountGroup[],
   transactions: TransactionWithBookings[],
+  startDate: Date,
   endDate: Date,
 ) {
   const incomeData = await getIncomeData(
     accounts,
     accountGroups,
     transactions,
+    startDate,
     endDate,
   );
 
   const equityRootNode = getAccountsTree(
-    (accounts as Account[]).concat(incomeData.virtualAccounts),
+    (accounts as Account[])
+      .concat(incomeData.virtualAccounts)
+      .filter((a) => !incomeData.valueByAccountId.get(a.id)?.isZero()),
     accountGroups.concat(incomeData.virtualAccountGroups),
   ).EQUITY;
   if (!equityRootNode) {
@@ -85,27 +91,36 @@ export function getBalanceByDate(
 
 export async function generateFxBookingsForFxAccount(
   fxAccount: AccountWithBookings,
+  startDate: Date,
   endDate: Date,
 ): Promise<Booking[]> {
-  if (fxAccount.bookings.length === 0) {
-    return [];
-  }
-
-  const initialDate = fxAccount.bookings[0].date;
-  const balanceByDate = getBalanceByDate(fxAccount);
-
-  let balance = balanceByDate.get(formatISODate(initialDate));
-  if (!balance) {
-    throw new Error("Initial balance not found");
-  }
+  const initialDate = subDays(startDate, 1);
 
   const fxAccountUnit =
     fxAccount.unit === Unit.CURRENCY
-      ? { unit: Unit.CURRENCY, currency: fxAccount.currency! }
-      : {
-          unit: Unit.CRYPTOCURRENCY,
-          cryptocurrency: fxAccount.cryptocurrency!,
-        };
+      ? {
+          unit: Unit.CURRENCY,
+          currency: fxAccount.currency!,
+        }
+      : fxAccount.unit === Unit.CRYPTOCURRENCY
+        ? {
+            unit: Unit.CRYPTOCURRENCY,
+            cryptocurrency: fxAccount.cryptocurrency!,
+          }
+        : {
+            unit: Unit.SECURITY,
+            symbol: fxAccount.symbol!,
+            tradeCurrency: fxAccount.tradeCurrency!,
+          };
+
+  let balance = await getBalanceCached(
+    fxAccount.id,
+    fxAccountUnit,
+    initialDate,
+  );
+  if (!balance) {
+    throw new Error("Initial balance not found");
+  }
 
   let fxRate = await getExchangeRate(
     fxAccountUnit,
@@ -113,14 +128,13 @@ export async function generateFxBookingsForFxAccount(
     initialDate,
   );
 
-  const startDate = addDays(initialDate, 1);
   const numberOfDays = differenceInDays(endDate, startDate);
   if (numberOfDays < 0) {
     // TODO test this
     return [];
   }
 
-  const bookings = new Array(numberOfDays);
+  const bookings = new Array<Booking>(numberOfDays);
   let date = startDate;
 
   for (let i = 0; i <= numberOfDays; i++, date = addDays(date, 1)) {
@@ -138,15 +152,43 @@ export async function generateFxBookingsForFxAccount(
       value: balance.mul(fxRateDiff).negated(),
       unit: Unit.CURRENCY,
       currency: refCurrency,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
       description: `FX P/L as of ${formatISO(date, { representation: "date" })}`,
       transactionId: "transaction-fx-profit-loss",
     };
 
     // TODO test this better, if new balance is set before calculating the FX booking value, it's wrong
-    balance = balanceByDate.get(formatISODate(date)) ?? balance;
+    const prevBalance = balance;
+    balance = await getBalanceCached(fxAccount.id, fxAccountUnit, date);
+
+    if (!prevBalance.equals(balance)) {
+      console.log(
+        `Balance changed for account ${fxAccount.name} on ${formatISODate(date)} from ${prevBalance.toString()} to ${balance?.toString()}`,
+      );
+    }
     fxRate = newFxRate;
+  }
+
+  if (fxAccount.unit === Unit.CURRENCY && fxAccount.currency === "EUR") {
+    const total = sum(bookings.map((b) => b.value));
+    if (!total.isZero()) {
+      console.log(
+        `Generated ${bookings.length} FX bookings for account ${fxAccount.name} with total: ${total.toString()}`,
+      );
+
+      console.log(
+        `initial balance was: ${(
+          await getBalanceCached(fxAccount.id, fxAccountUnit, initialDate)
+        )?.toString()}`,
+      );
+      console.log(
+        `final balance is: ${(
+          await getBalanceCached(fxAccount.id, fxAccountUnit, endDate)
+        )?.toString()}`,
+      );
+    }
   }
 
   return bookings;
@@ -186,6 +228,7 @@ export async function getIncomeData(
   accounts: AccountWithBookings[],
   accountGroups: AccountGroup[],
   transactions: TransactionWithBookings[],
+  startDate: Date,
   endDate: Date,
 ): Promise<IncomeData> {
   const equityAccounts = accounts.filter((a) => a.type === AccountType.EQUITY);
@@ -194,27 +237,34 @@ export async function getIncomeData(
     (g) => g.type === AccountType.EQUITY && !g.parentGroupId,
   )!;
 
-  const filteredAccounts = accounts.filter(
+  const nonRefCurrencyAccounts = accounts.filter(
     (a) =>
       ([AccountType.ASSET, AccountType.LIABILITY] as AccountType[]).includes(
         a.type,
       ) &&
-      a.unit === Unit.CURRENCY &&
-      a.currency !== refCurrency,
+      (a.unit !== Unit.CURRENCY || a.currency !== refCurrency),
   );
-  const fxAccounts = new Array<AccountWithBookings>(filteredAccounts.length);
-  for (let i = 0; i < filteredAccounts.length; i++) {
-    const a = filteredAccounts[i];
+  const fxAccounts = new Array<AccountWithBookings>(
+    nonRefCurrencyAccounts.length,
+  );
+  for (let i = 0; i < nonRefCurrencyAccounts.length; i++) {
+    const a = nonRefCurrencyAccounts[i];
     fxAccounts[i] = {
       id: `fx-holding-${a.id}`,
       type: AccountType.EQUITY,
-      bookings: await generateFxBookingsForFxAccount(a, endDate),
+      equityAccountSubtype: EquityAccountSubtype.GAIN_LOSS,
+      bookings: await generateFxBookingsForFxAccount(a, startDate, endDate),
       name: `FX Holding Gain/Loss for ${a.name}`,
       slug: `fx-holding-${a.slug}`,
       groupId: equityRootGroup.id,
+      unit: null,
+      currency: null,
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as AccountWithBookings;
+    };
   }
 
   const bookings = new Array<Booking>(transactions.length);
@@ -225,18 +275,32 @@ export async function getIncomeData(
       date: max(t.bookings.map((b) => b.date)),
       unit: Unit.CURRENCY,
       currency: refCurrency,
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
       value: await completeFxTransaction(t),
-    } as Booking;
+      accountId: "fx-conversion",
+      description: `FX Conversion P/L for transaction ${t.description}`,
+      transactionId: t.id,
+    };
   }
 
-  const fxTransferAccount = {
+  const fxTransferAccount: AccountWithBookings = {
     id: "fx-conversion",
     name: "FX Conversion Gain/Loss",
     slug: "fx-conversion",
     groupId: equityRootGroup.id,
     type: AccountType.EQUITY,
+    equityAccountSubtype: EquityAccountSubtype.GAIN_LOSS,
     bookings,
-  } as AccountWithBookings;
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    unit: null,
+    currency: null,
+    cryptocurrency: null,
+    symbol: null,
+    tradeCurrency: null,
+  };
 
   const allEquityAccounts = equityAccounts
     .concat(fxAccounts)

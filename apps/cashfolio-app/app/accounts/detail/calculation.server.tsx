@@ -5,6 +5,7 @@ import { redis } from "~/redis.server";
 import { prisma } from "~/prisma.server";
 import type { Unit } from "~/fx";
 import { isEqual } from "date-fns";
+import { formatISODate } from "~/formatting";
 
 export async function getBalanceCached(
   accountId: string,
@@ -17,7 +18,6 @@ export async function getBalanceCached(
     : [];
 
   if (cacheEntry && isEqual(cacheEntry.timestamp, date)) {
-    console.log("Cache hit for account balance", accountId, date);
     return new Prisma.Decimal(cacheEntry.value);
   }
 
@@ -25,8 +25,8 @@ export async function getBalanceCached(
     where: {
       accountId,
       date: {
-        lte: date,
         gt: cacheEntry ? new Date(cacheEntry.timestamp) : undefined,
+        lte: date,
       },
     },
   });

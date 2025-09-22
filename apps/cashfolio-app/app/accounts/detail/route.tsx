@@ -13,8 +13,8 @@ import { Page } from "./page";
 import { getAccountGroups } from "~/account-groups/data";
 import { getAccounts } from "../data";
 import { getLedgerRows, getBalanceCached } from "./calculation.server";
-import { today } from "~/today";
-import { startOfMonth, subDays, subMonths } from "date-fns";
+import { startOfMonthUtc, today } from "~/dates";
+import { subDays, subMonths } from "date-fns";
 import { formatISODate } from "~/formatting";
 import type { Unit } from "~/fx";
 
@@ -27,7 +27,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
   if (!fromDate && !toDate) {
     return redirect(
-      `?from=${formatISODate(startOfMonth(subMonths(today, 1)))}`,
+      `?from=${formatISODate(startOfMonthUtc(subMonths(today, 1)))}`,
     );
   }
 

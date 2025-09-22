@@ -1,15 +1,16 @@
-import { useLoaderData } from "react-router";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { Page } from "~/balances/page";
 import { serialize } from "~/serialization";
 import { subDays } from "date-fns";
-import { today } from "~/today";
+import { today } from "~/dates";
 import { getBalanceSheet } from "./calculation.server";
 import { getAccounts } from "~/accounts/data";
 import { getAccountGroups } from "~/account-groups/data";
 
-export async function loader() {
+export async function loader({ request }: LoaderFunctionArgs) {
+  const dateString = new URL(request.url).searchParams.get("date");
   // TODO use today if FX rates are available for today
-  const date = subDays(today, 1);
+  const date = dateString ? new Date(dateString) : subDays(today, 1);
 
   const [accounts, accountGroups] = await Promise.all([
     getAccounts(),
@@ -17,6 +18,7 @@ export async function loader() {
   ]);
 
   return serialize({
+    date,
     balanceSheet: {
       ...(await getBalanceSheet(accounts, accountGroups, date)),
       // just for verification
@@ -41,6 +43,6 @@ export async function loader() {
 export type LoaderData = Awaited<ReturnType<typeof loader>>;
 
 export default function Route() {
-  const { balanceSheet } = useLoaderData<LoaderData>();
-  return <Page loaderData={{ balanceSheet }} />;
+  const loaderData = useLoaderData<LoaderData>();
+  return <Page loaderData={loaderData} />;
 }

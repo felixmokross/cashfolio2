@@ -90,7 +90,7 @@ program
         (
           await sourceDb
             .collection<SourceModel.AccountCategory>("accountCategories")
-            .find()
+            .find({ type: SourceModel.AccountCategoryType.ASSET })
             .toArray()
         ).map((sac) => [
           sac._id.toString(),
@@ -271,9 +271,11 @@ program
               : TargetModel.AccountType.LIABILITY,
           equityAccountSubtype: null,
           groupId:
-            accountGroupsBySourceAccountCategoryId[
-              sourceAccount.categoryId.toString()
-            ].id,
+            sourceAccount.categoryType === "LIABILITY"
+              ? liabilitiesGroup.id
+              : accountGroupsBySourceAccountCategoryId[
+                  sourceAccount.categoryId.toString()
+                ].id,
           unit:
             sourceAccount.unit.kind === SourceModel.AccountUnitKind.CURRENCY
               ? isCryptocurrency(sourceAccount.unit.currency)
