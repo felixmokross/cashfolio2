@@ -1,16 +1,28 @@
 import { subMonths } from "date-fns";
-import { useLoaderData } from "react-router";
+import { redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { Page } from "~/income/page";
 import { getIncomeStatement } from "~/income/calculation.server";
 import { serialize } from "~/serialization";
 import { endOfMonthUtc, startOfMonthUtc, today } from "~/dates";
 import { getAccountGroups } from "~/account-groups/data";
 import { prisma } from "~/prisma.server";
+import { formatISODate } from "~/formatting";
 
-export async function loader() {
-  // TODO use today if FX rates are available for today
-  const startDate = startOfMonthUtc(subMonths(today, 1));
-  const endDate = endOfMonthUtc(subMonths(today, 1));
+export async function loader({ request }: LoaderFunctionArgs) {
+  const from = new URL(request.url).searchParams.get("from");
+  const fromDate = from ? new Date(from) : undefined;
+
+  const to = new URL(request.url).searchParams.get("to");
+  const toDate = to ? new Date(to) : undefined;
+
+  if (!fromDate || !toDate) {
+    // TODO use today if FX rates are available for today
+    return redirect(
+      `?from=${formatISODate(startOfMonthUtc(subMonths(today, 1)))}&to=${formatISODate(
+        endOfMonthUtc(subMonths(today, 1)),
+      )}`,
+    );
+  }
 
   const [accounts, transactions, accountGroups] = await Promise.all([
     prisma.account.findMany({
@@ -18,7 +30,7 @@ export async function loader() {
       include: {
         bookings: {
           orderBy: { date: "asc" },
-          where: { date: { gte: startDate, lte: endDate } },
+          where: { date: { gte: fromDate, lte: toDate } },
         },
       },
     }),
@@ -27,15 +39,17 @@ export async function loader() {
         // this ensures a transaction is always considered in the period into which the last booking falls
         AND: [
           // at least one booking within the period
-          { bookings: { some: { date: { gte: startDate, lte: endDate } } } },
+          { bookings: { some: { date: { gte: fromDate, lte: toDate } } } },
 
           // no booking after the end of the period
-          { bookings: { none: { date: { gt: endDate } } } },
+          { bookings: { none: { date: { gt: toDate } } } },
+
+          // TODO how can we query for FX transactions only?
         ],
       },
       include: {
         bookings: {
-          where: { date: { gte: startDate, lte: endDate } },
+          where: { date: { gte: fromDate, lte: toDate } },
           orderBy: { date: "asc" },
         },
       },
@@ -44,16 +58,18 @@ export async function loader() {
   ]);
 
   return serialize({
+    fromDate,
+    toDate,
     rootNode: await getIncomeStatement(
       accounts,
       accountGroups,
       transactions,
-      startDate,
-      endDate,
+      fromDate,
+      toDate,
     ),
   });
 }
-export type LoaderData = Awaited<ReturnType<typeof loader>>;
+export type LoaderData = ReturnType<typeof useLoaderData<typeof loader>>;
 
 export default function Route() {
   const loaderData = useLoaderData<LoaderData>();

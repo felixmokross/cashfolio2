@@ -25,15 +25,15 @@ export async function getIncomeStatement(
   accounts: AccountWithBookings[],
   accountGroups: AccountGroup[],
   transactions: TransactionWithBookings[],
-  startDate: Date,
-  endDate: Date,
+  fromDate: Date,
+  toDate: Date,
 ) {
   const incomeData = await getIncomeData(
     accounts,
     accountGroups,
     transactions,
-    startDate,
-    endDate,
+    fromDate,
+    toDate,
   );
 
   const equityRootNode = getAccountsTree(
@@ -63,10 +63,10 @@ export async function getIncomeStatement(
 
 export async function generateFxBookingsForFxAccount(
   fxAccount: AccountWithBookings,
-  startDate: Date,
-  endDate: Date,
+  fromDate: Date,
+  toDate: Date,
 ): Promise<Booking[]> {
-  const initialDate = subDays(startDate, 1);
+  const initialDate = subDays(fromDate, 1);
 
   const fxAccountUnit =
     fxAccount.unit === Unit.CURRENCY
@@ -90,8 +90,10 @@ export async function generateFxBookingsForFxAccount(
     fxAccountUnit,
     initialDate,
   );
-  if (!balance) {
-    throw new Error("Initial balance not found");
+
+  if (balance.isZero() && fxAccount.bookings.length === 0) {
+    // no balance and no bookings within this period, nothing to do
+    return [];
   }
 
   let fxRate = await getExchangeRate(
@@ -103,7 +105,7 @@ export async function generateFxBookingsForFxAccount(
   const bookings = new Array<Booking>(fxAccount.bookings.length + 1);
 
   for (let i = 0; i < bookings.length; i++) {
-    const date = fxAccount.bookings[i]?.date ?? endDate;
+    const date = fxAccount.bookings[i]?.date ?? toDate;
     const newFxRate = await getExchangeRate(
       fxAccountUnit,
       { unit: Unit.CURRENCY, currency: refCurrency },
@@ -167,8 +169,8 @@ export async function getIncomeData(
   accounts: AccountWithBookings[],
   accountGroups: AccountGroup[],
   transactions: TransactionWithBookings[],
-  startDate: Date,
-  endDate: Date,
+  fromDate: Date,
+  toDate: Date,
 ): Promise<IncomeData> {
   const equityAccounts = accounts.filter((a) => a.type === AccountType.EQUITY);
 
@@ -192,7 +194,7 @@ export async function getIncomeData(
       id: `fx-holding-${a.id}`,
       type: AccountType.EQUITY,
       equityAccountSubtype: EquityAccountSubtype.GAIN_LOSS,
-      bookings: await generateFxBookingsForFxAccount(a, startDate, endDate),
+      bookings: await generateFxBookingsForFxAccount(a, fromDate, toDate),
       name: `FX Holding Gain/Loss for ${a.name}`,
       slug: `fx-holding-${a.slug}`,
       groupId: equityRootGroup.id,
