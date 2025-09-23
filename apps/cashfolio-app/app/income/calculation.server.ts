@@ -61,34 +61,6 @@ export async function getIncomeStatement(
   return withIncomeData(equityRootNode);
 }
 
-export function getBalanceByDate(
-  account: AccountWithBookings,
-): Map<string, Prisma.Decimal> {
-  // TODO this relies on the bookings being sorted
-  // decide if we want to enforce that here or somewhere else
-  const bookingsByDate = account.bookings.reduce((acc, booking) => {
-    const dateKey = formatISODate(booking.date);
-    const bookings = acc.get(dateKey);
-    if (bookings) {
-      bookings.push(booking);
-    } else {
-      acc.set(dateKey, [booking]);
-    }
-
-    return acc;
-  }, new Map<string, Booking[]>());
-
-  const balanceByDate = new Map<string, Prisma.Decimal>();
-  let balance = new Prisma.Decimal(0);
-
-  for (const [dateKey, bookings] of bookingsByDate) {
-    balance = balance.plus(sum(bookings.map((b) => b.value)));
-    balanceByDate.set(dateKey, balance);
-  }
-
-  return balanceByDate;
-}
-
 export async function generateFxBookingsForFxAccount(
   fxAccount: AccountWithBookings,
   startDate: Date,
@@ -128,16 +100,10 @@ export async function generateFxBookingsForFxAccount(
     initialDate,
   );
 
-  const numberOfDays = differenceInDays(endDate, startDate);
-  if (numberOfDays < 0) {
-    // TODO test this
-    return [];
-  }
+  const bookings = new Array<Booking>(fxAccount.bookings.length + 1);
 
-  const bookings = new Array<Booking>(numberOfDays);
-  let date = startDate;
-
-  for (let i = 0; i <= numberOfDays; i++, date = addDays(date, 1)) {
+  for (let i = 0; i < bookings.length; i++) {
+    const date = fxAccount.bookings[i]?.date ?? endDate;
     const newFxRate = await getExchangeRate(
       fxAccountUnit,
       { unit: Unit.CURRENCY, currency: refCurrency },
@@ -160,35 +126,8 @@ export async function generateFxBookingsForFxAccount(
     };
 
     // TODO test this better, if new balance is set before calculating the FX booking value, it's wrong
-    const prevBalance = balance;
     balance = await getBalanceCached(fxAccount.id, fxAccountUnit, date);
-
-    if (!prevBalance.equals(balance)) {
-      console.log(
-        `Balance changed for account ${fxAccount.name} on ${formatISODate(date)} from ${prevBalance.toString()} to ${balance?.toString()}`,
-      );
-    }
     fxRate = newFxRate;
-  }
-
-  if (fxAccount.unit === Unit.CURRENCY && fxAccount.currency === "EUR") {
-    const total = sum(bookings.map((b) => b.value));
-    if (!total.isZero()) {
-      console.log(
-        `Generated ${bookings.length} FX bookings for account ${fxAccount.name} with total: ${total.toString()}`,
-      );
-
-      console.log(
-        `initial balance was: ${(
-          await getBalanceCached(fxAccount.id, fxAccountUnit, initialDate)
-        )?.toString()}`,
-      );
-      console.log(
-        `final balance is: ${(
-          await getBalanceCached(fxAccount.id, fxAccountUnit, endDate)
-        )?.toString()}`,
-      );
-    }
   }
 
   return bookings;

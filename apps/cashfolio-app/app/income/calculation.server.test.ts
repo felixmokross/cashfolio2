@@ -39,40 +39,6 @@ beforeEach(() => {
   mockGetExchangeRate.mockReset();
 });
 
-describe("getBalanceByDate", () => {
-  test("returns the balance by date", () => {
-    const result = getBalanceByDate({
-      ...buildAccount({ id: "account_1" }),
-      bookings: [
-        buildBooking({
-          date: new Date("2024-12-31"),
-          value: new Prisma.Decimal(1000),
-        }),
-        buildBooking({
-          date: new Date("2025-01-02"),
-          value: new Prisma.Decimal(-200),
-        }),
-        buildBooking({
-          date: new Date("2025-01-02"),
-          value: new Prisma.Decimal(50),
-        }),
-        buildBooking({
-          date: new Date("2025-01-03"),
-          value: new Prisma.Decimal(100),
-        }),
-      ],
-    });
-
-    expect(result).toEqual(
-      new Map<string, Prisma.Decimal>([
-        ["2024-12-31", new Prisma.Decimal(1000)],
-        ["2025-01-02", new Prisma.Decimal(850)],
-        ["2025-01-03", new Prisma.Decimal(950)],
-      ]),
-    );
-  });
-});
-
 describe("generateFxBookingsForFxAccount", () => {
   test("returns FX bookings for an FX account", async () => {
     const fxRates = {
