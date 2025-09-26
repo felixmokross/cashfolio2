@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
-  completeFxTransaction,
+  completeTransaction,
   generateFxBookingsForFxAccount,
   getBalanceByDate,
   getIncomeData,
@@ -146,7 +146,7 @@ describe("completeFxTransaction", () => {
       getFxRate(date, from, to),
     );
 
-    const result = await completeFxTransaction({
+    const result = await completeTransaction({
       id: "transaction_1",
       description: "FX transaction",
       bookings: [

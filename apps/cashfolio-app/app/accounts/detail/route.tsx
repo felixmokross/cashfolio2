@@ -5,15 +5,19 @@ import {
   type Account,
 } from "@prisma/client";
 import { redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { prisma } from "~/prisma.server";
 import { getAccountGroupPath } from "~/utils";
 import { serialize } from "~/serialization";
 import { refCurrency } from "~/config";
 import { Page } from "./page";
 import { getAccountGroups } from "~/account-groups/data";
 import { getAccounts } from "../data";
-import { getLedgerRows, getBalanceCached } from "./calculation.server";
-import { startOfMonthUtc, today } from "~/dates";
+import {
+  getLedgerRows,
+  getBalanceCached,
+  getAccount,
+  getBookings,
+} from "./calculation.server";
+import { endOfMonthUtc, startOfMonthUtc, today } from "~/dates";
 import { subDays, subMonths } from "date-fns";
 import { formatISODate } from "~/formatting";
 import type { Unit } from "~/fx";
@@ -25,33 +29,20 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   const to = new URL(request.url).searchParams.get("to");
   const toDate = to ? new Date(to) : undefined;
 
-  if (!fromDate && !toDate) {
+  if (!fromDate || !toDate) {
     return redirect(
-      `?from=${formatISODate(startOfMonthUtc(subMonths(today, 1)))}`,
+      `?from=${formatISODate(startOfMonthUtc(subMonths(today, 1)))}&to=${formatISODate(endOfMonthUtc(subMonths(today, 1)))}`,
     );
+  }
+
+  if (!params.accountId) {
+    throw new Response("Not Found", { status: 400 });
   }
 
   const [account, bookingsForPeriod, allAccounts, accountGroups] =
     await Promise.all([
-      prisma.account.findUnique({
-        where: { id: params.accountId },
-        include: { group: { include: {} } },
-      }),
-      prisma.booking.findMany({
-        where: {
-          accountId: params.accountId,
-          AND: [
-            ...(fromDate ? [{ date: { gte: fromDate } }] : []),
-            ...(toDate ? [{ date: { lte: toDate } }] : []),
-          ],
-        },
-        include: {
-          transaction: {
-            include: { bookings: true },
-          },
-        },
-        orderBy: [{ date: "asc" }, { transaction: { createdAt: "asc" } }],
-      }),
+      getAccount(params.accountId),
+      getBookings(params.accountId, fromDate, toDate),
       getAccounts(),
       getAccountGroups(),
     ]);

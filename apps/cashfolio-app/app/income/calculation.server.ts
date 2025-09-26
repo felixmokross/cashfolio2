@@ -20,6 +20,7 @@ import {
   type AccountsNode,
 } from "~/account-groups/accounts-tree";
 import { getBalanceCached } from "~/accounts/detail/calculation.server";
+import type { BookingWithTransaction } from "~/accounts/detail/types";
 
 export async function getIncomeStatement(
   accounts: AccountWithBookings[],
@@ -37,9 +38,7 @@ export async function getIncomeStatement(
   );
 
   const equityRootNode = getAccountsTree(
-    (accounts as Account[])
-      .concat(incomeData.virtualAccounts)
-      .filter((a) => !incomeData.valueByAccountId.get(a.id)?.isZero()),
+    (accounts as Account[]).concat(incomeData.virtualAccounts),
     accountGroups.concat(incomeData.virtualAccountGroups),
   ).EQUITY;
   if (!equityRootNode) {
@@ -48,7 +47,9 @@ export async function getIncomeStatement(
 
   function withIncomeData(node: AccountsNode): IncomeAccountsNode {
     if (node.nodeType === "accountGroup") {
-      const children = node.children.map(withIncomeData);
+      const children = node.children
+        .map(withIncomeData)
+        .filter((child) => !child.value.isZero());
       return { ...node, children, value: sum(children.map((c) => c.value)) };
     }
 
@@ -135,10 +136,10 @@ export async function generateFxBookingsForFxAccount(
   return bookings;
 }
 
-export async function completeFxTransaction(
+export async function completeTransaction(
   transaction: TransactionWithBookings,
 ): Promise<Prisma.Decimal> {
-  const values = new Array(transaction.bookings.length);
+  const values = new Array<Prisma.Decimal>(transaction.bookings.length);
   for (let i = 0; i < transaction.bookings.length; i++) {
     const b = transaction.bookings[i];
     values[i] = await convert(
@@ -165,6 +166,56 @@ export async function completeFxTransaction(
   return bookingsSum.negated();
 }
 
+export const TRANSACTION_GAIN_LOSS_ACCOUNT_ID = "transaction-gain-loss";
+
+export function generateTransactionGainLossAccount(
+  equityRootGroup: AccountGroup,
+): Account {
+  return {
+    id: TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
+    name: "Transaction Gain/Loss",
+    slug: "transaction-gain-loss",
+    groupId: equityRootGroup.id,
+    type: AccountType.EQUITY,
+    equityAccountSubtype: EquityAccountSubtype.GAIN_LOSS,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    unit: null,
+    currency: null,
+    cryptocurrency: null,
+    symbol: null,
+    tradeCurrency: null,
+  };
+}
+
+export async function generateTransactionGainLossBookings(
+  transactions: TransactionWithBookings[],
+) {
+  const bookings = new Array<BookingWithTransaction>(transactions.length);
+  for (let i = 0; i < transactions.length; i++) {
+    const t = transactions[i];
+    bookings[i] = {
+      id: `transaction-gain-loss-${t.id}`,
+      date: max(t.bookings.map((b) => b.date)),
+      unit: Unit.CURRENCY,
+      currency: refCurrency,
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
+      value: await completeTransaction(t),
+      accountId: TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
+      description: `Transaction Gain/Loss for transaction ${t.description}`,
+      transactionId: t.id,
+      transaction: t,
+    };
+  }
+  return (
+    bookings
+      // filter this out earlier to improve performance
+      .filter((b) => !b.value.isZero())
+  );
+}
+
 export async function getIncomeData(
   accounts: AccountWithBookings[],
   accountGroups: AccountGroup[],
@@ -178,6 +229,46 @@ export async function getIncomeData(
     (g) => g.type === AccountType.EQUITY && !g.parentGroupId,
   )!;
 
+  const investmentGainLossGroup: AccountGroup = {
+    id: "investment-holding-gain-loss",
+    name: "Investment Holding Gain/Loss",
+    slug: "investment-holding-gain-loss",
+    type: AccountType.EQUITY,
+    parentGroupId: equityRootGroup.id,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const fxHoldingGainLossGroup: AccountGroup = {
+    id: "fx-holding-gain-loss",
+    name: "FX Holding Gain/Loss",
+    slug: "fx-holding-gain-loss",
+    type: AccountType.EQUITY,
+    parentGroupId: investmentGainLossGroup.id,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const cryptoHoldingGainLossGroup: AccountGroup = {
+    id: "crypto-holding-gain-loss",
+    name: "Crypto Holding Gain/Loss",
+    slug: "crypto-holding-gain-loss",
+    type: AccountType.EQUITY,
+    parentGroupId: investmentGainLossGroup.id,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const securityHoldingGainLossGroup: AccountGroup = {
+    id: "security-holding-gain-loss",
+    name: "Security Holding Gain/Loss",
+    slug: "security-holding-gain-loss",
+    type: AccountType.EQUITY,
+    parentGroupId: investmentGainLossGroup.id,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
   const nonRefCurrencyAccounts = accounts.filter(
     (a) =>
       ([AccountType.ASSET, AccountType.LIABILITY] as AccountType[]).includes(
@@ -185,11 +276,50 @@ export async function getIncomeData(
       ) &&
       (a.unit !== Unit.CURRENCY || a.currency !== refCurrency),
   );
+
   const fxAccounts = new Array<AccountWithBookings>(
     nonRefCurrencyAccounts.length,
   );
+
+  const groupsByUnit: Record<string, AccountGroup> = {};
+
   for (let i = 0; i < nonRefCurrencyAccounts.length; i++) {
     const a = nonRefCurrencyAccounts[i];
+
+    const unitKey = `${a.unit}-${a.currency || a.cryptocurrency || a.symbol}`;
+    if (!groupsByUnit[unitKey]) {
+      groupsByUnit[unitKey] =
+        a.unit === Unit.CURRENCY
+          ? {
+              id: `fx-${a.currency}-accounts`,
+              name: `${a.currency}`,
+              slug: `fx-${a.currency}`,
+              type: AccountType.EQUITY,
+              parentGroupId: fxHoldingGainLossGroup.id,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            }
+          : a.unit === Unit.CRYPTOCURRENCY
+            ? {
+                id: `crypto-${a.cryptocurrency}-accounts`,
+                name: `${a.cryptocurrency}`,
+                slug: `crypto-${a.cryptocurrency}`,
+                type: AccountType.EQUITY,
+                parentGroupId: cryptoHoldingGainLossGroup.id,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              }
+            : {
+                id: `security-${a.symbol}-accounts`,
+                name: `${a.symbol}`,
+                slug: `security-${a.symbol}`,
+                type: AccountType.EQUITY,
+                parentGroupId: securityHoldingGainLossGroup.id,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              };
+    }
+
     fxAccounts[i] = {
       id: `fx-holding-${a.id}`,
       type: AccountType.EQUITY,
@@ -197,7 +327,7 @@ export async function getIncomeData(
       bookings: await generateFxBookingsForFxAccount(a, fromDate, toDate),
       name: `FX Holding Gain/Loss for ${a.name}`,
       slug: `fx-holding-${a.slug}`,
-      groupId: equityRootGroup.id,
+      groupId: groupsByUnit[unitKey].id,
       unit: null,
       currency: null,
       cryptocurrency: null,
@@ -208,44 +338,14 @@ export async function getIncomeData(
     };
   }
 
-  const bookings = new Array<Booking>(transactions.length);
-  for (let i = 0; i < transactions.length; i++) {
-    const t = transactions[i];
-    bookings[i] = {
-      id: `fx-conversion-${t.id}`,
-      date: max(t.bookings.map((b) => b.date)),
-      unit: Unit.CURRENCY,
-      currency: refCurrency,
-      cryptocurrency: null,
-      symbol: null,
-      tradeCurrency: null,
-      value: await completeFxTransaction(t),
-      accountId: "fx-conversion",
-      description: `FX Conversion P/L for transaction ${t.description}`,
-      transactionId: t.id,
-    };
-  }
-
-  const fxTransferAccount: AccountWithBookings = {
-    id: "fx-conversion",
-    name: "FX Conversion Gain/Loss",
-    slug: "fx-conversion",
-    groupId: equityRootGroup.id,
-    type: AccountType.EQUITY,
-    equityAccountSubtype: EquityAccountSubtype.GAIN_LOSS,
-    bookings,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    unit: null,
-    currency: null,
-    cryptocurrency: null,
-    symbol: null,
-    tradeCurrency: null,
+  const transactionGainLossAccount: AccountWithBookings = {
+    ...generateTransactionGainLossAccount(equityRootGroup),
+    bookings: await generateTransactionGainLossBookings(transactions),
   };
 
   const allEquityAccounts = equityAccounts
     .concat(fxAccounts)
-    .concat(fxTransferAccount);
+    .concat(transactionGainLossAccount);
   const valueByAccountIdEntries = new Array<[string, Prisma.Decimal]>(
     allEquityAccounts.length,
   );
@@ -279,8 +379,14 @@ export async function getIncomeData(
   }
 
   return {
-    virtualAccounts: fxAccounts.concat(fxTransferAccount),
-    virtualAccountGroups: [],
+    virtualAccounts: fxAccounts.concat(transactionGainLossAccount),
+    virtualAccountGroups: [
+      investmentGainLossGroup,
+      fxHoldingGainLossGroup,
+      cryptoHoldingGainLossGroup,
+      securityHoldingGainLossGroup,
+      ...Object.values(groupsByUnit),
+    ],
     valueByAccountId: new Map<string, Prisma.Decimal>(valueByAccountIdEntries),
   };
 }
