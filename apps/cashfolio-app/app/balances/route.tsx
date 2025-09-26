@@ -10,7 +10,7 @@ import { getAccountGroups } from "~/account-groups/data";
 export async function loader({ request }: LoaderFunctionArgs) {
   const dateString = new URL(request.url).searchParams.get("date");
   // TODO use today if FX rates are available for today
-  const date = dateString ? new Date(dateString) : subDays(today, 1);
+  const date = dateString ? new Date(dateString) : subDays(today(), 1);
 
   const [accounts, accountGroups] = await Promise.all([
     getAccounts(),

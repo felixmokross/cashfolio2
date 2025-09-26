@@ -30,8 +30,9 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   const toDate = to ? new Date(to) : undefined;
 
   if (!fromDate || !toDate) {
+    const lastMonth = subMonths(today(), 1);
     return redirect(
-      `?from=${formatISODate(startOfMonthUtc(subMonths(today, 1)))}&to=${formatISODate(endOfMonthUtc(subMonths(today, 1)))}`,
+      `?from=${formatISODate(startOfMonthUtc(lastMonth))}&to=${formatISODate(endOfMonthUtc(lastMonth))}`,
     );
   }
 

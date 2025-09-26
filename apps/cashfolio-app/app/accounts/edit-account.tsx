@@ -1,5 +1,5 @@
 import { AccountType, type Account, type Unit } from "@prisma/client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DialogActions,
   DialogBody,
@@ -52,12 +52,12 @@ export function EditAccount({
   account?: Serialize<Account>;
   accountGroups: Serialize<AccountGroupOption>[];
 }) {
-  const [selectedUnit, setSelectedUnit] = useState<Unit>(
-    account?.unit ?? "CURRENCY",
-  );
-  const [selectedType, setSelectedType] = useState<AccountType>(
-    account?.type ?? "ASSET",
-  );
+  const [selectedUnit, setSelectedUnit] = useState<Unit>("CURRENCY");
+  const [selectedType, setSelectedType] = useState<AccountType>("ASSET");
+  useEffect(() => {
+    setSelectedUnit(account?.unit ?? "CURRENCY");
+    setSelectedType(account?.type ?? "ASSET");
+  }, [account?.id]);
   return (
     <FormDialog
       open={isOpen}
@@ -177,10 +177,19 @@ export function EditAccount({
                 </Field>
               )}
               {selectedUnit === "SECURITY" && (
-                <Field>
-                  <Label>Symbol</Label>
-                  <Input name="symbol" defaultValue={account?.symbol || ""} />
-                </Field>
+                <FieldGroup>
+                  <Field>
+                    <Label>Symbol</Label>
+                    <Input name="symbol" defaultValue={account?.symbol || ""} />
+                  </Field>
+                  <Field>
+                    <Label>Trade Ccy.</Label>
+                    <CurrencyCombobox
+                      name="tradeCurrency"
+                      defaultValue={account?.tradeCurrency || ""}
+                    />
+                  </Field>
+                </FieldGroup>
               )}
             </div>
           </FieldGroup>

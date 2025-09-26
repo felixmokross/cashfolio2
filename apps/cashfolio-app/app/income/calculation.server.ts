@@ -7,7 +7,7 @@ import {
   type AccountGroup,
   type Booking,
 } from "@prisma/client";
-import { addDays, differenceInDays, formatISO, max, subDays } from "date-fns";
+import { formatISO, max, subDays } from "date-fns";
 import type { AccountWithBookings } from "~/accounts/types";
 import { refCurrency } from "~/config";
 import { formatISODate } from "~/formatting";
@@ -21,18 +21,17 @@ import {
 } from "~/account-groups/accounts-tree";
 import { getBalanceCached } from "~/accounts/detail/calculation.server";
 import type { BookingWithTransaction } from "~/accounts/detail/types";
+import { prisma } from "~/prisma.server";
 
 export async function getIncomeStatement(
   accounts: AccountWithBookings[],
   accountGroups: AccountGroup[],
-  transactions: TransactionWithBookings[],
   fromDate: Date,
   toDate: Date,
 ) {
   const incomeData = await getIncomeData(
     accounts,
     accountGroups,
-    transactions,
     fromDate,
     toDate,
   );
@@ -189,8 +188,31 @@ export function generateTransactionGainLossAccount(
 }
 
 export async function generateTransactionGainLossBookings(
-  transactions: TransactionWithBookings[],
+  fromDate: Date,
+  toDate: Date,
 ) {
+  // TODO order these transcations by date to get a correct ledger
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      // this ensures a transaction is always considered in the period into which the last booking falls
+      AND: [
+        // at least one booking within the period
+        { bookings: { some: { date: { gte: fromDate, lte: toDate } } } },
+
+        // no booking after the end of the period
+        { bookings: { none: { date: { gt: toDate } } } },
+
+        // TODO how can we query for FX transactions only?
+      ],
+    },
+    include: {
+      bookings: {
+        where: { date: { gte: fromDate, lte: toDate } },
+        orderBy: { date: "asc" },
+      },
+    },
+  });
+
   const bookings = new Array<BookingWithTransaction>(transactions.length);
   for (let i = 0; i < transactions.length; i++) {
     const t = transactions[i];
@@ -219,7 +241,6 @@ export async function generateTransactionGainLossBookings(
 export async function getIncomeData(
   accounts: AccountWithBookings[],
   accountGroups: AccountGroup[],
-  transactions: TransactionWithBookings[],
   fromDate: Date,
   toDate: Date,
 ): Promise<IncomeData> {
@@ -340,7 +361,7 @@ export async function getIncomeData(
 
   const transactionGainLossAccount: AccountWithBookings = {
     ...generateTransactionGainLossAccount(equityRootGroup),
-    bookings: await generateTransactionGainLossBookings(transactions),
+    bookings: await generateTransactionGainLossBookings(fromDate, toDate),
   };
 
   const allEquityAccounts = equityAccounts

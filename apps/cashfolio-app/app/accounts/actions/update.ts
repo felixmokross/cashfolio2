@@ -23,6 +23,8 @@ export async function action({ request }: { request: Request }) {
       cryptocurrency:
         values.unit === Unit.CRYPTOCURRENCY ? values.cryptocurrency : null,
       symbol: values.unit === Unit.SECURITY ? values.symbol : null,
+      tradeCurrency:
+        values.unit === Unit.SECURITY ? values.tradeCurrency : null,
     },
   });
 

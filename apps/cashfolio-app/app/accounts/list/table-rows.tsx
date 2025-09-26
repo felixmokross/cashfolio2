@@ -24,15 +24,20 @@ export function AccountsTableRows({
     <AccountsNodeChildrenTableRows node={node} viewPrefix="accounts-list">
       {(node) => (
         <>
-          <TableCell className="w-32">
+          <TableCell className="w-40 space-x-2">
             {node.nodeType === "account" && (
-              <Badge>
-                {node.unit === "CURRENCY"
-                  ? node.currency
-                  : node.unit === "CRYPTOCURRENCY"
-                    ? node.cryptocurrency
-                    : node.symbol}
-              </Badge>
+              <>
+                {node.unit === "CURRENCY" ? (
+                  <Badge>{node.currency}</Badge>
+                ) : node.unit === "CRYPTOCURRENCY" ? (
+                  <Badge>{node.cryptocurrency}</Badge>
+                ) : (
+                  <>
+                    <Badge>{node.symbol}</Badge>
+                    <Badge>{node.tradeCurrency}</Badge>
+                  </>
+                )}
+              </>
             )}
           </TableCell>
           <TableCell>

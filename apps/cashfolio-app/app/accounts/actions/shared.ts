@@ -14,6 +14,7 @@ export async function getFormValues(request: Request) {
     currency: form.get("currency")?.toString(),
     cryptocurrency: form.get("cryptocurrency")?.toString(),
     symbol: form.get("symbol")?.toString(),
+    tradeCurrency: form.get("tradeCurrency")?.toString(),
   } as FormValues;
 }
 
@@ -65,8 +66,16 @@ export function validate(values: FormValues) {
       errors.cryptocurrency = "Invalid cryptocurrency";
     }
   }
-  if (values.unit === Unit.SECURITY && !values.symbol) {
-    errors.symbol = "Symbol is required";
+  if (values.unit === Unit.SECURITY) {
+    if (!values.symbol) {
+      errors.symbol = "Symbol is required";
+    }
+
+    if (!values.tradeCurrency) {
+      errors.tradeCurrency = "Trade currency is required";
+    } else if (!Object.keys(currencies).includes(values.tradeCurrency)) {
+      errors.tradeCurrency = "Invalid trade currency";
+    }
   }
 
   return errors;
@@ -86,6 +95,7 @@ export type FormValues = {
   currency?: string;
   cryptocurrency?: string;
   symbol?: string;
+  tradeCurrency?: string;
 };
 
 export type FormErrors = { form?: string } & Partial<

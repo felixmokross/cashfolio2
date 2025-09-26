@@ -34,29 +34,7 @@ export async function getBookings(
   toDate: Date,
 ) {
   if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
-    // TODO this is duplicated with getIncomeStatement
-    // TODO order these transcations by date to get a correct ledger
-    const transactions = await prisma.transaction.findMany({
-      where: {
-        // this ensures a transaction is always considered in the period into which the last booking falls
-        AND: [
-          // at least one booking within the period
-          { bookings: { some: { date: { gte: fromDate, lte: toDate } } } },
-
-          // no booking after the end of the period
-          { bookings: { none: { date: { gt: toDate } } } },
-
-          // TODO how can we query for FX transactions only?
-        ],
-      },
-      include: {
-        bookings: {
-          where: { date: { gte: fromDate, lte: toDate } },
-          orderBy: { date: "asc" },
-        },
-      },
-    });
-    return await generateTransactionGainLossBookings(transactions);
+    return await generateTransactionGainLossBookings(fromDate, toDate);
   }
 
   return await prisma.booking.findMany({

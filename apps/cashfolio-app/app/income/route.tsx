@@ -17,40 +17,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   if (!fromDate || !toDate) {
     // TODO use today if FX rates are available for today
+    const lastMonth = subMonths(today(), 1);
     return redirect(
-      `?from=${formatISODate(startOfMonthUtc(subMonths(today, 1)))}&to=${formatISODate(
-        endOfMonthUtc(subMonths(today, 1)),
+      `?from=${formatISODate(startOfMonthUtc(lastMonth))}&to=${formatISODate(
+        endOfMonthUtc(lastMonth),
       )}`,
     );
   }
 
-  const [accounts, transactions, accountGroups] = await Promise.all([
+  const [accounts, accountGroups] = await Promise.all([
     prisma.account.findMany({
       orderBy: { name: "asc" },
       include: {
         bookings: {
           orderBy: { date: "asc" },
           where: { date: { gte: fromDate, lte: toDate } },
-        },
-      },
-    }),
-    prisma.transaction.findMany({
-      where: {
-        // this ensures a transaction is always considered in the period into which the last booking falls
-        AND: [
-          // at least one booking within the period
-          { bookings: { some: { date: { gte: fromDate, lte: toDate } } } },
-
-          // no booking after the end of the period
-          { bookings: { none: { date: { gt: toDate } } } },
-
-          // TODO how can we query for FX transactions only?
-        ],
-      },
-      include: {
-        bookings: {
-          where: { date: { gte: fromDate, lte: toDate } },
-          orderBy: { date: "asc" },
         },
       },
     }),
@@ -63,7 +44,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     rootNode: await getIncomeStatement(
       accounts,
       accountGroups,
-      transactions,
       fromDate,
       toDate,
     ),
