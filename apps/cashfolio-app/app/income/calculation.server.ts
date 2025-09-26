@@ -7,7 +7,7 @@ import {
   type AccountGroup,
   type Booking,
 } from "@prisma/client";
-import { formatISO, max, subDays } from "date-fns";
+import { differenceInDays, formatISO, max, subDays } from "date-fns";
 import type { AccountWithBookings } from "~/accounts/types";
 import { refCurrency } from "~/config";
 import { formatISODate } from "~/formatting";
@@ -191,7 +191,6 @@ export async function generateTransactionGainLossBookings(
   fromDate: Date,
   toDate: Date,
 ) {
-  // TODO order these transcations by date to get a correct ledger
   const transactions = await prisma.transaction.findMany({
     where: {
       // this ensures a transaction is always considered in the period into which the last booking falls
@@ -235,6 +234,8 @@ export async function generateTransactionGainLossBookings(
     bookings
       // filter this out earlier to improve performance
       .filter((b) => !b.value.isZero())
+      .toSorted((a, b) => differenceInDays(b.date, a.date))
+      .toReversed()
   );
 }
 
