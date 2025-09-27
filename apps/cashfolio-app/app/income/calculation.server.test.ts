@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
   completeTransaction,
-  generateFxBookingsForFxAccount,
+  generateHoldingBookingsForAccount,
   getBalanceByDate,
   getIncomeData,
 } from "./calculation.server";
@@ -67,7 +67,7 @@ describe("generateFxBookingsForFxAccount", () => {
       getFxRate(date, from, to),
     );
 
-    const result = await generateFxBookingsForFxAccount(
+    const result = await generateHoldingBookingsForAccount(
       {
         ...buildAccount({ id: "fx-account", currency: "EUR" }),
         bookings: [
@@ -106,7 +106,7 @@ describe("generateFxBookingsForFxAccount", () => {
   });
 
   test("returns an empty array if there is no booking", async () => {
-    const result = await generateFxBookingsForFxAccount(
+    const result = await generateHoldingBookingsForAccount(
       {
         ...buildAccount({ id: "fx-account", currency: "EUR" }),
         bookings: [],

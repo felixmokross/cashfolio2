@@ -6,6 +6,8 @@ import { prisma } from "~/prisma.server";
 import type { Unit } from "~/fx";
 import { isEqual } from "date-fns";
 import {
+  generateHoldingBookingsForAccount,
+  generateHoldingGainLossAccount,
   generateTransactionGainLossAccount,
   generateTransactionGainLossBookings,
   TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
@@ -22,6 +24,20 @@ export async function getAccount(accountId: string) {
     return generateTransactionGainLossAccount(equityRootGroup);
   }
 
+  if (accountId.startsWith("holding-gain-loss-")) {
+    const baseAccountId = accountId.substring("holding-gain-loss-".length);
+    const baseAccount = await prisma.account.findUnique({
+      where: { id: baseAccountId },
+    });
+    if (!baseAccount) {
+      throw new Error(`Base account ${baseAccountId} not found`);
+    }
+
+    const holdingGainLossAccount = generateHoldingGainLossAccount(baseAccount);
+
+    return holdingGainLossAccount;
+  }
+
   return await prisma.account.findUnique({
     where: { id: accountId },
     include: { group: true },
@@ -35,6 +51,24 @@ export async function getBookings(
 ) {
   if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
     return await generateTransactionGainLossBookings(fromDate, toDate);
+  }
+
+  if (accountId.startsWith("holding-gain-loss-")) {
+    const baseAccountId = accountId.substring("holding-gain-loss-".length);
+    const baseAccount = await prisma.account.findUnique({
+      where: { id: baseAccountId },
+      include: {
+        bookings: { where: { date: { gte: fromDate, lte: toDate } } },
+      },
+    });
+    if (!baseAccount) {
+      throw new Error(`Base account ${baseAccountId} not found`);
+    }
+    return await generateHoldingBookingsForAccount(
+      baseAccount,
+      fromDate,
+      toDate,
+    );
   }
 
   return await prisma.booking.findMany({

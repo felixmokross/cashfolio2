@@ -61,11 +61,11 @@ export async function getIncomeStatement(
   return withIncomeData(equityRootNode);
 }
 
-export async function generateFxBookingsForFxAccount(
+export async function generateHoldingBookingsForAccount(
   fxAccount: AccountWithBookings,
   fromDate: Date,
   toDate: Date,
-): Promise<Booking[]> {
+): Promise<BookingWithTransaction[]> {
   const initialDate = subDays(fromDate, 1);
 
   const fxAccountUnit =
@@ -102,7 +102,9 @@ export async function generateFxBookingsForFxAccount(
     initialDate,
   );
 
-  const bookings = new Array<Booking>(fxAccount.bookings.length + 1);
+  const bookings = new Array<BookingWithTransaction>(
+    fxAccount.bookings.length + 1,
+  );
 
   for (let i = 0; i < bookings.length; i++) {
     const date = fxAccount.bookings[i]?.date ?? toDate;
@@ -123,8 +125,15 @@ export async function generateFxBookingsForFxAccount(
       cryptocurrency: null,
       symbol: null,
       tradeCurrency: null,
-      description: `FX P/L as of ${formatISO(date, { representation: "date" })}`,
+      description: "",
       transactionId: "transaction-fx-profit-loss",
+      transaction: {
+        id: "transaction-fx-profit-loss",
+        description: `Holding G/L as of ${formatISO(date, { representation: "date" })}`,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        bookings: [],
+      },
     };
 
     // TODO test this better, if new balance is set before calculating the FX booking value, it's wrong
@@ -239,6 +248,24 @@ export async function generateTransactionGainLossBookings(
   );
 }
 
+export function generateHoldingGainLossAccount(account: Account): Account {
+  return {
+    id: `holding-gain-loss-${account.id}`,
+    type: AccountType.EQUITY,
+    equityAccountSubtype: EquityAccountSubtype.GAIN_LOSS,
+    name: `${account.unit === Unit.CURRENCY ? "FX" : account.unit === Unit.CRYPTOCURRENCY ? "Crypto" : "Security"} Holding Gain/Loss for ${account.name}`,
+    slug: `holding-gain-loss-${account.slug}`,
+    groupId: `${account.unit === Unit.CURRENCY ? "fx" : account.unit === Unit.CRYPTOCURRENCY ? "crypto" : "security"}-${account.currency || account.cryptocurrency || account.symbol}-accounts`,
+    unit: null,
+    currency: null,
+    cryptocurrency: null,
+    symbol: null,
+    tradeCurrency: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
+
 export async function getIncomeData(
   accounts: AccountWithBookings[],
   accountGroups: AccountGroup[],
@@ -299,7 +326,7 @@ export async function getIncomeData(
       (a.unit !== Unit.CURRENCY || a.currency !== refCurrency),
   );
 
-  const fxAccounts = new Array<AccountWithBookings>(
+  const holdingGainLossAccounts = new Array<AccountWithBookings>(
     nonRefCurrencyAccounts.length,
   );
 
@@ -342,21 +369,9 @@ export async function getIncomeData(
               };
     }
 
-    fxAccounts[i] = {
-      id: `fx-holding-${a.id}`,
-      type: AccountType.EQUITY,
-      equityAccountSubtype: EquityAccountSubtype.GAIN_LOSS,
-      bookings: await generateFxBookingsForFxAccount(a, fromDate, toDate),
-      name: `FX Holding Gain/Loss for ${a.name}`,
-      slug: `fx-holding-${a.slug}`,
-      groupId: groupsByUnit[unitKey].id,
-      unit: null,
-      currency: null,
-      cryptocurrency: null,
-      symbol: null,
-      tradeCurrency: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    holdingGainLossAccounts[i] = {
+      ...generateHoldingGainLossAccount(a),
+      bookings: await generateHoldingBookingsForAccount(a, fromDate, toDate),
     };
   }
 
@@ -366,7 +381,7 @@ export async function getIncomeData(
   };
 
   const allEquityAccounts = equityAccounts
-    .concat(fxAccounts)
+    .concat(holdingGainLossAccounts)
     .concat(transactionGainLossAccount);
   const valueByAccountIdEntries = new Array<[string, Prisma.Decimal]>(
     allEquityAccounts.length,
@@ -401,7 +416,7 @@ export async function getIncomeData(
   }
 
   return {
-    virtualAccounts: fxAccounts.concat(transactionGainLossAccount),
+    virtualAccounts: holdingGainLossAccounts.concat(transactionGainLossAccount),
     virtualAccountGroups: [
       investmentGainLossGroup,
       fxHoldingGainLossGroup,
