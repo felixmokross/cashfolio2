@@ -2,7 +2,6 @@ import { PencilSquareIcon, TrashIcon } from "~/platform/icons/standard";
 import type { Account, AccountGroup } from "@prisma/client";
 import type { AccountsNode } from "~/account-groups/accounts-tree";
 import { AccountsNodeChildrenTableRows } from "~/account-groups/table-rows";
-import { Button } from "~/platform/button";
 import { TableCell } from "~/platform/table";
 import type { Serialize } from "~/serialization";
 import { Badge } from "~/platform/badge";

@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/platform/table";
-import { formatDate, formatISODate, formatMoney } from "~/formatting";
+import { formatDate, formatMoney } from "~/formatting";
 import { Fragment } from "react/jsx-runtime";
 import { TextLink } from "~/platform/text";
 import {
@@ -31,24 +31,12 @@ import {
   PencilSquareIcon,
   TrashIcon,
 } from "~/platform/icons/standard";
-import { Field, Label } from "~/platform/forms/fieldset";
-import { DateInput } from "~/platform/forms/date-input";
-import { Form } from "react-router";
 import { Badge } from "~/platform/badge";
 import { Unit } from "@prisma/client";
 import { isSameUnit } from "~/fx";
-import { useId } from "react";
 
 export function Page({
-  loaderData: {
-    fromDate,
-    toDate,
-    account,
-    allAccounts,
-    ledgerUnit,
-    openingBalance,
-    ledgerRows,
-  },
+  loaderData: { account, allAccounts, ledgerUnit, openingBalance, ledgerRows },
 }: {
   loaderData: LoaderData;
 }) {
@@ -57,9 +45,6 @@ export function Page({
 
   const { deleteTransactionProps, onDeleteTransaction } =
     useDeleteTransaction();
-
-  const fromDateLabelId = `from-date-label-${useId()}`;
-  const toDateLabelId = `to-date-label-${useId()}`;
 
   return (
     <>
@@ -88,28 +73,6 @@ export function Page({
         lockedAccountId={account.id}
       />
       <DeleteTransaction {...deleteTransactionProps} />
-
-      <Form className="flex gap-4 mt-8 items-end" replace={true}>
-        <Field>
-          <Label id={fromDateLabelId}>From</Label>
-          <DateInput
-            name="from"
-            defaultValue={
-              fromDate ? formatISODate(new Date(fromDate)) : undefined
-            }
-            aria-labelledby={fromDateLabelId}
-          />
-        </Field>
-        <Field>
-          <Label id={toDateLabelId}>To</Label>
-          <DateInput
-            name="to"
-            defaultValue={toDate ? formatISODate(new Date(toDate)) : undefined}
-            aria-labelledby={toDateLabelId}
-          />
-        </Field>
-        <Button type="submit">Submit</Button>
-      </Form>
 
       <Table
         fixedLayout

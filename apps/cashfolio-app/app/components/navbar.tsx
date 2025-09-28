@@ -31,8 +31,18 @@ import {
   ScaleIcon,
   WalletIcon,
 } from "~/platform/icons/navigation";
+import { useFetcher, useRouteLoaderData } from "react-router";
+import { Field, FieldGroup, Label } from "~/platform/forms/fieldset";
+import { DateInput } from "~/platform/forms/date-input";
+import { Button } from "~/platform/button";
+import { useId } from "react";
+import { type loader as rootLoader } from "~/root";
 
 export function Navbar() {
+  const fromDateLabelId = `from-date-label-${useId()}`;
+  const toDateLabelId = `to-date-label-${useId()}`;
+  const fetcher = useFetcher();
+  const rootLoaderData = useRouteLoaderData<typeof rootLoader>("root");
   return (
     <Sidebar>
       <SidebarBody>
@@ -59,6 +69,33 @@ export function Navbar() {
             <WalletIcon />
             <SidebarLabel>Accounts</SidebarLabel>
           </NavSidebarItem>
+        </SidebarSection>
+        <SidebarSection>
+          <fetcher.Form
+            className="contents"
+            action="/period/update"
+            method="POST"
+          >
+            <FieldGroup>
+              <Field>
+                <Label id={fromDateLabelId}>From</Label>
+                <DateInput
+                  name="from"
+                  aria-labelledby={fromDateLabelId}
+                  defaultValue={rootLoaderData?.from ?? ""}
+                />
+              </Field>
+              <Field>
+                <Label id={toDateLabelId}>To</Label>
+                <DateInput
+                  name="to"
+                  aria-labelledby={toDateLabelId}
+                  defaultValue={rootLoaderData?.to ?? ""}
+                />
+              </Field>
+              <Button type="submit">Submit</Button>
+            </FieldGroup>
+          </fetcher.Form>
         </SidebarSection>
       </SidebarBody>
       <SidebarFooter>

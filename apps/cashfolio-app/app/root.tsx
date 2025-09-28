@@ -5,12 +5,14 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  type LoaderFunctionArgs,
 } from "react-router";
 
 import type { Route } from "./+types/root";
 import "./app.css";
 import { Navbar } from "./components/navbar";
 import { SidebarLayout } from "./platform/sidebar-layout";
+import { getSession } from "./sessions.server";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -24,6 +26,14 @@ export const links: Route.LinksFunction = () => [
     href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
   },
 ];
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const session = await getSession(request.headers.get("Cookie"));
+  return {
+    from: session.get("from") ?? null,
+    to: session.get("to") ?? null,
+  };
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (

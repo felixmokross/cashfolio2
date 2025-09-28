@@ -2,6 +2,7 @@ import { type RouteConfig, index, route } from "@react-router/dev/routes";
 import { routes as accountRoutes } from "./accounts/routes";
 import { routes as accountGroupRoutes } from "./account-groups/routes";
 import { routes as transactionRoutes } from "./transactions/routes";
+import { routes as periodRoutes } from "./period/routes";
 
 export default [
   index("home/route.ts"),
@@ -11,4 +12,5 @@ export default [
   ...accountRoutes,
   ...accountGroupRoutes,
   ...transactionRoutes,
+  ...periodRoutes,
 ] satisfies RouteConfig;

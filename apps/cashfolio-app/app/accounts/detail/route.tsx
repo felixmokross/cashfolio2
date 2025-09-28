@@ -4,7 +4,7 @@ import {
   Unit as UnitEnum,
   type Account,
 } from "@prisma/client";
-import { redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { getAccountGroupPath } from "~/utils";
 import { serialize } from "~/serialization";
 import { refCurrency } from "~/config";
@@ -17,23 +17,21 @@ import {
   getAccount,
   getBookings,
 } from "./calculation.server";
-import { endOfMonthUtc, startOfMonthUtc, today } from "~/dates";
-import { subDays, subMonths } from "date-fns";
-import { formatISODate } from "~/formatting";
+import { subDays } from "date-fns";
 import type { Unit } from "~/fx";
+import { getSession } from "~/sessions.server";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
-  const from = new URL(request.url).searchParams.get("from");
+  const session = await getSession(request.headers.get("Cookie"));
+  const from = session.get("from");
+  console.log(typeof from);
   const fromDate = from ? new Date(from) : undefined;
 
-  const to = new URL(request.url).searchParams.get("to");
+  const to = session.get("to");
   const toDate = to ? new Date(to) : undefined;
 
   if (!fromDate || !toDate) {
-    const lastMonth = subMonths(today(), 1);
-    return redirect(
-      `?from=${formatISODate(startOfMonthUtc(lastMonth))}&to=${formatISODate(endOfMonthUtc(lastMonth))}`,
-    );
+    throw new Error("Invalid date range");
   }
 
   if (!params.accountId) {
@@ -84,8 +82,6 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   );
 
   return serialize({
-    fromDate,
-    toDate,
     ledgerUnit,
     account: {
       ...account,
