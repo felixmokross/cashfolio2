@@ -2,23 +2,33 @@ import { getMonth, getQuarter, getYear, subDays } from "date-fns";
 import { firstDate } from "~/config";
 import { today } from "~/dates";
 import { getSession } from "~/sessions.server";
+import type { Period } from "./types";
 
 type PeriodDateRange = {
   from: Date;
   to: Date;
 };
+export async function getPeriod(request: Request): Promise<Period> {
+  const session = await getSession(request.headers.get("Cookie"));
+
+  const period = session.get("period");
+  if (!period) {
+    return {
+      granularity: "month",
+      year: getYear(today()),
+      month: getMonth(today()),
+    };
+  }
+
+  return period;
+}
 
 export async function getPeriodDateRange(
   request: Request,
 ): Promise<PeriodDateRange> {
-  const session = await getSession(request.headers.get("Cookie"));
+  const period = await getPeriod(request);
   let from: Date;
   let to: Date;
-
-  const period = session.get("period");
-  if (!period) {
-    throw new Error("No period in session");
-  }
 
   if (period.granularity === "month") {
     from = new Date(Date.UTC(Number(period.year), Number(period.month), 1));

@@ -1,6 +1,6 @@
-import { format, getMonth, getQuarter, getYear } from "date-fns";
+import { format, getMonth, getQuarter, getYear, type Quarter } from "date-fns";
 import { useEffect, useRef, useState } from "react";
-import { useFetcher } from "react-router";
+import { useFetcher, useRouteLoaderData } from "react-router";
 import { firstDate } from "~/config";
 import { today } from "~/dates";
 import { Button } from "~/platform/button";
@@ -8,13 +8,25 @@ import { Field } from "~/platform/forms/fieldset";
 import { Select } from "~/platform/forms/select";
 import { ArrowLeftIcon, ArrowRightIcon } from "~/platform/icons/standard";
 import type { Granularity } from "./types";
+import type { loader as rootLoader } from "~/root";
 
 export function PeriodSelector() {
   const fetcher = useFetcher();
-  const [granularity, setGranularity] = useState<Granularity>("month");
-  const [year, setYear] = useState(getYear(today()));
-  const [quarter, setQuarter] = useState(getQuarter(today()));
-  const [month, setMonth] = useState(getMonth(today()));
+  const rootLoaderData = useRouteLoaderData<typeof rootLoader>("root");
+  if (!rootLoaderData) {
+    throw new Error("No root loader data");
+  }
+  const { period } = rootLoaderData;
+  const [granularity, setGranularity] = useState<Granularity>(
+    period.granularity,
+  );
+  const [year, setYear] = useState(period.year);
+  const [quarter, setQuarter] = useState(
+    period.granularity === "quarter" ? period.quarter : 1,
+  );
+  const [month, setMonth] = useState(
+    period.granularity === "month" ? period.month : 0,
+  );
   const firstMonthIndex = year === getYear(firstDate) ? getMonth(firstDate) : 0;
   const lastMonthIndex = year === getYear(today()) ? getMonth(today()) : 11;
   const firstQuarterIndex =
@@ -107,7 +119,7 @@ export function PeriodSelector() {
               <Button
                 hierarchy="secondary"
                 onClick={() => {
-                  setQuarter((v) => v - 1);
+                  setQuarter((v) => (v - 1) as Quarter);
                   setSubmitAfterUpdate(true);
                 }}
                 disabled={quarter <= firstQuarterIndex}
@@ -116,7 +128,7 @@ export function PeriodSelector() {
               </Button>
               <Select
                 onChange={(e) => {
-                  setQuarter(Number(e.currentTarget.value));
+                  setQuarter(Number(e.currentTarget.value) as Quarter);
                   setSubmitAfterUpdate(true);
                 }}
                 value={quarter}
@@ -137,7 +149,7 @@ export function PeriodSelector() {
               <Button
                 hierarchy="secondary"
                 onClick={() => {
-                  setQuarter((v) => v + 1);
+                  setQuarter((v) => (v + 1) as Quarter);
                   setSubmitAfterUpdate(true);
                 }}
                 disabled={quarter >= lastQuarterIndex}

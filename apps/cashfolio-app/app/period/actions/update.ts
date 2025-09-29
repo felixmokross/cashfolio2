@@ -1,7 +1,8 @@
 import { data, type ActionFunctionArgs } from "react-router";
 import invariant from "tiny-invariant";
 import { commitSession, getSession } from "~/sessions.server";
-import type { Period, QuarterPeriod } from "../types";
+import type { Period } from "../types";
+import type { Quarter } from "date-fns";
 
 export async function action({ request }: ActionFunctionArgs) {
   const form = await request.formData();
@@ -26,7 +27,7 @@ export async function action({ request }: ActionFunctionArgs) {
     period = {
       granularity: "quarter",
       year: Number(year),
-      quarter: Number(quarter) as QuarterPeriod["quarter"],
+      quarter: Number(quarter) as Quarter,
     };
   } else if (granularity === "year") {
     period = {

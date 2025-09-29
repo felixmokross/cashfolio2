@@ -12,7 +12,7 @@ import type { Route } from "./+types/root";
 import "./app.css";
 import { Navbar } from "./components/navbar";
 import { SidebarLayout } from "./platform/sidebar-layout";
-import { getSession } from "./sessions.server";
+import { getPeriod } from "./period/functions";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -28,10 +28,8 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
   return {
-    from: session.get("from") ?? null,
-    to: session.get("to") ?? null,
+    period: await getPeriod(request),
   };
 }
 
