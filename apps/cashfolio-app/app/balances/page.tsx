@@ -1,4 +1,4 @@
-import { formatISODate, formatMoney } from "~/formatting";
+import { formatMoney } from "~/formatting";
 import { Heading } from "~/platform/heading";
 import { Text } from "~/platform/text";
 import {
@@ -10,34 +10,17 @@ import {
 } from "~/platform/table";
 import type { LoaderData } from "~/balances/route";
 import { BalancesTableRows } from "./table-rows";
-import { Form } from "react-router";
-import { Field, Label } from "~/platform/forms/fieldset";
-import { DateInput } from "~/platform/forms/date-input";
-import { Button } from "~/platform/button";
-import { useId } from "react";
 
 export function Page({
-  loaderData: { date, balanceSheet },
+  loaderData: { balanceSheet },
 }: {
   loaderData: LoaderData;
 }) {
-  const dateLabelId = `date-label-${useId()}`;
   return (
     <>
       <Heading>Balances</Heading>
       <Text>Reference Currency: CHF</Text>
 
-      <Form className="flex gap-4 mt-8 items-end" replace={true}>
-        <Field>
-          <Label id={dateLabelId}>Date</Label>
-          <DateInput
-            name="date"
-            defaultValue={date ? formatISODate(new Date(date)) : undefined}
-            aria-labelledby={dateLabelId}
-          />
-        </Field>
-        <Button type="submit">Submit</Button>
-      </Form>
       <div className="xl:grid grid-cols-2 gap-12 mt-8">
         <Table dense bleed striped fixedLayout>
           <TableHead>

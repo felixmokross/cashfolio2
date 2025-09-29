@@ -24,7 +24,6 @@ import { getSession } from "~/sessions.server";
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
   const from = session.get("from");
-  console.log(typeof from);
   const fromDate = from ? new Date(from) : undefined;
 
   const to = session.get("to");

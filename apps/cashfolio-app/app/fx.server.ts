@@ -124,7 +124,7 @@ async function getSecurityPrice(
     }
     const data = await response.json();
     if (!data || !data.data || !data.data.length) {
-      if (backtrackCount >= 5) {
+      if (backtrackCount >= 15) {
         throw new Error(
           `No security price data for ${symbol} on ${formatISODate(date)} after ${backtrackCount} attempts`,
         );
