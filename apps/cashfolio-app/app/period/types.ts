@@ -1,9 +1,15 @@
 // TODO extend to support quarters
-export type Granularity = (YearPeriod | MonthPeriod)["granularity"];
+export type Granularity = Period["granularity"];
 
 export type YearPeriod = {
   granularity: "year";
   year: number;
+};
+
+export type QuarterPeriod = {
+  granularity: "quarter";
+  year: number;
+  quarter: 1 | 2 | 3 | 4;
 };
 
 export type MonthPeriod = {
@@ -12,4 +18,4 @@ export type MonthPeriod = {
   month: number;
 };
 
-export type Period = YearPeriod | MonthPeriod;
+export type Period = YearPeriod | QuarterPeriod | MonthPeriod;

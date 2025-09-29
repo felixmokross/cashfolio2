@@ -1,4 +1,4 @@
-import { format, getMonth, getYear } from "date-fns";
+import { format, getMonth, getQuarter, getYear } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { firstDate } from "~/config";
@@ -13,9 +13,13 @@ export function PeriodSelector() {
   const fetcher = useFetcher();
   const [granularity, setGranularity] = useState<Granularity>("month");
   const [year, setYear] = useState(getYear(today()));
+  const [quarter, setQuarter] = useState(getQuarter(today()));
   const [month, setMonth] = useState(getMonth(today()));
   const firstMonthIndex = year === getYear(firstDate) ? getMonth(firstDate) : 0;
   const lastMonthIndex = year === getYear(today()) ? getMonth(today()) : 11;
+  const firstQuarterIndex =
+    year === getYear(firstDate) ? getQuarter(firstDate) : 1;
+  const lastQuarterIndex = year === getYear(today()) ? getQuarter(today()) : 4;
 
   const formRef = useRef<HTMLFormElement>(null);
   const [submitAfterUpdate, setSubmitAfterUpdate] = useState(false);
@@ -48,6 +52,7 @@ export function PeriodSelector() {
               name="granularity"
             >
               <option value="month">Month</option>
+              <option value="quarter">Quarter</option>
               <option value="year">Year</option>
             </Select>
           </div>
@@ -96,6 +101,52 @@ export function PeriodSelector() {
             </Button>
           </div>
         </Field>
+        {granularity === "quarter" && (
+          <Field>
+            <div className="flex gap-2 items-center" data-slot="control">
+              <Button
+                hierarchy="secondary"
+                onClick={() => {
+                  setQuarter((v) => v - 1);
+                  setSubmitAfterUpdate(true);
+                }}
+                disabled={quarter <= firstQuarterIndex}
+              >
+                <ArrowLeftIcon />
+              </Button>
+              <Select
+                onChange={(e) => {
+                  setQuarter(Number(e.currentTarget.value));
+                  setSubmitAfterUpdate(true);
+                }}
+                value={quarter}
+                name="quarter"
+              >
+                {new Array(lastQuarterIndex - firstQuarterIndex + 1)
+                  .fill(null)
+                  .map((_, index) => (
+                    <option key={index} value={firstQuarterIndex + index}>
+                      {year === getYear(today()) &&
+                      firstQuarterIndex + index === getQuarter(today())
+                        ? "QTD"
+                        : `Q${firstQuarterIndex + index}`}
+                    </option>
+                  ))
+                  .toReversed()}
+              </Select>
+              <Button
+                hierarchy="secondary"
+                onClick={() => {
+                  setQuarter((v) => v + 1);
+                  setSubmitAfterUpdate(true);
+                }}
+                disabled={quarter >= lastQuarterIndex}
+              >
+                <ArrowRightIcon />
+              </Button>
+            </div>
+          </Field>
+        )}
         {granularity === "month" && (
           <Field>
             <div className="flex gap-2 items-center" data-slot="control">
@@ -121,8 +172,7 @@ export function PeriodSelector() {
                   .fill(null)
                   .map((_, index) => (
                     <option key={index} value={firstMonthIndex + index}>
-                      {granularity === "month" &&
-                      year === getYear(today()) &&
+                      {year === getYear(today()) &&
                       firstMonthIndex + index === getMonth(today())
                         ? "MTD"
                         : format(
