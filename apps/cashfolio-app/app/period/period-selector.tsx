@@ -7,9 +7,7 @@ import { Button } from "~/platform/button";
 import { Field } from "~/platform/forms/fieldset";
 import { Select } from "~/platform/forms/select";
 import { ArrowLeftIcon, ArrowRightIcon } from "~/platform/icons/standard";
-
-// TODO extend to support quarters
-type Granularity = "month" | "year";
+import type { Granularity } from "./types";
 
 export function PeriodSelector() {
   const fetcher = useFetcher();

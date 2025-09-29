@@ -4,19 +4,10 @@ import { getIncomeStatement } from "~/income/calculation.server";
 import { serialize } from "~/serialization";
 import { getAccountGroups } from "~/account-groups/data";
 import { prisma } from "~/prisma.server";
-import { getSession } from "~/sessions.server";
+import { getPeriodDateRange } from "~/period/functions";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
-  const from = session.get("from");
-  const fromDate = from ? new Date(from) : undefined;
-
-  const to = session.get("to");
-  const toDate = to ? new Date(to) : undefined;
-
-  if (!fromDate || !toDate) {
-    throw new Error("Invalid date range");
-  }
+  const { from, to } = await getPeriodDateRange(request);
 
   const [accounts, accountGroups] = await Promise.all([
     prisma.account.findMany({
@@ -24,7 +15,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       include: {
         bookings: {
           orderBy: { date: "asc" },
-          where: { date: { gte: fromDate, lte: toDate } },
+          where: { date: { gte: from, lte: to } },
         },
       },
     }),
@@ -32,12 +23,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   ]);
 
   return serialize({
-    rootNode: await getIncomeStatement(
-      accounts,
-      accountGroups,
-      fromDate,
-      toDate,
-    ),
+    rootNode: await getIncomeStatement(accounts, accountGroups, from, to),
   });
 }
 export type LoaderData = ReturnType<typeof useLoaderData<typeof loader>>;

@@ -19,19 +19,10 @@ import {
 } from "./calculation.server";
 import { subDays } from "date-fns";
 import type { Unit } from "~/fx";
-import { getSession } from "~/sessions.server";
+import { getPeriodDateRange } from "~/period/functions";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
-  const from = session.get("from");
-  const fromDate = from ? new Date(from) : undefined;
-
-  const to = session.get("to");
-  const toDate = to ? new Date(to) : undefined;
-
-  if (!fromDate || !toDate) {
-    throw new Error("Invalid date range");
-  }
+  const { from, to } = await getPeriodDateRange(request);
 
   if (!params.accountId) {
     throw new Response("Not Found", { status: 400 });
@@ -40,7 +31,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   const [account, bookingsForPeriod, allAccounts, accountGroups] =
     await Promise.all([
       getAccount(params.accountId),
-      getBookings(params.accountId, fromDate, toDate),
+      getBookings(params.accountId, from, to),
       getAccounts(),
       getAccountGroups(),
     ]);
@@ -70,8 +61,8 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     : { unit: UnitEnum.CURRENCY, currency: refCurrency };
 
   const openingBalance =
-    fromDate && account.type !== AccountType.EQUITY
-      ? await getBalanceCached(account.id, ledgerUnit, subDays(fromDate, 1))
+    from && account.type !== AccountType.EQUITY
+      ? await getBalanceCached(account.id, ledgerUnit, subDays(from, 1))
       : undefined;
 
   const ledgerRows = await getLedgerRows(

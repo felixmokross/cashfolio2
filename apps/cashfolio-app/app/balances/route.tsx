@@ -4,16 +4,10 @@ import { serialize } from "~/serialization";
 import { getBalanceSheet } from "./calculation.server";
 import { getAccounts } from "~/accounts/data";
 import { getAccountGroups } from "~/account-groups/data";
-import { getSession } from "~/sessions.server";
+import { getPeriodDateRange } from "~/period/functions";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
-  const dateString = session.get("to");
-  const date = dateString ? new Date(dateString) : undefined;
-
-  if (!date) {
-    throw new Error("Invalid date");
-  }
+  const { to: date } = await getPeriodDateRange(request);
 
   const [accounts, accountGroups] = await Promise.all([
     getAccounts(),

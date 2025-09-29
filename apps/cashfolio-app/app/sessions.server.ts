@@ -1,9 +1,9 @@
 import { createCookieSessionStorage } from "react-router";
 import invariant from "tiny-invariant";
+import type { Period } from "./period/types";
 
 type SessionData = {
-  from?: string;
-  to?: string;
+  period: Period;
 };
 
 type SessionFlashData = {
