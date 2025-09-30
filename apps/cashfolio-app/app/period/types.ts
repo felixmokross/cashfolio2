@@ -1,6 +1,5 @@
 import type { Quarter } from "date-fns";
 
-// TODO extend to support quarters
 export type Granularity = Period["granularity"];
 
 export type YearPeriod = {
