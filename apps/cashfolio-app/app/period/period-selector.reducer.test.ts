@@ -127,6 +127,176 @@ describe("granularity 'month'", () => {
   });
 });
 
+describe("granularity 'quarter'", () => {
+  describe("'setYear' action", () => {
+    test("sets the year to the specified year", () => {
+      const result = periodSelectorReducer(
+        { granularity: "quarter", year: 2024, quarter: 3 },
+        { type: "setYear", year: 2022 },
+      );
+
+      expect(result).toEqual({
+        granularity: "quarter",
+        year: 2022,
+        quarter: 3,
+      });
+    });
+
+    test("sets the quarter to the first date's quarter if the new year and quarter are before the first date", () => {
+      const result = periodSelectorReducer(
+        { granularity: "quarter", year: 2024, quarter: 1 },
+        { type: "setYear", year: 2022 },
+      );
+
+      expect(result).toEqual({
+        granularity: "quarter",
+        year: 2022,
+        quarter: 2,
+      });
+    });
+
+    test("sets the quarter to the last date's quarter if the new year and quarter are after the last date", () => {
+      const result = periodSelectorReducer(
+        { granularity: "quarter", year: 2024, quarter: 4 },
+        { type: "setYear", year: 2026 },
+      );
+
+      expect(result).toEqual({
+        granularity: "quarter",
+        year: 2026,
+        quarter: 3,
+      });
+    });
+  });
+
+  describe("'previousYear' action", () => {
+    test("sets the year to the previous year", () => {
+      const result = periodSelectorReducer(
+        { granularity: "quarter", year: 2024, quarter: 3 },
+        { type: "previousYear" },
+      );
+
+      expect(result).toEqual({
+        granularity: "quarter",
+        year: 2023,
+        quarter: 3,
+      });
+    });
+
+    test("sets the quarter to the first date's quarter if the new year and quarter are before the first date", () => {
+      const result = periodSelectorReducer(
+        { granularity: "quarter", year: 2023, quarter: 1 },
+        { type: "previousYear" },
+      );
+
+      expect(result).toEqual({
+        granularity: "quarter",
+        year: 2022,
+        quarter: 2,
+      });
+    });
+  });
+
+  describe("'nextYear' action", () => {
+    test("sets the year to the next year", () => {
+      const result = periodSelectorReducer(
+        { granularity: "quarter", year: 2024, quarter: 3 },
+        { type: "nextYear" },
+      );
+
+      expect(result).toEqual({
+        granularity: "quarter",
+        year: 2025,
+        quarter: 3,
+      });
+    });
+
+    test("sets the quarter to the last date's quarter if the new year and quarter are after the last date", () => {
+      const result = periodSelectorReducer(
+        { granularity: "quarter", year: 2025, quarter: 4 },
+        { type: "nextYear" },
+      );
+
+      expect(result).toEqual({
+        granularity: "quarter",
+        year: 2026,
+        quarter: 3,
+      });
+    });
+  });
+
+  describe("'setQuarter' action", () => {
+    test("sets the quarter to the specified quarter", () => {
+      const result = periodSelectorReducer(
+        { granularity: "quarter", year: 2024, quarter: 3 },
+        { type: "setQuarter", quarter: 2 },
+      );
+
+      expect(result).toEqual({
+        granularity: "quarter",
+        year: 2024,
+        quarter: 2,
+      });
+    });
+  });
+
+  describe("'previousQuarter' action", () => {
+    test("sets the quarter to the previous quarter", () => {
+      const result = periodSelectorReducer(
+        { granularity: "quarter", year: 2024, quarter: 3 },
+        { type: "previousQuarter" },
+      );
+
+      expect(result).toEqual({
+        granularity: "quarter",
+        year: 2024,
+        quarter: 2,
+      });
+    });
+
+    test("sets the quarter to 4 of the previous year if quarter is 1", () => {
+      const result = periodSelectorReducer(
+        { granularity: "quarter", year: 2024, quarter: 1 },
+        { type: "previousQuarter" },
+      );
+
+      expect(result).toEqual({
+        granularity: "quarter",
+        year: 2023,
+        quarter: 4,
+      });
+    });
+  });
+
+  describe("'nextQuarter' action", () => {
+    test("sets the quarter to the next quarter", () => {
+      const result = periodSelectorReducer(
+        { granularity: "quarter", year: 2024, quarter: 3 },
+        { type: "nextQuarter" },
+      );
+
+      expect(result).toEqual({
+        granularity: "quarter",
+        year: 2024,
+        quarter: 4,
+      });
+    });
+
+    test("sets the quarter to 1 of the next year if quarter is 4", () => {
+      const result = periodSelectorReducer(
+        { granularity: "quarter", year: 2024, quarter: 4 },
+        { type: "nextQuarter" },
+      );
+
+      expect(result).toEqual({
+        granularity: "quarter",
+        year: 2025,
+        quarter: 1,
+      });
+    });
+  });
+});
+
 describe("granularity 'year'", () => {
   describe("'setYear' action", () => {
     test("sets the year to the specified year", () => {
@@ -164,13 +334,30 @@ describe("granularity 'year'", () => {
 
 describe("'setGranularity' action", () => {
   describe("'month'", () => {
-    test("sets the granularity to 'month' and month to December", () => {
-      const result = periodSelectorReducer(
-        { granularity: "year", year: 2024 },
-        { type: "setGranularity", granularity: "month" },
-      );
+    describe("if previous granularity was 'quarter'", () => {
+      test("sets the granularity to 'month' and month to the previous quarter's last month", () => {
+        const result = periodSelectorReducer(
+          { granularity: "quarter", year: 2024, quarter: 3 },
+          { type: "setGranularity", granularity: "month" },
+        );
 
-      expect(result).toEqual({ granularity: "month", year: 2024, month: 11 });
+        expect(result).toEqual({
+          granularity: "month",
+          year: 2024,
+          month: 8,
+        });
+      });
+    });
+
+    describe("if previous granularity was 'year'", () => {
+      test("sets the granularity to 'month' and month to December", () => {
+        const result = periodSelectorReducer(
+          { granularity: "year", year: 2024 },
+          { type: "setGranularity", granularity: "month" },
+        );
+
+        expect(result).toEqual({ granularity: "month", year: 2024, month: 11 });
+      });
     });
 
     test("sets the granularity to 'month' and month to the last month if the current year is the last date's year", () => {
@@ -180,6 +367,51 @@ describe("'setGranularity' action", () => {
       );
 
       expect(result).toEqual({ granularity: "month", year: 2026, month: 8 });
+    });
+  });
+
+  describe("'quarter'", () => {
+    describe("if previous granularity was 'year'", () => {
+      test("sets the granularity to 'quarter' and quarter to 4", () => {
+        const result = periodSelectorReducer(
+          { granularity: "year", year: 2024 },
+          { type: "setGranularity", granularity: "quarter" },
+        );
+
+        expect(result).toEqual({
+          granularity: "quarter",
+          year: 2024,
+          quarter: 4,
+        });
+      });
+    });
+
+    describe("if previous granularity was 'month'", () => {
+      test("sets the granularity to 'quarter' and quarter to the previous month's quarter", () => {
+        const result = periodSelectorReducer(
+          { granularity: "month", year: 2024, month: 6 },
+          { type: "setGranularity", granularity: "quarter" },
+        );
+
+        expect(result).toEqual({
+          granularity: "quarter",
+          year: 2024,
+          quarter: 3,
+        });
+      });
+    });
+
+    test("sets the granularity to 'quarter' and quarter to the last quarter if the current year is the last date's year", () => {
+      const result = periodSelectorReducer(
+        { granularity: "year", year: 2026 },
+        { type: "setGranularity", granularity: "quarter" },
+      );
+
+      expect(result).toEqual({
+        granularity: "quarter",
+        year: 2026,
+        quarter: 3,
+      });
     });
   });
 

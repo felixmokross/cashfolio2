@@ -1,7 +1,6 @@
 import { format, getMonth, getQuarter, getYear, type Quarter } from "date-fns";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { useFetcher, useRouteLoaderData } from "react-router";
-import { firstDate } from "~/config";
 import { today } from "~/dates";
 import { Button } from "~/platform/button";
 import { Field } from "~/platform/forms/fieldset";
@@ -9,6 +8,8 @@ import { Select } from "~/platform/forms/select";
 import { ArrowLeftIcon, ArrowRightIcon } from "~/platform/icons/standard";
 import type { Granularity } from "./types";
 import type { loader as rootLoader } from "~/root";
+import { createPeriodSelectorReducer } from "./period-selector.reducer";
+import { firstDate } from "~/config";
 
 export function PeriodSelector() {
   const fetcher = useFetcher();
@@ -17,21 +18,20 @@ export function PeriodSelector() {
     throw new Error("No root loader data");
   }
   const { period } = rootLoaderData;
-  const [granularity, setGranularity] = useState<Granularity>(
-    period.granularity,
+
+  const [periodState, dispatch] = useReducer(
+    createPeriodSelectorReducer(firstDate, today()),
+    period,
   );
-  const [year, setYear] = useState(period.year);
-  const [quarter, setQuarter] = useState(
-    period.granularity === "quarter" ? period.quarter : 1,
-  );
-  const [month, setMonth] = useState(
-    period.granularity === "month" ? period.month : 0,
-  );
-  const firstMonthIndex = year === getYear(firstDate) ? getMonth(firstDate) : 0;
-  const lastMonthIndex = year === getYear(today()) ? getMonth(today()) : 11;
+
+  const firstMonthIndex =
+    periodState.year === getYear(firstDate) ? getMonth(firstDate) : 0;
+  const lastMonthIndex =
+    periodState.year === getYear(today()) ? getMonth(today()) : 11;
   const firstQuarterIndex =
-    year === getYear(firstDate) ? getQuarter(firstDate) : 1;
-  const lastQuarterIndex = year === getYear(today()) ? getQuarter(today()) : 4;
+    periodState.year === getYear(firstDate) ? getQuarter(firstDate) : 1;
+  const lastQuarterIndex =
+    periodState.year === getYear(today()) ? getQuarter(today()) : 4;
 
   const formRef = useRef<HTMLFormElement>(null);
   const [submitAfterUpdate, setSubmitAfterUpdate] = useState(false);
@@ -57,10 +57,13 @@ export function PeriodSelector() {
           <div className="flex gap-2 items-center" data-slot="control">
             <Select
               onChange={(e) => {
-                setGranularity(e.currentTarget.value as Granularity);
+                dispatch({
+                  type: "setGranularity",
+                  granularity: e.currentTarget.value as Granularity,
+                });
                 setSubmitAfterUpdate(true);
               }}
-              defaultValue={granularity}
+              defaultValue={periodState.granularity}
               name="granularity"
             >
               <option value="month">Month</option>
@@ -74,26 +77,29 @@ export function PeriodSelector() {
             <Button
               hierarchy="secondary"
               onClick={() => {
-                setYear((v) => v - 1);
+                dispatch({ type: "previousYear" });
                 setSubmitAfterUpdate(true);
               }}
-              disabled={year <= getYear(firstDate)}
+              disabled={periodState.year <= getYear(firstDate)}
             >
               <ArrowLeftIcon />
             </Button>
             <Select
               onChange={(e) => {
-                setYear(Number(e.currentTarget.value));
+                dispatch({
+                  type: "setYear",
+                  year: Number(e.currentTarget.value),
+                });
                 setSubmitAfterUpdate(true);
               }}
-              value={year}
+              value={periodState.year}
               name="year"
             >
               {new Array(getYear(today()) - getYear(firstDate) + 1)
                 .fill(null)
                 .map((_, index) => (
                   <option key={index} value={getYear(firstDate) + index}>
-                    {granularity === "year" &&
+                    {periodState.granularity === "year" &&
                     getYear(firstDate) + index === getYear(today())
                       ? "YTD"
                       : getYear(firstDate) + index}
@@ -104,41 +110,44 @@ export function PeriodSelector() {
             <Button
               hierarchy="secondary"
               onClick={() => {
-                setYear((v) => v + 1);
+                dispatch({ type: "nextYear" });
                 setSubmitAfterUpdate(true);
               }}
-              disabled={year >= getYear(today())}
+              disabled={periodState.year >= getYear(today())}
             >
               <ArrowRightIcon />
             </Button>
           </div>
         </Field>
-        {granularity === "quarter" && (
+        {periodState.granularity === "quarter" && (
           <Field>
             <div className="flex gap-2 items-center" data-slot="control">
               <Button
                 hierarchy="secondary"
                 onClick={() => {
-                  setQuarter((v) => (v - 1) as Quarter);
+                  dispatch({ type: "previousQuarter" });
                   setSubmitAfterUpdate(true);
                 }}
-                disabled={quarter <= firstQuarterIndex}
+                disabled={periodState.quarter <= firstQuarterIndex}
               >
                 <ArrowLeftIcon />
               </Button>
               <Select
                 onChange={(e) => {
-                  setQuarter(Number(e.currentTarget.value) as Quarter);
+                  dispatch({
+                    type: "setQuarter",
+                    quarter: Number(e.currentTarget.value) as Quarter,
+                  });
                   setSubmitAfterUpdate(true);
                 }}
-                value={quarter}
+                value={periodState.quarter}
                 name="quarter"
               >
                 {new Array(lastQuarterIndex - firstQuarterIndex + 1)
                   .fill(null)
                   .map((_, index) => (
                     <option key={index} value={firstQuarterIndex + index}>
-                      {year === getYear(today()) &&
+                      {periodState.year === getYear(today()) &&
                       firstQuarterIndex + index === getQuarter(today())
                         ? "QTD"
                         : `Q${firstQuarterIndex + index}`}
@@ -149,46 +158,49 @@ export function PeriodSelector() {
               <Button
                 hierarchy="secondary"
                 onClick={() => {
-                  setQuarter((v) => (v + 1) as Quarter);
+                  dispatch({ type: "nextQuarter" });
                   setSubmitAfterUpdate(true);
                 }}
-                disabled={quarter >= lastQuarterIndex}
+                disabled={periodState.quarter >= lastQuarterIndex}
               >
                 <ArrowRightIcon />
               </Button>
             </div>
           </Field>
         )}
-        {granularity === "month" && (
+        {periodState.granularity === "month" && (
           <Field>
             <div className="flex gap-2 items-center" data-slot="control">
               <Button
                 hierarchy="secondary"
                 onClick={() => {
-                  setMonth((v) => v - 1);
+                  dispatch({ type: "previousMonth" });
                   setSubmitAfterUpdate(true);
                 }}
-                disabled={month <= firstMonthIndex}
+                disabled={periodState.month <= firstMonthIndex}
               >
                 <ArrowLeftIcon />
               </Button>
               <Select
                 onChange={(e) => {
-                  setMonth(Number(e.currentTarget.value));
+                  dispatch({
+                    type: "setMonth",
+                    month: Number(e.currentTarget.value),
+                  });
                   setSubmitAfterUpdate(true);
                 }}
-                value={month}
+                value={periodState.month}
                 name="month"
               >
                 {new Array(lastMonthIndex - firstMonthIndex + 1)
                   .fill(null)
                   .map((_, index) => (
                     <option key={index} value={firstMonthIndex + index}>
-                      {year === getYear(today()) &&
+                      {periodState.year === getYear(today()) &&
                       firstMonthIndex + index === getMonth(today())
                         ? "MTD"
                         : format(
-                            `${year}-${firstMonthIndex + index + 1}`,
+                            `${periodState.year}-${firstMonthIndex + index + 1}`,
                             "MMMM",
                           )}
                     </option>
@@ -198,10 +210,10 @@ export function PeriodSelector() {
               <Button
                 hierarchy="secondary"
                 onClick={() => {
-                  setMonth((v) => v + 1);
+                  dispatch({ type: "nextMonth" });
                   setSubmitAfterUpdate(true);
                 }}
-                disabled={month >= lastMonthIndex}
+                disabled={periodState.month >= lastMonthIndex}
               >
                 <ArrowRightIcon />
               </Button>

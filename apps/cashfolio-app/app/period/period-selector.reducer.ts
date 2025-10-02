@@ -1,4 +1,4 @@
-import { getMonth, getYear } from "date-fns";
+import { getMonth, getQuarter, getYear, type Quarter } from "date-fns";
 import type { Period } from "./types";
 
 export type PeriodSelectorState = Period;
@@ -8,7 +8,9 @@ export type PeriodSelectorAction =
   | { type: "setYear"; year: number }
   | { type: "nextYear" }
   | { type: "previousYear" }
-  //   | { type: "setQuarter"; quarter: number }
+  | { type: "setQuarter"; quarter: Quarter }
+  | { type: "nextQuarter" }
+  | { type: "previousQuarter" }
   | { type: "setMonth"; month: number }
   | { type: "nextMonth" }
   | { type: "previousMonth" };
@@ -22,25 +24,75 @@ export function createPeriodSelectorReducer(firstDate: Date, lastDate: Date) {
       case "setGranularity":
         if (action.granularity === "month") {
           return ensureMonthInRange({
-            ...state,
             granularity: "month",
-            month: 11,
+            year: state.year,
+            month: state.granularity === "quarter" ? state.quarter * 3 - 1 : 11,
           });
         }
 
         if (action.granularity === "year") {
           return { granularity: "year", year: state.year };
         }
+
+        if (action.granularity === "quarter") {
+          return ensureQuarterInRange({
+            granularity: "quarter",
+            year: state.year,
+            quarter:
+              state.granularity === "month"
+                ? (Math.ceil((state.month + 1) / 3) as Quarter)
+                : 4,
+          });
+        }
+
         return state;
 
       case "setYear":
-        return ensureMonthInRange({ ...state, year: action.year });
+        return ensureQuarterInRange(
+          ensureMonthInRange({ ...state, year: action.year }),
+        );
 
       case "previousYear":
-        return ensureMonthInRange({ ...state, year: state.year - 1 });
+        return ensureQuarterInRange(
+          ensureMonthInRange({ ...state, year: state.year - 1 }),
+        );
 
       case "nextYear":
-        return ensureMonthInRange({ ...state, year: state.year + 1 });
+        return ensureQuarterInRange(
+          ensureMonthInRange({ ...state, year: state.year + 1 }),
+        );
+
+      case "setQuarter":
+        if (state.granularity !== "quarter") {
+          throw new Error(
+            "Cannot set quarter when granularity is not 'quarter'",
+          );
+        }
+        return { ...state, quarter: action.quarter };
+
+      case "previousQuarter":
+        if (state.granularity !== "quarter") {
+          throw new Error(
+            "Cannot go to previous quarter when granularity is not 'quarter'",
+          );
+        }
+
+        if (state.quarter === 1) {
+          return { ...state, year: state.year - 1, quarter: 4 };
+        }
+        return { ...state, quarter: (state.quarter - 1) as Quarter };
+
+      case "nextQuarter":
+        if (state.granularity !== "quarter") {
+          throw new Error(
+            "Cannot go to next quarter when granularity is not 'quarter'",
+          );
+        }
+
+        if (state.quarter === 4) {
+          return { ...state, year: state.year + 1, quarter: 1 };
+        }
+        return { ...state, quarter: (state.quarter + 1) as Quarter };
 
       case "setMonth":
         if (state.granularity !== "month") {
@@ -88,6 +140,30 @@ export function createPeriodSelectorReducer(firstDate: Date, lastDate: Date) {
 
     if (state.year === getYear(lastDate) && state.month > getMonth(lastDate)) {
       return { ...state, month: getMonth(lastDate) };
+    }
+
+    return state;
+  }
+
+  function ensureQuarterInRange(
+    state: PeriodSelectorState,
+  ): PeriodSelectorState {
+    if (state.granularity !== "quarter") {
+      return state;
+    }
+
+    if (
+      state.year === getYear(firstDate) &&
+      state.quarter < getQuarter(firstDate)
+    ) {
+      return { ...state, quarter: getQuarter(firstDate) as Quarter };
+    }
+
+    if (
+      state.year === getYear(lastDate) &&
+      state.quarter > getQuarter(lastDate)
+    ) {
+      return { ...state, quarter: getQuarter(lastDate) as Quarter };
     }
 
     return state;
