@@ -34,8 +34,16 @@ import {
   WalletIcon,
 } from "~/platform/icons/navigation";
 import { PeriodSelector } from "~/period/period-selector";
+import { useRouteLoaderData } from "react-router";
+import { type loader as layoutLoader } from "../layout/route";
 
 export function Navbar() {
+  const layoutLoaderData = useRouteLoaderData<typeof layoutLoader>("layout");
+  if (!layoutLoaderData) {
+    throw new Error("No layout loader data");
+  }
+  const { user } = layoutLoaderData;
+
   return (
     <Sidebar>
       <SidebarBody>
@@ -73,18 +81,13 @@ export function Navbar() {
         <Dropdown>
           <DropdownButton as={SidebarItem}>
             <span className="flex min-w-0 items-center gap-3">
-              <Avatar
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                className="size-10"
-                square
-                alt=""
-              />
+              <Avatar src={user.picture} className="size-10" square alt="" />
               <span className="min-w-0">
                 <span className="block truncate text-sm/5 font-medium text-neutral-950 dark:text-white">
-                  Tom
+                  {user.name}
                 </span>
                 <span className="block truncate text-xs/5 font-normal text-neutral-500 dark:text-neutral-400">
-                  tom@example.com
+                  {user.email}
                 </span>
               </span>
             </span>

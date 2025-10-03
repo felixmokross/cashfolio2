@@ -7,17 +7,17 @@ import { Field } from "~/platform/forms/fieldset";
 import { Select } from "~/platform/forms/select";
 import { ArrowLeftIcon, ArrowRightIcon } from "~/platform/icons/standard";
 import type { Granularity } from "./types";
-import type { loader as rootLoader } from "~/root";
+import type { loader as layoutLoader } from "~/layout/route";
 import { createPeriodSelectorReducer } from "./period-selector.reducer";
 import { firstDate } from "~/config";
 
 export function PeriodSelector() {
   const fetcher = useFetcher();
-  const rootLoaderData = useRouteLoaderData<typeof rootLoader>("root");
-  if (!rootLoaderData) {
-    throw new Error("No root loader data");
+  const layoutLoaderData = useRouteLoaderData<typeof layoutLoader>("layout");
+  if (!layoutLoaderData) {
+    throw new Error("No layout loader data");
   }
-  const { period } = rootLoaderData;
+  const { period } = layoutLoaderData;
 
   const [periodState, dispatch] = useReducer(
     createPeriodSelectorReducer(firstDate, today()),

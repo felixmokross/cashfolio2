@@ -14,6 +14,7 @@ export const logto = makeLogtoRemix(
     appId: process.env.LOGTO_APP_ID,
     appSecret: process.env.LOGTO_APP_SECRET,
     baseUrl: process.env.BASE_URL,
+    scopes: ["email"],
   },
   { sessionStorage: sessionStorage as SessionStorage },
 );
