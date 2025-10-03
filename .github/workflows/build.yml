@@ -47,7 +47,7 @@ jobs:
       - name: Get cashfolio-app image name
         id: image-name
         run: |
-          IMAGE_NAME=cashfolio-app
+          IMAGE_NAME=${{ vars.FLY_CASHFOLIO_APP_STAGING_APP }}
           IMAGE_TAG=v${{ needs.version.outputs.version_with_sha }}
           echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
           echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
