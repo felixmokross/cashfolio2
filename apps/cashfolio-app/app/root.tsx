@@ -21,6 +21,34 @@ export const links: Route.LinksFunction = () => [
     rel: "stylesheet",
     href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
   },
+  {
+    rel: "icon",
+    type: "image/png",
+    href: "/favicon-96x96.png",
+    sizes: "96x96",
+  },
+  {
+    rel: "icon",
+    type: "image/svg+xml",
+    href: "/favicon.svg",
+  },
+  {
+    rel: "shortcut icon",
+    href: "/favicon.ico",
+  },
+  {
+    rel: "apple-touch-icon",
+    href: "/apple-touch-icon.png",
+    sizes: "180x180",
+  },
+  {
+    rel: "manifest",
+    href: "/site.webmanifest",
+  },
+];
+
+export const meta: Route.MetaFunction = () => [
+  { name: "apple-mobile-web-app-title", content: "Cashfolio" },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

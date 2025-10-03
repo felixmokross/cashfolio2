@@ -38,18 +38,18 @@
   --color-neutral-900: oklch(21% 0.006 285.885);
   --color-neutral-950: oklch(14.1% 0.005 285.823);
 
-  /* Tailwind CSS 'blue' */
-  --color-accent-neutral-50: oklch(97% 0.014 254.604);
-  --color-accent-neutral-100: oklch(93.2% 0.032 255.585);
-  --color-accent-neutral-200: oklch(88.2% 0.059 254.128);
-  --color-accent-neutral-300: oklch(80.9% 0.105 251.813);
-  --color-accent-neutral-400: oklch(70.7% 0.165 254.624);
-  --color-accent-neutral-500: oklch(62.3% 0.214 259.815);
-  --color-accent-neutral-600: oklch(54.6% 0.245 262.881);
-  --color-accent-neutral-700: oklch(48.8% 0.243 264.376);
-  --color-accent-neutral-800: oklch(42.4% 0.199 265.638);
-  --color-accent-neutral-900: oklch(37.9% 0.146 265.522);
-  --color-accent-neutral-950: oklch(28.2% 0.091 267.935);
+  /* Use brand color */
+  --color-accent-neutral-50: var(--color-brand-50);
+  --color-accent-neutral-100: var(--color-brand-100);
+  --color-accent-neutral-200: var(--color-brand-200);
+  --color-accent-neutral-300: var(--color-brand-300);
+  --color-accent-neutral-400: var(--color-brand-400);
+  --color-accent-neutral-500: var(--color-brand-500);
+  --color-accent-neutral-600: var(--color-brand-600);
+  --color-accent-neutral-700: var(--color-brand-700);
+  --color-accent-neutral-800: var(--color-brand-800);
+  --color-accent-neutral-900: var(--color-brand-900);
+  --color-accent-neutral-950: var(--color-brand-950);
 
   /* Tailwind CSS 'red' */
   --color-accent-negative-50: oklch(97.1% 0.013 17.38);

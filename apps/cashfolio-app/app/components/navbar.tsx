@@ -10,7 +10,6 @@ import {
   SidebarLabel,
   SidebarSection,
 } from "~/platform/sidebar";
-import { Logo } from "./logo";
 import { Avatar } from "~/platform/avatar";
 import {
   Dropdown,
@@ -36,6 +35,7 @@ import {
 import { PeriodSelector } from "~/period/period-selector";
 import { useRouteLoaderData } from "react-router";
 import { type loader as layoutLoader } from "../layout/route";
+import { Logo } from "~/components/logo";
 
 export function Navbar() {
   const layoutLoaderData = useRouteLoaderData<typeof layoutLoader>("layout");
@@ -52,7 +52,7 @@ export function Navbar() {
           href="/"
           aria-label="Home"
         >
-          <Logo />
+          <Logo className="w-8" />
           <SidebarLabel className="text-sm font-semibold uppercase tracking-widest">
             Cashfolio
           </SidebarLabel>

@@ -1,18 +1,17 @@
 import clsx from "clsx";
 
-export function Logo({ className }: { className?: string }) {
+export function Logo({ className, ...props }: React.SVGProps<SVGSVGElement>) {
   return (
-    <div className={clsx("flex h-16 shrink-0 items-center", className)}>
-      <img
-        alt="Your Company"
-        src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=600"
-        className="h-8 w-auto dark:hidden"
-      />
-      <img
-        alt="Your Company"
-        src="https://tailwindcss.com/plus-assets/img/logos/mark.svg?color=indigo&shade=500"
-        className="h-8 w-auto not-dark:hidden"
-      />
-    </div>
+    <svg
+      viewBox="0 0 98 98"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-label="Cashfolio Logo"
+      role="img"
+      className={clsx("stroke-brand-500", className)}
+      {...props}
+    >
+      <path d="M10 75L35.7476 39.6667L59.9806 57.3333L88 22" strokeWidth="12" />
+    </svg>
   );
 }
