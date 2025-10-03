@@ -73,7 +73,7 @@ jobs:
       - name: Setup
         uses: felixmokross/webplatform/.github/actions/setup@main
       - name: Install dependencies
-        run: pnpm --filter cashfolio-app install --dev
+        run: pnpm --filter cashfolio-app install
       - name: Run typecheck in cashfolio-app
         run: pnpm --filter cashfolio-app typecheck
 
