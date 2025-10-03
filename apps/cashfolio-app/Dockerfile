@@ -25,7 +25,7 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
 
 # Install node modules
-COPY --link package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY --link package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY --link apps/cashfolio-app/package.json apps/cashfolio-app/
 RUN pnpm --filter cashfolio-app install --prod=false --frozen-lockfile
 
