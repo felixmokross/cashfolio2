@@ -32,6 +32,8 @@ RUN pnpm --filter cashfolio-app install --prod=false --frozen-lockfile
 # Copy application code
 COPY --link apps/cashfolio-app apps/cashfolio-app
 
+RUN pnpm --filter cashfolio-app exec prisma generate
+
 # Build application
 RUN pnpm --filter cashfolio-app build
 
