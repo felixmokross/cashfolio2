@@ -74,6 +74,8 @@ jobs:
         uses: felixmokross/webplatform/.github/actions/setup@main
       - name: Install dependencies
         run: pnpm --filter cashfolio-app install --dev
+      - name: Generate Prisma Client
+        run: pnpm --filter cashfolio-app prisma generate
       - name: Run typecheck in cashfolio-app
         run: pnpm --filter cashfolio-app typecheck
 
