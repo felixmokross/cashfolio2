@@ -64,18 +64,18 @@ jobs:
 
           echo "Generated configuration file:"
           cat apps/cashfolio-app/fly.generated.toml
-          env:
+        env:
           FLY_APP:
-              ${{ inputs.environment == 'preview' &&
-              steps.create-app.outputs.app_name || vars.FLY_APP }}
+            ${{ inputs.environment == 'preview' &&
+            steps.create-app.outputs.app_name || vars.FLY_APP }}
           FLY_PRIMARY_REGION: ${{ vars.FLY_PRIMARY_REGION }}
           FLY_MIN_MACHINES_RUNNING: ${{ vars.FLY_MIN_MACHINES_RUNNING }}
           FLY_MEMORY: ${{ vars.FLY_MEMORY }}
           FLY_CPU_KIND: ${{ vars.FLY_CPU_KIND }}
           FLY_CPUS: ${{ vars.FLY_CPUS }}
           CANONICAL_HOSTNAME:
-              ${{ inputs.environment == 'preview' && format('https://{0}.fly.dev',
-              steps.create-app.outputs.app_name) || vars.CANONICAL_HOSTNAME }}
+            ${{ inputs.environment == 'preview' && format('https://{0}.fly.dev',
+            steps.create-app.outputs.app_name) || vars.CANONICAL_HOSTNAME }}
       - name: Deploy cashfolio-app
         run: |
           flyctl deploy \
