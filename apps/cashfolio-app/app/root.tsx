@@ -28,6 +28,7 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export async function loader({ request }: LoaderFunctionArgs) {
+  // TODO move some things to app loader
   return {
     period: await getPeriod(request),
   };
@@ -44,6 +45,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <script type="text/javascript">
+          {`
+if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+  document.documentElement.setAttribute("data-theme", "dark");
+}
+`}
+        </script>
       </head>
       <body>
         <SidebarLayout sidebar={<Navbar />} navbar={null}>

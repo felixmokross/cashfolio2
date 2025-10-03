@@ -20,8 +20,11 @@ import {
 import { subDays } from "date-fns";
 import type { Unit } from "~/fx";
 import { getPeriodDateRange } from "~/period/functions";
+import { ensureAuthenticated } from "~/auth/functions.server";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
+  await ensureAuthenticated(request);
+
   const { from, to } = await getPeriodDateRange(request);
 
   if (!params.accountId) {

@@ -3,8 +3,11 @@ import invariant from "tiny-invariant";
 import { commitSession, getSession } from "~/sessions.server";
 import type { Period } from "../types";
 import type { Quarter } from "date-fns";
+import { ensureAuthenticated } from "~/auth/functions.server";
 
 export async function action({ request }: ActionFunctionArgs) {
+  await ensureAuthenticated(request);
+
   const form = await request.formData();
 
   const granularity = form.get("granularity");

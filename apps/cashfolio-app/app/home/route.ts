@@ -1,5 +1,8 @@
-import { redirect } from "react-router";
+import { redirect, type LoaderFunctionArgs } from "react-router";
+import { ensureAuthenticated } from "~/auth/functions.server";
 
-export function loader() {
+export async function loader({ request }: LoaderFunctionArgs) {
+  await ensureAuthenticated(request);
+
   throw redirect("/accounts");
 }

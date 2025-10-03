@@ -3,8 +3,11 @@ import { data, redirect } from "react-router";
 import slugify from "slugify";
 import { prisma } from "~/prisma.server";
 import { getFormValues, hasErrors, validate } from "./shared";
+import { ensureAuthenticated } from "~/auth/functions.server";
 
 export async function action({ request }: { request: Request }) {
+  await ensureAuthenticated(request);
+
   const values = await getFormValues(request);
   const errors = validate(values);
   if (hasErrors(errors)) {

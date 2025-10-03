@@ -1,8 +1,11 @@
 import { data } from "react-router";
 import { prisma } from "~/prisma.server";
 import { purgeCachedBalances } from "./shared";
+import { ensureAuthenticated } from "~/auth/functions.server";
 
 export async function action({ request }: { request: Request }) {
+  await ensureAuthenticated(request);
+
   const form = await request.formData();
   const transactionId = form.get("transactionId");
   if (typeof transactionId !== "string") {

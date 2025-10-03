@@ -8,8 +8,11 @@ import {
 } from "./shared";
 import { data } from "react-router";
 import invariant from "tiny-invariant";
+import { ensureAuthenticated } from "~/auth/functions.server";
 
 export async function action({ request }: { request: Request }) {
+  await ensureAuthenticated(request);
+
   const form = await request.formData();
   const description = form.get("description");
   invariant(typeof description === "string");

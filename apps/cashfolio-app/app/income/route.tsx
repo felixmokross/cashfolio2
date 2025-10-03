@@ -5,8 +5,11 @@ import { serialize } from "~/serialization";
 import { getAccountGroups } from "~/account-groups/data";
 import { prisma } from "~/prisma.server";
 import { getPeriodDateRange } from "~/period/functions";
+import { ensureAuthenticated } from "~/auth/functions.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
+  await ensureAuthenticated(request);
+
   const { from, to } = await getPeriodDateRange(request);
 
   const [accounts, accountGroups] = await Promise.all([

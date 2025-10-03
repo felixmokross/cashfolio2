@@ -5,8 +5,11 @@ import { getBalanceSheet } from "./calculation.server";
 import { getAccounts } from "~/accounts/data";
 import { getAccountGroups } from "~/account-groups/data";
 import { getPeriodDateRange } from "~/period/functions";
+import { ensureAuthenticated } from "~/auth/functions.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
+  await ensureAuthenticated(request);
+
   const { to: date } = await getPeriodDateRange(request);
 
   const [accounts, accountGroups] = await Promise.all([

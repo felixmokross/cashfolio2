@@ -1,12 +1,15 @@
-import { useLoaderData } from "react-router";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { serialize, type Serialize } from "~/serialization";
 import { getAccountGroupPath } from "~/utils";
 import { Page } from "./page";
 import { getAccounts } from "../data";
 import { getAccountGroups } from "~/account-groups/data";
 import { getAccountsTree } from "~/account-groups/accounts-tree";
+import { ensureAuthenticated } from "~/auth/functions.server";
 
-export async function loader() {
+export async function loader({ request }: LoaderFunctionArgs) {
+  await ensureAuthenticated(request);
+
   const [accounts, accountGroups] = await Promise.all([
     getAccounts(),
     getAccountGroups(),
