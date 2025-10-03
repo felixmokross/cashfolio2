@@ -1,4 +1,20 @@
-.react-router
-build
-node_modules
-README.md
+# Ignore everything
+**
+
+# But include the necessary parts
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!.npmrc
+!/apps/cashfolio-app
+
+# These should be ignored, though
+**/.next
+**/.react-router
+**/build
+**/node_modules
+**/tests
+**/.env*
+**/tsconfig.tsbuildinfo
+**/.vscode
+**/.DS_Store

@@ -1,22 +1,49 @@
-FROM node:20-alpine AS development-dependencies-env
-COPY . /app
-WORKDIR /app
-RUN npm ci
+# syntax = docker/dockerfile:1
 
-FROM node:20-alpine AS production-dependencies-env
-COPY ./package.json package-lock.json /app/
-WORKDIR /app
-RUN npm ci --omit=dev
+# Adjust NODE_VERSION as desired
+ARG NODE_VERSION=22
+FROM node:${NODE_VERSION}-slim AS base
 
-FROM node:20-alpine AS build-env
-COPY . /app/
-COPY --from=development-dependencies-env /app/node_modules /app/node_modules
-WORKDIR /app
-RUN npm run build
+LABEL fly_launch_runtime="React Router"
 
-FROM node:20-alpine
-COPY ./package.json package-lock.json /app/
-COPY --from=production-dependencies-env /app/node_modules /app/node_modules
-COPY --from=build-env /app/build /app/build
+# React Router app lives here
 WORKDIR /app
-CMD ["npm", "run", "start"]
+
+# Set production environment
+ENV NODE_ENV="production"
+
+# Install latest corepack to work around this issue: https://github.com/nodejs/corepack/issues/612
+RUN npm install -g corepack@latest
+
+RUN corepack enable pnpm
+
+# Throw-away build stage to reduce size of final image
+FROM base AS build
+
+# Install packages needed to build node modules
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
+
+# Install node modules
+COPY --link package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY --link apps/cashfolio-app/package.json apps/cashfolio-app/
+RUN pnpm --filter cashfolio-app install --prod=false --frozen-lockfile
+
+# Copy application code
+COPY --link apps/cashfolio-app apps/cashfolio-app
+
+# Build application
+RUN pnpm --filter cashfolio-app build
+
+# Remove development dependencies
+RUN pnpm --dir apps/cashfolio-app prune --prod
+
+# Final stage for app image
+FROM base
+
+# Copy built application
+COPY --from=build /app /app
+
+# Start the server by default, this can be overwritten at runtime
+EXPOSE 5173
+CMD [ "pnpm", "--filter", "cashfolio-app", "start" ]

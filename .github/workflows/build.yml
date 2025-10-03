@@ -1,0 +1,65 @@
+name: Build
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Create a release"
+        required: false
+        default: false
+        type: boolean
+
+env:
+#   NODE_VERSION: 22
+  FLYCTL_VERSION: 0.3.95
+#   FRONTEND_INTERNAL_PORT: 3000
+#   CMS_INTERNAL_PORT: 3001
+
+jobs:
+  version:
+    name: "Generate version"
+    uses: felixmokross/webplatform/.github/workflows/export.version.yml@main
+    with:
+      release: ${{ github.event.inputs.release }}
+
+  cashfolio-app-build-push:
+    name: "Frontend: Build and Push"
+    runs-on: ubuntu-latest
+    needs: [version]
+    outputs:
+      image: ${{ steps.image-name.outputs.image }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+        with:
+          version: ${{ env.FLYCTL_VERSION }}
+      - name: Setup
+        uses: ./.github/actions/setup
+      - name: Set version on cashfolio-app
+        run: |
+          pnpm version ${{ needs.version.outputs.version }} --git-tag-version false
+        working-directory: apps/cashfolio-app
+      - name: Get cashfolio-app image name
+        id: image-name
+        run: |
+          IMAGE_NAME=cashfolio-app
+          IMAGE_TAG=v${{ needs.version.outputs.version_with_sha }}
+          echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "image=registry.fly.io/$IMAGE_NAME:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+      - name: Build and push cashfolio-app Docker image
+        run: |
+          flyctl deploy \
+            --app ${{ steps.image-name.outputs.image_name }} \
+            --config apps/cashfolio-app/fly.build.toml \
+            --build-only \
+            --image-label ${{ steps.image-name.outputs.image_tag }} \
+            --label org.opencontainers.image.version=${{ steps.image-name.outputs.image_tag }} \
+            --push \
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
