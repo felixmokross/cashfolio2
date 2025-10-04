@@ -12,7 +12,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   await ensureAuthenticated(request);
   invariant(!!params.accountBookId, "accountBookId not found in params");
 
-  const { from, to } = await getPeriodDateRange(request);
+  const { from, to } = await getPeriodDateRange(request, params.accountBookId);
 
   const [accountBook, accounts, accountGroups] = await Promise.all([
     prisma.accountBook.findUniqueOrThrow({

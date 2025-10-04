@@ -9,10 +9,11 @@ import { ArrowLeftIcon, ArrowRightIcon } from "~/platform/icons/standard";
 import type { Granularity } from "./types";
 import type { loader as accountBookLoader } from "~/account-books/route";
 import { createPeriodSelectorReducer } from "./period-selector.reducer";
-import { firstDate } from "~/config";
+import { useFirstBookingDate } from "~/account-books/hooks";
 
 export function PeriodSelector() {
   const fetcher = useFetcher();
+  const firstBookingDate = useFirstBookingDate();
   const accountBookLoaderData = useRouteLoaderData<typeof accountBookLoader>(
     "account-books/route",
   );
@@ -22,16 +23,20 @@ export function PeriodSelector() {
   const { period } = accountBookLoaderData;
 
   const [periodState, dispatch] = useReducer(
-    createPeriodSelectorReducer(firstDate, today()),
+    createPeriodSelectorReducer(firstBookingDate, today()),
     period,
   );
 
   const firstMonthIndex =
-    periodState.year === getYear(firstDate) ? getMonth(firstDate) : 0;
+    firstBookingDate && periodState.year === getYear(firstBookingDate)
+      ? getMonth(firstBookingDate)
+      : 0;
   const lastMonthIndex =
     periodState.year === getYear(today()) ? getMonth(today()) : 11;
   const firstQuarterIndex =
-    periodState.year === getYear(firstDate) ? getQuarter(firstDate) : 1;
+    firstBookingDate && periodState.year === getYear(firstBookingDate)
+      ? getQuarter(firstBookingDate)
+      : 1;
   const lastQuarterIndex =
     periodState.year === getYear(today()) ? getQuarter(today()) : 4;
 
@@ -82,7 +87,10 @@ export function PeriodSelector() {
                 dispatch({ type: "previousYear" });
                 setSubmitAfterUpdate(true);
               }}
-              disabled={periodState.year <= getYear(firstDate)}
+              disabled={
+                !firstBookingDate ||
+                periodState.year <= getYear(firstBookingDate)
+              }
             >
               <ArrowLeftIcon />
             </Button>
@@ -97,17 +105,21 @@ export function PeriodSelector() {
               value={periodState.year}
               name="year"
             >
-              {new Array(getYear(today()) - getYear(firstDate) + 1)
-                .fill(null)
-                .map((_, index) => (
-                  <option key={index} value={getYear(firstDate) + index}>
-                    {periodState.granularity === "year" &&
-                    getYear(firstDate) + index === getYear(today())
-                      ? "YTD"
-                      : getYear(firstDate) + index}
-                  </option>
-                ))
-                .toReversed()}
+              {firstBookingDate &&
+                new Array(getYear(today()) - getYear(firstBookingDate) + 1)
+                  .fill(null)
+                  .map((_, index) => (
+                    <option
+                      key={index}
+                      value={getYear(firstBookingDate) + index}
+                    >
+                      {periodState.granularity === "year" &&
+                      getYear(firstBookingDate) + index === getYear(today())
+                        ? "YTD"
+                        : getYear(firstBookingDate) + index}
+                    </option>
+                  ))
+                  .toReversed()}
             </Select>
             <Button
               hierarchy="secondary"

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAccountBook } from "~/account-books/use-account-book";
+import { useAccountBook } from "~/account-books/hooks";
 import {
   Alert,
   AlertActions,

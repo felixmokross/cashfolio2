@@ -19,7 +19,7 @@ import {
   FormDialog,
   CreateOrSaveButton,
 } from "~/platform/forms/form-dialog";
-import { useAccountBook } from "~/account-books/use-account-book";
+import { useAccountBook } from "~/account-books/hooks";
 
 export function useEditAccount() {
   const [isOpen, setIsOpen] = useState(false);

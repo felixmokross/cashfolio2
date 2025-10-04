@@ -5,7 +5,9 @@ import { Navbar } from "~/components/navbar";
 import { getPeriod } from "~/period/functions";
 import { SidebarLayout } from "~/platform/sidebar-layout";
 import { prisma } from "~/prisma.server";
+import { serialize } from "~/serialization";
 import { getUserOrThrow } from "~/users/data";
+import { getFirstBookingDate } from "./functions.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const userContext = await ensureAuthenticated(request);
@@ -34,11 +36,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   if (!userContext.claims) {
     throw new Response("No user claims", { status: 500 });
   }
-  return {
+  return serialize({
     accountBook,
     userClaims: userContext.claims,
     period: await getPeriod(request),
-  };
+    firstBookingDate: await getFirstBookingDate(accountBook.id),
+  });
 }
 
 export default function Route() {

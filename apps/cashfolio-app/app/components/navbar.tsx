@@ -104,22 +104,9 @@ export function Navbar() {
             <ChevronUpIcon />
           </DropdownButton>
           <DropdownMenu className="min-w-64" anchor="top start">
-            <DropdownItem href="/my-profile">
-              <UserIcon />
-              <DropdownLabel>My profile</DropdownLabel>
-            </DropdownItem>
             <DropdownItem href={`/${accountBook.id}/settings`}>
               <Cog8ToothIcon />
               <DropdownLabel>Settings</DropdownLabel>
-            </DropdownItem>
-            <DropdownDivider />
-            <DropdownItem href="/privacy-policy">
-              <ShieldCheckIcon />
-              <DropdownLabel>Privacy policy</DropdownLabel>
-            </DropdownItem>
-            <DropdownItem href="/share-feedback">
-              <LightBulbIcon />
-              <DropdownLabel>Share feedback</DropdownLabel>
             </DropdownItem>
             <DropdownDivider />
             <DropdownItem href="/api/logto/sign-out">

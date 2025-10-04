@@ -15,7 +15,10 @@ export type PeriodSelectorAction =
   | { type: "nextMonth" }
   | { type: "previousMonth" };
 
-export function createPeriodSelectorReducer(firstDate: Date, lastDate: Date) {
+export function createPeriodSelectorReducer(
+  firstDate: Date | undefined,
+  lastDate: Date,
+) {
   return function periodSelectorReducer(
     state: PeriodSelectorState,
     action: PeriodSelectorAction,
@@ -132,6 +135,7 @@ export function createPeriodSelectorReducer(firstDate: Date, lastDate: Date) {
     }
 
     if (
+      firstDate &&
       state.year === getYear(firstDate) &&
       state.month < getMonth(firstDate)
     ) {
@@ -153,6 +157,7 @@ export function createPeriodSelectorReducer(firstDate: Date, lastDate: Date) {
     }
 
     if (
+      firstDate &&
       state.year === getYear(firstDate) &&
       state.quarter < getQuarter(firstDate)
     ) {

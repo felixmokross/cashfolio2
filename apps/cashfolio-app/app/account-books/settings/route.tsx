@@ -2,7 +2,7 @@ import { Divider } from "~/platform/divider";
 import { Input } from "~/platform/forms/input";
 import { Heading, Subheading } from "~/platform/heading";
 import { Text } from "~/platform/text";
-import { useAccountBook } from "../use-account-book";
+import { useAccountBook } from "../hooks";
 import { CurrencyCombobox } from "~/components/currency-combobox";
 import { Button } from "~/platform/button";
 import { useFetcher } from "react-router";

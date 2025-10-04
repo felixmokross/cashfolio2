@@ -10,7 +10,7 @@ import {
 } from "~/platform/table";
 import type { LoaderData } from "~/balances/route";
 import { BalancesTableRows } from "./table-rows";
-import { useAccountBook } from "~/account-books/use-account-book";
+import { useAccountBook } from "~/account-books/hooks";
 
 export function Page({
   loaderData: { balanceSheet },

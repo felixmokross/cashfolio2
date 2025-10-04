@@ -31,7 +31,7 @@ import {
   FormErrorMessage,
   CreateOrSaveButton,
 } from "~/platform/forms/form-dialog";
-import { useAccountBook } from "~/account-books/use-account-book";
+import { useAccountBook } from "~/account-books/hooks";
 
 type BookingFormValues = Serialize<
   Pick<

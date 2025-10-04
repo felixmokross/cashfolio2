@@ -9,7 +9,7 @@ import {
   ChevronRightIcon,
   WalletIcon,
 } from "~/platform/icons/standard";
-import { useAccountBook } from "~/account-books/use-account-book";
+import { useAccountBook } from "~/account-books/hooks";
 
 export function AccountsNodeChildrenTableRows<TData = {}>({
   node,

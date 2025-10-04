@@ -27,7 +27,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   await ensureAuthenticated(request);
   invariant(params.accountBookId, "accountBookId not found");
 
-  const { from, to } = await getPeriodDateRange(request);
+  const { from, to } = await getPeriodDateRange(request, params.accountBookId);
 
   if (!params.accountId) {
     throw new Response("Not Found", { status: 400 });
