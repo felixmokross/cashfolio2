@@ -5,7 +5,7 @@ import {
   purgeCachedBalances,
   validate,
 } from "./shared";
-import { Prisma, Unit } from "@prisma/client";
+import { Prisma, Unit } from "~/.prisma-client/client";
 import { data } from "react-router";
 import invariant from "tiny-invariant";
 import { ensureAuthenticated } from "~/auth/functions.server";

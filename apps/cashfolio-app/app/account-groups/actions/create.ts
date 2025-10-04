@@ -1,5 +1,5 @@
-import type { AccountType } from "@prisma/client";
-import { data, redirect } from "react-router";
+import type { AccountType } from "~/.prisma-client/client";
+import { data } from "react-router";
 import slugify from "slugify";
 import { prisma } from "~/prisma.server";
 import { getFormValues, hasErrors, validate } from "./shared";

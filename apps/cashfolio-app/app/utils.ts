@@ -1,4 +1,4 @@
-import { Prisma, type AccountGroup } from "@prisma/client";
+import { Prisma, type AccountGroup } from "~/.prisma-client/client";
 
 export function getAccountGroupPath(
   accountGroupId: string,

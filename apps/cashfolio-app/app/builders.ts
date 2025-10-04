@@ -6,7 +6,7 @@ import {
   type AccountGroup,
   type Booking,
   type Transaction,
-} from "@prisma/client";
+} from "~/.prisma-client/client";
 import type { AccountWithBookings } from "./accounts/types";
 import type { TransactionWithBookings } from "./transactions/types";
 

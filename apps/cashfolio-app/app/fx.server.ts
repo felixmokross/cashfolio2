@@ -1,4 +1,4 @@
-import { Prisma, Unit as UnitEnum } from "@prisma/client";
+import { Prisma, Unit as UnitEnum } from "~/.prisma-client/client";
 import { formatISODate } from "./formatting";
 import { redis } from "~/redis.server";
 import { subDays } from "date-fns";

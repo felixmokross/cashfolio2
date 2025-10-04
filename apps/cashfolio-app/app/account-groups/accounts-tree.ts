@@ -1,4 +1,8 @@
-import { AccountType, type Account, type AccountGroup } from "@prisma/client";
+import {
+  AccountType,
+  type Account,
+  type AccountGroup,
+} from "~/.prisma-client/client";
 
 export function getAccountsTree<TAccount extends Account = Account>(
   accounts: TAccount[],

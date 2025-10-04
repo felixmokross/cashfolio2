@@ -1,4 +1,4 @@
-import type { Account, AccountGroup, Prisma } from "@prisma/client";
+import type { Account, AccountGroup, Prisma } from "~/.prisma-client/client";
 
 export type AccountOption = Pick<
   Account,

@@ -1,4 +1,4 @@
-import type { AccountGroup, AccountType } from "@prisma/client";
+import type { AccountGroup, AccountType } from "~/.prisma-client/client";
 import { useState } from "react";
 import { DialogActions, DialogBody, DialogTitle } from "~/platform/dialog";
 import { Field, FieldGroup, Label } from "~/platform/forms/fieldset";

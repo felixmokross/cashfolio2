@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "~/.prisma-client/client";
 
 export type Serialize<T> =
   // Turn Decimal into string

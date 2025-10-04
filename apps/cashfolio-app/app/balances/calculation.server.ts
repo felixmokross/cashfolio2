@@ -6,7 +6,7 @@ import type { BalancesAccountsNode } from "./types";
 import { sum } from "~/utils";
 import { refCurrency } from "~/config";
 import { convert } from "~/fx.server";
-import { Unit, type Account, type AccountGroup } from "@prisma/client";
+import { Unit, type Account, type AccountGroup } from "~/.prisma-client/client";
 import { getBalanceCached } from "~/accounts/detail/calculation.server";
 
 export async function getBalanceSheet(

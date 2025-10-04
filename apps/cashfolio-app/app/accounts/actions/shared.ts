@@ -1,4 +1,4 @@
-import { AccountType, Prisma, Unit } from "@prisma/client";
+import { AccountType, Prisma, Unit } from "~/.prisma-client/client";
 import { cryptocurrencies } from "~/cryptocurrencies";
 import { currencies } from "~/currencies";
 

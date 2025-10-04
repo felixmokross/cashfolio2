@@ -1,4 +1,4 @@
-import { Unit as UnitEnum } from "@prisma/client";
+import type { Unit as UnitEnum } from "~/.prisma-client/client";
 
 export function isSameUnit(unitA: Unit, unitB: Unit) {
   if (unitA.unit !== unitB.unit) return false;

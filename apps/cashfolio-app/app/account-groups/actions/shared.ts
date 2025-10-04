@@ -1,4 +1,4 @@
-import { AccountType } from "@prisma/client";
+import { AccountType } from "~/.prisma-client/client";
 
 export async function getFormValues(request: Request): Promise<FormValues> {
   const form = await request.formData();

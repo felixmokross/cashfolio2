@@ -19,7 +19,7 @@ import { PlusIcon, TrashIcon } from "~/platform/icons/standard";
 import { useFetcher } from "react-router";
 import { createId } from "@paralleldrive/cuid2";
 import type { Serialize } from "~/serialization";
-import type { Booking } from "@prisma/client";
+import type { Booking } from "~/.prisma-client/client";
 import { CurrencyCombobox } from "../components/currency-combobox";
 import { formatISO } from "date-fns";
 import type { TransactionWithBookings } from "~/transactions/types";

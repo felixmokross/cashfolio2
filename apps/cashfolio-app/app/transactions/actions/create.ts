@@ -1,4 +1,4 @@
-import { Prisma, Unit } from "@prisma/client";
+import { Prisma, Unit } from "~/.prisma-client/client";
 import { prisma } from "~/prisma.server";
 import {
   hasErrors,

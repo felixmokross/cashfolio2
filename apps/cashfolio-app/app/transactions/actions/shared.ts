@@ -1,4 +1,4 @@
-import { Prisma, type Booking } from "@prisma/client";
+import { Prisma, type Booking } from "~/.prisma-client/client";
 import { redis } from "~/redis.server";
 import { sum } from "~/utils";
 

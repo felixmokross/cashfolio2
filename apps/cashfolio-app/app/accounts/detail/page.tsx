@@ -32,7 +32,6 @@ import {
   TrashIcon,
 } from "~/platform/icons/standard";
 import { Badge } from "~/platform/badge";
-import { Unit } from "@prisma/client";
 import { isSameUnit } from "~/fx";
 
 export function Page({
@@ -52,11 +51,11 @@ export function Page({
         <Heading className="flex items-center gap-4">
           {account.path}
           <Badge>
-            {ledgerUnit.unit === Unit.CURRENCY
+            {ledgerUnit.unit === "CURRENCY"
               ? ledgerUnit.currency!
-              : ledgerUnit.unit === Unit.CRYPTOCURRENCY
+              : ledgerUnit.unit === "CRYPTOCURRENCY"
                 ? ledgerUnit.cryptocurrency!
-                : ledgerUnit.unit === Unit.SECURITY
+                : ledgerUnit.unit === "SECURITY"
                   ? ledgerUnit.symbol
                   : null}
           </Badge>

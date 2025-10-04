@@ -1,4 +1,4 @@
-import { AccountType, type Account, type Unit } from "@prisma/client";
+import type { AccountType, Account, Unit } from "~/.prisma-client/client";
 import { useEffect, useState } from "react";
 import {
   DialogActions,
@@ -104,7 +104,7 @@ export function EditAccount({
                 </RadioGroup>
               </Field>
             </div>
-            {selectedType === AccountType.EQUITY && (
+            {selectedType === "EQUITY" && (
               <Field>
                 <Label>Subtype</Label>
                 <RadioGroup

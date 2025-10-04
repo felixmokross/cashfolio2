@@ -1,4 +1,4 @@
-import type { Booking, Prisma } from "@prisma/client";
+import type { Booking, Prisma } from "~/.prisma-client/client";
 import type { TransactionWithBookings } from "~/transactions/types";
 
 export type BookingWithTransaction = Booking & {

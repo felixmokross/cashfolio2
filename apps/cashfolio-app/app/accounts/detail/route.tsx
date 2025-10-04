@@ -3,7 +3,7 @@ import {
   EquityAccountSubtype,
   Unit as UnitEnum,
   type Account,
-} from "@prisma/client";
+} from "~/.prisma-client/client";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { getAccountGroupPath } from "~/utils";
 import { serialize } from "~/serialization";

@@ -1,4 +1,8 @@
-import { Prisma, Unit as UnitEnum, type Booking } from "@prisma/client";
+import {
+  Prisma,
+  Unit as UnitEnum,
+  type Booking,
+} from "~/.prisma-client/client";
 import type { BookingWithTransaction, LedgerRow } from "./types";
 import { convert } from "~/fx.server";
 import { redis } from "~/redis.server";

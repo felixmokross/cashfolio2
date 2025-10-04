@@ -2,7 +2,7 @@ import type { Serialize } from "~/serialization";
 import { TableCell, TableRow } from "~/platform/table";
 import clsx from "clsx";
 import type { AccountsNode } from "./accounts-tree";
-import type { Account } from "@prisma/client";
+import type { Account } from "~/.prisma-client/client";
 import { useLayoutEffect, useState, type ReactNode } from "react";
 import {
   ChevronDownIcon,

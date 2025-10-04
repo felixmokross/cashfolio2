@@ -1,4 +1,4 @@
-import type { Account, Prisma } from "@prisma/client";
+import type { Account, Prisma } from "~/.prisma-client/client";
 import type { AccountsNode } from "~/account-groups/accounts-tree";
 
 export type BalancesAccountsNode = AccountsNode<

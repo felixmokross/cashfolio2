@@ -4,7 +4,6 @@ import {
   useEffect,
   useState,
   type ComponentProps,
-  type ComponentType,
   type ReactNode,
 } from "react";
 import { useFetcher } from "react-router";

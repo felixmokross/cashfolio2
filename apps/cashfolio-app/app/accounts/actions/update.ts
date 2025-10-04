@@ -1,4 +1,4 @@
-import { Unit } from "@prisma/client";
+import { Unit } from "~/.prisma-client/client";
 import { data } from "react-router";
 import slugify from "slugify";
 import { prisma } from "~/prisma.server";

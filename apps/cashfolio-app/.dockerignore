@@ -13,6 +13,7 @@
 **/.react-router
 **/build
 **/node_modules
+**/.prisma-client
 **/tests
 **/.env*
 **/tsconfig.tsbuildinfo

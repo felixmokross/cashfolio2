@@ -5,8 +5,7 @@ import {
   Unit,
   type Account,
   type AccountGroup,
-  type Booking,
-} from "@prisma/client";
+} from "~/.prisma-client/client";
 import { differenceInDays, formatISO, max, subDays } from "date-fns";
 import type { AccountWithBookings } from "~/accounts/types";
 import { refCurrency } from "~/config";

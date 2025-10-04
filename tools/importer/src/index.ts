@@ -1,6 +1,6 @@
 import { program } from "commander";
 import { prisma } from "cashfolio-app/app/prisma.server";
-import * as TargetModel from "cashfolio-app/node_modules/@prisma/client";
+import * as TargetModel from "cashfolio-app/app/.prisma-client";
 import { MongoClient } from "mongodb";
 import "dotenv/config";
 import slugify from "slugify";

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { sum } from "./utils";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "~/.prisma-client/client";
 
 describe("sum", () => {
   test("returns the sum of the passed values", () => {

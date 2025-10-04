@@ -11,7 +11,7 @@ import {
   buildBooking,
   buildTransactionWithBookings,
 } from "../builders";
-import { AccountType, Prisma } from "@prisma/client";
+import { AccountType, Prisma } from "~/.prisma-client/client";
 import { formatISODate } from "~/formatting";
 import { getExchangeRate } from "~/fx.server";
 import type { Unit } from "~/fx";
