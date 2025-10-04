@@ -21,9 +21,11 @@ import {
   EquityAccountSubtype,
   Unit as UnitEnum,
 } from "~/.prisma-client/enums";
+import invariant from "tiny-invariant";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   await ensureAuthenticated(request);
+  invariant(params.accountBookId, "accountBookId not found");
 
   const { from, to } = await getPeriodDateRange(request);
 
@@ -33,10 +35,10 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
   const [account, bookingsForPeriod, allAccounts, accountGroups] =
     await Promise.all([
-      getAccount(params.accountId),
-      getBookings(params.accountId, from, to),
-      getAccounts(),
-      getAccountGroups(),
+      getAccount(params.accountId, params.accountBookId),
+      getBookings(params.accountId, params.accountBookId, from, to),
+      getAccounts(params.accountBookId),
+      getAccountGroups(params.accountBookId),
     ]);
   if (!account) {
     throw new Response("Not Found", { status: 404 });

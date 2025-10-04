@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAccountBook } from "~/account-books/use-account-book";
 import {
   Alert,
   AlertActions,
@@ -38,13 +39,14 @@ export function DeleteTransaction({
   onClose: () => void;
   transactionId?: string;
 }) {
+  const accountBook = useAccountBook();
   return (
     <FormDialog
       dialogComponent={Alert}
       open={isOpen}
       onClose={onClose}
       size="sm"
-      action="/transactions/delete"
+      action={`/${accountBook.id}/transactions/delete`}
     >
       <input type="hidden" name="transactionId" value={transactionId} />
       <AlertTitle>Are you sure you want to delete this transaction?</AlertTitle>

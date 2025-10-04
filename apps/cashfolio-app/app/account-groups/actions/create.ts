@@ -1,12 +1,14 @@
 import type { AccountType } from "~/.prisma-client/client";
-import { data } from "react-router";
+import { data, type ActionFunctionArgs } from "react-router";
 import slugify from "slugify";
 import { prisma } from "~/prisma.server";
 import { getFormValues, hasErrors, validate } from "./shared";
 import { ensureAuthenticated } from "~/auth/functions.server";
+import invariant from "tiny-invariant";
 
-export async function action({ request }: { request: Request }) {
+export async function action({ request, params }: ActionFunctionArgs) {
   await ensureAuthenticated(request);
+  invariant(params.accountBookId, "accountBookId not found");
 
   const values = await getFormValues(request);
   const errors = validate(values);
@@ -20,6 +22,7 @@ export async function action({ request }: { request: Request }) {
       slug: slugify(values.name, { lower: true }),
       type: values.type as AccountType,
       parentGroupId: values.parentGroupId || null,
+      accountBookId: params.accountBookId,
     },
   });
 

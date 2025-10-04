@@ -20,6 +20,7 @@ import {
   FormDialog,
   CreateOrSaveButton,
 } from "~/platform/forms/form-dialog";
+import { useAccountBook } from "~/account-books/use-account-book";
 
 export function useEditAccount() {
   const [isOpen, setIsOpen] = useState(false);
@@ -58,13 +59,18 @@ export function EditAccount({
     setSelectedUnit(account?.unit ?? "CURRENCY");
     setSelectedType(account?.type ?? "ASSET");
   }, [account?.id]);
+  const accountBook = useAccountBook();
   return (
     <FormDialog
       open={isOpen}
       size="3xl"
       onClose={onClose}
       entityId={account?.id}
-      action={account ? "/accounts/update" : "/accounts/create"}
+      action={
+        account
+          ? `/${accountBook.id}/accounts/update`
+          : `/${accountBook.id}/accounts/create`
+      }
     >
       {!!account && <input type="hidden" name="id" value={account.id} />}
       <DialogTitle>

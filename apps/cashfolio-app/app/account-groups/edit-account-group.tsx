@@ -12,6 +12,7 @@ import {
   CreateOrSaveButton,
   FormDialog,
 } from "~/platform/forms/form-dialog";
+import { useAccountBook } from "~/account-books/use-account-book";
 
 export function useEditAccountGroup() {
   const [isOpen, setIsOpen] = useState(false);
@@ -47,13 +48,16 @@ export function EditAccountGroup({
   const [selectedType, setSelectedType] = useState<AccountType>(
     accountGroup?.type ?? "ASSET",
   );
+  const accountBook = useAccountBook();
   return (
     <FormDialog
       open={isOpen}
       onClose={onClose}
       size="3xl"
       action={
-        accountGroup ? "/account-groups/update" : "/account-groups/create"
+        accountGroup
+          ? `/${accountBook.id}/account-groups/update`
+          : `/${accountBook.id}/account-groups/create`
       }
     >
       {!!accountGroup && (

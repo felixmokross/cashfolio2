@@ -1,18 +1,15 @@
-import {
-  type RouteConfig,
-  index,
-  layout,
-  route,
-} from "@react-router/dev/routes";
+import { type RouteConfig, index, route } from "@react-router/dev/routes";
 import { routes as accountRoutes } from "./accounts/routes";
 import { routes as accountGroupRoutes } from "./account-groups/routes";
 import { routes as transactionRoutes } from "./transactions/routes";
 import { routes as periodRoutes } from "./period/routes";
 import { routes as authRoutes } from "./auth/routes";
+import { routes as accountBookRoutes } from "./account-books/routes";
 
 export default [
   ...authRoutes,
-  layout("layout/route.tsx", { id: "layout" }, [
+  ...accountBookRoutes,
+  route(":accountBookId", "account-books/route.tsx", [
     index("home/route.ts"),
     route("balances", "balances/route.tsx"),
     route("income", "income/route.tsx"),

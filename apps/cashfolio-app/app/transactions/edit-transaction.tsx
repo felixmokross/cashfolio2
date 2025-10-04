@@ -31,6 +31,7 @@ import {
   FormErrorMessage,
   CreateOrSaveButton,
 } from "~/platform/forms/form-dialog";
+import { useAccountBook } from "~/account-books/use-account-book";
 
 type BookingFormValues = Serialize<
   Pick<
@@ -80,12 +81,17 @@ export function EditTransaction({
   transaction?: Serialize<TransactionWithBookings>;
   lockedAccountId: string;
 }) {
+  const accountBook = useAccountBook();
   return (
     <FormDialog
       size="5xl"
       open={isOpen}
       onClose={onClose}
-      action={transaction ? "/transactions/update" : "/transactions/create"}
+      action={
+        transaction
+          ? `/${accountBook.id}/transactions/update`
+          : `/${accountBook.id}/transactions/create`
+      }
       entityId={transaction?.id}
     >
       {({ fetcher }) => (

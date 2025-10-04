@@ -9,6 +9,7 @@ import {
   ChevronRightIcon,
   WalletIcon,
 } from "~/platform/icons/standard";
+import { useAccountBook } from "~/account-books/use-account-book";
 
 export function AccountsNodeChildrenTableRows<TData = {}>({
   node,
@@ -49,6 +50,7 @@ export function AccountsNodeTableRow<TData = {}>({
 }) {
   const expandedStateKey = `${viewPrefix}-account-group-${node.id}-expanded`;
   const [isExpanded, setIsExpanded] = useState(false);
+  const accountBook = useAccountBook();
 
   useLayoutEffect(() => {
     setIsExpanded(sessionStorage.getItem(expandedStateKey) === "true");
@@ -65,7 +67,7 @@ export function AccountsNodeTableRow<TData = {}>({
     <>
       <TableRow
         {...(node.nodeType === "account"
-          ? { href: `/accounts/${node.id}` }
+          ? { href: `/${accountBook.id}/accounts/${node.id}` }
           : {
               onClick: () => {
                 toggleExpanded();

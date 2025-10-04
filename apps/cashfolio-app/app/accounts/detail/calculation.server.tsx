@@ -15,7 +15,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import type { Booking } from "~/.prisma-client/client";
 import { Unit as UnitEnum } from "~/.prisma-client/enums";
 
-export async function getAccount(accountId: string) {
+export async function getAccount(accountId: string, accountBookId: string) {
   if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
     const equityRootGroup = await prisma.accountGroup.findFirst({
       where: { type: "EQUITY", parentGroupId: null },
@@ -29,7 +29,7 @@ export async function getAccount(accountId: string) {
   if (accountId.startsWith("holding-gain-loss-")) {
     const baseAccountId = accountId.substring("holding-gain-loss-".length);
     const baseAccount = await prisma.account.findUnique({
-      where: { id: baseAccountId },
+      where: { id_accountBookId: { id: baseAccountId, accountBookId } },
     });
     if (!baseAccount) {
       throw new Error(`Base account ${baseAccountId} not found`);
@@ -41,13 +41,14 @@ export async function getAccount(accountId: string) {
   }
 
   return await prisma.account.findUnique({
-    where: { id: accountId },
+    where: { id_accountBookId: { id: accountId, accountBookId } },
     include: { group: true },
   });
 }
 
 export async function getBookings(
   accountId: string,
+  accountBookId: string,
   fromDate: Date,
   toDate: Date,
 ) {
@@ -58,7 +59,7 @@ export async function getBookings(
   if (accountId.startsWith("holding-gain-loss-")) {
     const baseAccountId = accountId.substring("holding-gain-loss-".length);
     const baseAccount = await prisma.account.findUnique({
-      where: { id: baseAccountId },
+      where: { id_accountBookId: { id: baseAccountId, accountBookId } },
       include: {
         bookings: { where: { date: { gte: fromDate, lte: toDate } } },
       },
@@ -76,6 +77,7 @@ export async function getBookings(
   return await prisma.booking.findMany({
     where: {
       accountId,
+      accountBookId,
       AND: [
         ...(fromDate ? [{ date: { gte: fromDate } }] : []),
         ...(toDate ? [{ date: { lte: toDate } }] : []),

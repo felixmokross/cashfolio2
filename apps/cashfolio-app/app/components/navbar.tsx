@@ -34,15 +34,17 @@ import {
 } from "~/platform/icons/navigation";
 import { PeriodSelector } from "~/period/period-selector";
 import { useRouteLoaderData } from "react-router";
-import { type loader as layoutLoader } from "../layout/route";
 import { Logo } from "~/components/logo";
+import type { loader as accountBookLoader } from "~/account-books/route";
 
 export function Navbar() {
-  const layoutLoaderData = useRouteLoaderData<typeof layoutLoader>("layout");
-  if (!layoutLoaderData) {
-    throw new Error("No layout loader data");
+  const accountBookLoaderData = useRouteLoaderData<typeof accountBookLoader>(
+    "account-books/route",
+  );
+  if (!accountBookLoaderData) {
+    throw new Error("No account book loader data");
   }
-  const { user } = layoutLoaderData;
+  const { user, accountBook } = accountBookLoaderData;
 
   return (
     <Sidebar>
@@ -58,15 +60,15 @@ export function Navbar() {
           </SidebarLabel>
         </Link>
         <SidebarSection>
-          <NavSidebarItem href="/balances">
+          <NavSidebarItem href={`/${accountBook.id}/balances`}>
             <ScaleIcon />
             <SidebarLabel>Balances</SidebarLabel>
           </NavSidebarItem>
-          <NavSidebarItem href="/income">
+          <NavSidebarItem href={`/${accountBook.id}/income`}>
             <ArrowTrendingUpIcon />
             <SidebarLabel>Income</SidebarLabel>
           </NavSidebarItem>
-          <NavSidebarItem href="/accounts">
+          <NavSidebarItem href={`/${accountBook.id}/accounts`}>
             <WalletIcon />
             <SidebarLabel>Accounts</SidebarLabel>
           </NavSidebarItem>

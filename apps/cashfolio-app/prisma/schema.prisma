@@ -32,22 +32,37 @@ enum Unit {
   SECURITY
 }
 
+model AccountBook {
+  id   String @default(cuid())
+  name String
+
+  groups       AccountGroup[]
+  accounts     Account[]
+  transactions Transaction[]
+  bookings     Booking[]
+
+  @@id([id])
+}
+
 model AccountGroup {
   id   String      @default(cuid())
   name String
   slug String
   type AccountType
 
-  parentGroup   AccountGroup? @relation("parent-child", fields: [parentGroupId], references: [id], onDelete: Restrict)
+  parentGroup   AccountGroup? @relation("parent-child", fields: [parentGroupId, accountBookId], references: [id, accountBookId], onDelete: Restrict)
   parentGroupId String?
 
   childGroups AccountGroup[] @relation("parent-child")
   accounts    Account[]
 
+  accountBook   AccountBook @relation(fields: [accountBookId], references: [id], onDelete: Cascade)
+  accountBookId String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@id([id])
+  @@id([id, accountBookId])
   @@unique([slug])
 }
 
@@ -58,7 +73,7 @@ model Account {
   type                 AccountType
   equityAccountSubtype EquityAccountSubtype?
 
-  group   AccountGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  group   AccountGroup @relation(fields: [groupId, accountBookId], references: [id, accountBookId], onDelete: Restrict)
   groupId String
 
   unit           Unit?
@@ -69,10 +84,13 @@ model Account {
 
   bookings Booking[]
 
+  accountBook   AccountBook @relation(fields: [accountBookId], references: [id], onDelete: Cascade)
+  accountBookId String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@id([id])
+  @@id([id, accountBookId])
   @@unique([slug])
 }
 
@@ -82,10 +100,13 @@ model Transaction {
 
   bookings Booking[]
 
+  accountBook   AccountBook @relation(fields: [accountBookId], references: [id], onDelete: Cascade)
+  accountBookId String
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@id([id])
+  @@id([id, accountBookId])
 }
 
 model Booking {
@@ -94,10 +115,10 @@ model Booking {
   description String
 
   transactionId String
-  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  transaction   Transaction @relation(fields: [transactionId, accountBookId], references: [id, accountBookId], onDelete: Cascade)
 
   accountId String
-  account   Account @relation(fields: [accountId], references: [id])
+  account   Account @relation(fields: [accountId, accountBookId], references: [id, accountBookId])
 
   unit           Unit
   currency       String?
@@ -107,5 +128,8 @@ model Booking {
 
   value Decimal
 
-  @@id([id])
+  accountBook   AccountBook @relation(fields: [accountBookId], references: [id], onDelete: Cascade)
+  accountBookId String
+
+  @@id([id, accountBookId])
 }
