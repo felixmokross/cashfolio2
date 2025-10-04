@@ -9,7 +9,6 @@ import {
   buildAccountGroup,
   buildAccountWithBookings,
   buildBooking,
-  buildTransactionWithBookings,
 } from "../builders";
 import { formatISODate } from "~/formatting";
 import { getExchangeRate } from "~/fx.server";
@@ -23,6 +22,10 @@ vi.mock("~/fx.server", async () => ({
   convert,
   getExchangeRate: (...args: Parameters<typeof mockGetExchangeRate>) =>
     mockGetExchangeRate(...args),
+}));
+
+vi.mock("~/redis.server", async () => ({
+  redis: {},
 }));
 
 // needs to be redefined, because the real function will not use the mocked 'getExchangeRate' since it is in the same module
