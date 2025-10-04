@@ -33,6 +33,7 @@ import {
 } from "~/platform/icons/standard";
 import { Badge } from "~/platform/badge";
 import { isSameUnit } from "~/fx";
+import { useAccountBook } from "~/account-books/hooks";
 
 export function Page({
   loaderData: { account, allAccounts, ledgerUnit, openingBalance, ledgerRows },
@@ -44,6 +45,8 @@ export function Page({
 
   const { deleteTransactionProps, onDeleteTransaction } =
     useDeleteTransaction();
+
+  const accountBook = useAccountBook();
 
   return (
     <>
@@ -111,7 +114,7 @@ export function Page({
                   ),
                 ).map((accountId, i, arr) => (
                   <Fragment key={accountId}>
-                    <TextLink href={`/accounts/${accountId}`}>
+                    <TextLink href={`/${accountBook.id}/accounts/${accountId}`}>
                       {allAccounts.find((a) => a.id === accountId)?.name}
                     </TextLink>
                     {i < arr.length - 1 ? ", " : null}
