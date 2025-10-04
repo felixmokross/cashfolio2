@@ -6,7 +6,7 @@ app = '$FLY_APP'
 primary_region = '$FLY_PRIMARY_REGION'
 
 [http_service]
-  internal_port = 5173
+  internal_port = 3000
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
