@@ -22,7 +22,7 @@ FROM base AS build
 
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3 openssl
+    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
 
 # Install node modules
 COPY --link package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -42,10 +42,13 @@ RUN pnpm --dir apps/cashfolio-app prune --prod
 
 # Final stage for app image
 FROM base
+# Install openssl needed to run Prisma
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y openssl
 
 # Copy built application
 COPY --from=build /app /app
 
 # Start the server by default, this can be overwritten at runtime
-EXPOSE 5173
+EXPOSE 3000
 CMD [ "pnpm", "--filter", "cashfolio-app", "start" ]
