@@ -1,5 +1,4 @@
 import { data, type ActionFunctionArgs } from "react-router";
-import slugify from "slugify";
 import { prisma } from "~/prisma.server";
 import { getFormValues, hasErrors, validate } from "./shared";
 import { ensureAuthenticated } from "~/auth/functions.server";
@@ -20,7 +19,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
   await prisma.account.create({
     data: {
       name: values.name,
-      slug: slugify(values.name, { lower: true }),
       groupId: values.groupId,
       type: values.type as AccountType,
       unit: values.unit as Unit,

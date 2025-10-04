@@ -45,7 +45,7 @@ export function Navbar() {
   if (!accountBookLoaderData) {
     throw new Error("No account book loader data");
   }
-  const { user, accountBook } = accountBookLoaderData;
+  const { userClaims, accountBook } = accountBookLoaderData;
 
   return (
     <Sidebar>
@@ -86,13 +86,18 @@ export function Navbar() {
         <Dropdown>
           <DropdownButton as={SidebarItem}>
             <span className="flex min-w-0 items-center gap-3">
-              <Avatar src={user.picture} className="size-10" square alt="" />
+              <Avatar
+                src={userClaims.picture}
+                className="size-10"
+                square
+                alt=""
+              />
               <span className="min-w-0">
                 <span className="block truncate text-sm/5 font-medium text-neutral-950 dark:text-white">
-                  {user.name}
+                  {userClaims.name}
                 </span>
                 <span className="block truncate text-xs/5 font-normal text-neutral-500 dark:text-neutral-400">
-                  {user.email}
+                  {userClaims.email}
                 </span>
               </span>
             </span>

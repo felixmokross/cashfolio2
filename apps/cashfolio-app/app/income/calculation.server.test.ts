@@ -75,6 +75,7 @@ describe.skip("generateFxBookingsForFxAccount", () => {
     );
 
     const result = await generateHoldingBookingsForAccount(
+      { id: "book-1", name: "Account Book", referenceCurrency: "CHF" },
       {
         ...buildAccount({ id: "fx-account", currency: "EUR" }),
         bookings: [
@@ -115,6 +116,7 @@ describe.skip("generateFxBookingsForFxAccount", () => {
 
   test("returns an empty array if there is no booking", async () => {
     const result = await generateHoldingBookingsForAccount(
+      { id: "book-1", name: "Account Book", referenceCurrency: "CHF" },
       {
         ...buildAccount({ id: "fx-account", currency: "EUR" }),
         bookings: [],
@@ -155,28 +157,32 @@ describe.skip("completeFxTransaction", () => {
       getFxRate(date, from, to),
     );
 
-    const result = await completeTransaction({
-      id: "transaction_1",
-      description: "FX transaction",
-      bookings: [
-        buildBooking({
-          id: "booking_1",
-          accountId: "account_1",
-          date: new Date("2025-01-03"),
-          value: new Decimal(-100),
-          currency: "EUR",
-        }),
-        buildBooking({
-          id: "booking_2",
-          date: new Date("2025-01-04"),
-          accountId: "account_2",
-          value: new Decimal(88),
-          currency: "CHF",
-        }),
-      ],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    const result = await completeTransaction(
+      { id: "book-1", name: "Account Book", referenceCurrency: "CHF" },
+      {
+        id: "transaction_1",
+        description: "FX transaction",
+        bookings: [
+          buildBooking({
+            id: "booking_1",
+            accountId: "account_1",
+            date: new Date("2025-01-03"),
+            value: new Decimal(-100),
+            currency: "EUR",
+          }),
+          buildBooking({
+            id: "booking_2",
+            date: new Date("2025-01-04"),
+            accountId: "account_2",
+            value: new Decimal(88),
+            currency: "CHF",
+          }),
+        ],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        accountBookId: "book-1",
+      },
+    );
 
     expect(result).toEqual(new Decimal(2));
   });
@@ -263,6 +269,7 @@ describe.skip("getProfitLossStatement", () => {
 
     const result = (
       await getIncomeData(
+        { id: "book-1", name: "Account Book", referenceCurrency: "CHF" },
         [
           buildAccountWithBookings({
             id: "asset-account-1",

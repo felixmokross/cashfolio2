@@ -12,7 +12,7 @@ import {
   TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
 } from "~/income/calculation.server";
 import { Decimal } from "@prisma/client/runtime/library";
-import type { Booking } from "~/.prisma-client/client";
+import type { AccountBook, Booking } from "~/.prisma-client/client";
 import { Unit as UnitEnum } from "~/.prisma-client/enums";
 
 export async function getAccount(accountId: string, accountBookId: string) {
@@ -48,18 +48,24 @@ export async function getAccount(accountId: string, accountBookId: string) {
 
 export async function getBookings(
   accountId: string,
-  accountBookId: string,
+  accountBook: AccountBook,
   fromDate: Date,
   toDate: Date,
 ) {
   if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
-    return await generateTransactionGainLossBookings(fromDate, toDate);
+    return await generateTransactionGainLossBookings(
+      accountBook,
+      fromDate,
+      toDate,
+    );
   }
 
   if (accountId.startsWith("holding-gain-loss-")) {
     const baseAccountId = accountId.substring("holding-gain-loss-".length);
     const baseAccount = await prisma.account.findUnique({
-      where: { id_accountBookId: { id: baseAccountId, accountBookId } },
+      where: {
+        id_accountBookId: { id: baseAccountId, accountBookId: accountBook.id },
+      },
       include: {
         bookings: { where: { date: { gte: fromDate, lte: toDate } } },
       },
@@ -68,6 +74,7 @@ export async function getBookings(
       throw new Error(`Base account ${baseAccountId} not found`);
     }
     return await generateHoldingBookingsForAccount(
+      accountBook,
       baseAccount,
       fromDate,
       toDate,
@@ -77,7 +84,7 @@ export async function getBookings(
   return await prisma.booking.findMany({
     where: {
       accountId,
-      accountBookId,
+      accountBookId: accountBook.id,
       AND: [
         ...(fromDate ? [{ date: { gte: fromDate } }] : []),
         ...(toDate ? [{ date: { lte: toDate } }] : []),

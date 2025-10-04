@@ -131,12 +131,14 @@ export async function generateHoldingBookingsForAccount(
       tradeCurrency: null,
       description: "",
       transactionId: "transaction-fx-profit-loss",
+      accountBookId: accountBook.id,
       transaction: {
         id: "transaction-fx-profit-loss",
         description: `Holding G/L as of ${formatISO(date, { representation: "date" })}`,
         createdAt: new Date(),
         updatedAt: new Date(),
         bookings: [],
+        accountBookId: accountBook.id,
       },
     };
 
@@ -187,7 +189,6 @@ export function generateTransactionGainLossAccount(
   return {
     id: TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
     name: "Transaction Gain/Loss",
-    slug: "transaction-gain-loss",
     groupId: equityRootGroup.id,
     type: AccountType.EQUITY,
     equityAccountSubtype: EquityAccountSubtype.GAIN_LOSS,
@@ -198,6 +199,7 @@ export function generateTransactionGainLossAccount(
     cryptocurrency: null,
     symbol: null,
     tradeCurrency: null,
+    accountBookId: equityRootGroup.accountBookId,
   };
 }
 
@@ -243,6 +245,7 @@ export async function generateTransactionGainLossBookings(
       description: `Transaction Gain/Loss for transaction ${t.description}`,
       transactionId: t.id,
       transaction: t,
+      accountBookId: accountBook.id,
     };
   }
   return (
@@ -260,7 +263,6 @@ export function generateHoldingGainLossAccount(account: Account): Account {
     type: AccountType.EQUITY,
     equityAccountSubtype: EquityAccountSubtype.GAIN_LOSS,
     name: `${account.unit === Unit.CURRENCY ? "FX" : account.unit === Unit.CRYPTOCURRENCY ? "Crypto" : "Security"} Holding Gain/Loss for ${account.name}`,
-    slug: `holding-gain-loss-${account.slug}`,
     groupId: `${account.unit === Unit.CURRENCY ? "fx" : account.unit === Unit.CRYPTOCURRENCY ? "crypto" : "security"}-${account.currency || account.cryptocurrency || account.symbol}-accounts`,
     unit: null,
     currency: null,
@@ -269,6 +271,7 @@ export function generateHoldingGainLossAccount(account: Account): Account {
     tradeCurrency: null,
     createdAt: new Date(),
     updatedAt: new Date(),
+    accountBookId: account.accountBookId,
   };
 }
 
@@ -288,41 +291,41 @@ export async function getIncomeData(
   const investmentGainLossGroup: AccountGroup = {
     id: "investment-holding-gain-loss",
     name: "Investment Holding Gain/Loss",
-    slug: "investment-holding-gain-loss",
     type: AccountType.EQUITY,
     parentGroupId: equityRootGroup.id,
     createdAt: new Date(),
     updatedAt: new Date(),
+    accountBookId: accountBook.id,
   };
 
   const fxHoldingGainLossGroup: AccountGroup = {
     id: "fx-holding-gain-loss",
     name: "FX Holding Gain/Loss",
-    slug: "fx-holding-gain-loss",
     type: AccountType.EQUITY,
     parentGroupId: investmentGainLossGroup.id,
     createdAt: new Date(),
     updatedAt: new Date(),
+    accountBookId: accountBook.id,
   };
 
   const cryptoHoldingGainLossGroup: AccountGroup = {
     id: "crypto-holding-gain-loss",
     name: "Crypto Holding Gain/Loss",
-    slug: "crypto-holding-gain-loss",
     type: AccountType.EQUITY,
     parentGroupId: investmentGainLossGroup.id,
     createdAt: new Date(),
     updatedAt: new Date(),
+    accountBookId: accountBook.id,
   };
 
   const securityHoldingGainLossGroup: AccountGroup = {
     id: "security-holding-gain-loss",
     name: "Security Holding Gain/Loss",
-    slug: "security-holding-gain-loss",
     type: AccountType.EQUITY,
     parentGroupId: investmentGainLossGroup.id,
     createdAt: new Date(),
     updatedAt: new Date(),
+    accountBookId: accountBook.id,
   };
 
   const nonRefCurrencyAccounts = accounts.filter(
@@ -350,30 +353,30 @@ export async function getIncomeData(
           ? {
               id: `fx-${a.currency}-accounts`,
               name: `${a.currency}`,
-              slug: `fx-${a.currency}`,
               type: AccountType.EQUITY,
               parentGroupId: fxHoldingGainLossGroup.id,
               createdAt: new Date(),
               updatedAt: new Date(),
+              accountBookId: accountBook.id,
             }
           : a.unit === Unit.CRYPTOCURRENCY
             ? {
                 id: `crypto-${a.cryptocurrency}-accounts`,
                 name: `${a.cryptocurrency}`,
-                slug: `crypto-${a.cryptocurrency}`,
                 type: AccountType.EQUITY,
                 parentGroupId: cryptoHoldingGainLossGroup.id,
                 createdAt: new Date(),
                 updatedAt: new Date(),
+                accountBookId: accountBook.id,
               }
             : {
                 id: `security-${a.symbol}-accounts`,
                 name: `${a.symbol}`,
-                slug: `security-${a.symbol}`,
                 type: AccountType.EQUITY,
                 parentGroupId: securityHoldingGainLossGroup.id,
                 createdAt: new Date(),
                 updatedAt: new Date(),
+                accountBookId: accountBook.id,
               };
     }
 

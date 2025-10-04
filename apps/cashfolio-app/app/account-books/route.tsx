@@ -1,27 +1,42 @@
 import { Outlet, type LoaderFunctionArgs } from "react-router";
+import invariant from "tiny-invariant";
 import { ensureAuthenticated } from "~/auth/functions.server";
 import { Navbar } from "~/components/navbar";
 import { getPeriod } from "~/period/functions";
 import { SidebarLayout } from "~/platform/sidebar-layout";
 import { prisma } from "~/prisma.server";
+import { getUserOrThrow } from "~/users/data";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const context = await ensureAuthenticated(request, true);
-  if (!context.userInfo) {
-    throw new Error("No user info");
+  const userContext = await ensureAuthenticated(request);
+  const user = await getUserOrThrow(userContext);
+  invariant(params.accountBookId, "accountBookId is required");
+
+  const userAccountBookLink = await prisma.userAccountBookLink.findUnique({
+    where: {
+      userId_accountBookId: {
+        userId: user.id,
+        accountBookId: params.accountBookId,
+      },
+    },
+  });
+
+  if (!userAccountBookLink) {
+    throw new Response(null, { status: 404 });
   }
-  if (!params.accountBookId) {
-    throw new Response("No account book ID specified", { status: 400 });
-  }
+
   const accountBook = await prisma.accountBook.findUnique({
-    where: { id: params.accountBookId },
+    where: { id: userAccountBookLink.accountBookId },
   });
   if (!accountBook) {
     throw new Response("Not Found", { status: 404 });
   }
+  if (!userContext.claims) {
+    throw new Response("No user claims", { status: 500 });
+  }
   return {
     accountBook,
-    user: context.userInfo,
+    userClaims: userContext.claims,
     period: await getPeriod(request),
   };
 }

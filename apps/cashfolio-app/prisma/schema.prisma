@@ -32,6 +32,23 @@ enum Unit {
   SECURITY
 }
 
+model User {
+  id         String @id @default(cuid())
+  externalId String @unique
+
+  accountBookLinks UserAccountBookLink[]
+}
+
+model UserAccountBookLink {
+  userId        String
+  accountBookId String
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountBook AccountBook @relation(fields: [accountBookId], references: [id], onDelete: Cascade)
+
+  @@id([userId, accountBookId])
+}
+
 model AccountBook {
   id                String @default(cuid())
   name              String
@@ -42,13 +59,14 @@ model AccountBook {
   transactions Transaction[]
   bookings     Booking[]
 
+  userLinks UserAccountBookLink[]
+
   @@id([id])
 }
 
 model AccountGroup {
   id   String      @default(cuid())
   name String
-  slug String
   type AccountType
 
   parentGroup   AccountGroup? @relation("parent-child", fields: [parentGroupId, accountBookId], references: [id, accountBookId], onDelete: Restrict)
@@ -64,13 +82,11 @@ model AccountGroup {
   updatedAt DateTime @updatedAt
 
   @@id([id, accountBookId])
-  @@unique([slug])
 }
 
 model Account {
   id                   String                @default(cuid())
   name                 String
-  slug                 String
   type                 AccountType
   equityAccountSubtype EquityAccountSubtype?
 
@@ -92,7 +108,6 @@ model Account {
   updatedAt DateTime @updatedAt
 
   @@id([id, accountBookId])
-  @@unique([slug])
 }
 
 model Transaction {

@@ -2,9 +2,11 @@ import { data, type ActionFunctionArgs } from "react-router";
 import { ensureAuthenticated } from "~/auth/functions.server";
 import { prisma } from "~/prisma.server";
 import { getFormValues, validate, hasErrors } from "./shared";
+import { getUserOrThrow } from "~/users/data";
 
 export async function action({ request }: ActionFunctionArgs) {
-  await ensureAuthenticated(request);
+  const userContext = await ensureAuthenticated(request);
+  const user = await getUserOrThrow(userContext);
 
   const values = await getFormValues(request);
   const errors = validate(values);
@@ -18,10 +20,13 @@ export async function action({ request }: ActionFunctionArgs) {
       referenceCurrency: values.referenceCurrency,
       groups: {
         create: [
-          { name: "Assets", type: "ASSET", slug: "assets" },
-          { name: "Liabilities", type: "LIABILITY", slug: "liabilities" },
-          { name: "Equity", type: "EQUITY", slug: "equity" },
+          { name: "Assets", type: "ASSET" },
+          { name: "Liabilities", type: "LIABILITY" },
+          { name: "Equity", type: "EQUITY" },
         ],
+      },
+      userLinks: {
+        create: { userId: user.id },
       },
     },
   });

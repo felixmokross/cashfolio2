@@ -1,9 +1,8 @@
 import { program } from "commander";
 import { prisma } from "cashfolio-app/app/prisma.server";
-import * as TargetModel from "cashfolio-app/app/.prisma-client";
+import * as TargetModel from "cashfolio-app/app/.prisma-client/client";
 import { MongoClient } from "mongodb";
 import "dotenv/config";
-import slugify from "slugify";
 import { createId } from "@paralleldrive/cuid2";
 import * as SourceModel from "./source-model";
 
@@ -34,7 +33,6 @@ program
       const assetsGroup = await prisma.accountGroup.create({
         data: {
           name: "Assets",
-          slug: "assets",
           type: TargetModel.AccountType.ASSET,
         },
       });
@@ -42,7 +40,6 @@ program
       const liabilitiesGroup = await prisma.accountGroup.create({
         data: {
           name: "Liabilities",
-          slug: "liabilities",
           type: TargetModel.AccountType.LIABILITY,
         },
       });
@@ -50,7 +47,6 @@ program
       const equityGroup = await prisma.accountGroup.create({
         data: {
           name: "Equity",
-          slug: "equity",
           type: TargetModel.AccountType.EQUITY,
         },
       });
@@ -58,7 +54,6 @@ program
       const expensesGroup = await prisma.accountGroup.create({
         data: {
           name: "Expenses",
-          slug: "expenses",
           type: TargetModel.AccountType.EQUITY,
           parentGroupId: equityGroup.id,
         },
@@ -67,7 +62,6 @@ program
       const incomeGroup = await prisma.accountGroup.create({
         data: {
           name: "Income",
-          slug: "income",
           type: TargetModel.AccountType.EQUITY,
           parentGroupId: equityGroup.id,
         },
@@ -76,7 +70,6 @@ program
       const investmentGainLossAccount = await prisma.account.create({
         data: {
           name: "Investment Gain/Loss",
-          slug: "investment-gain-loss",
           type: TargetModel.AccountType.EQUITY,
           equityAccountSubtype: TargetModel.EquityAccountSubtype.GAIN_LOSS,
           groupId: equityGroup.id,
@@ -171,7 +164,6 @@ program
       const openingBalancesAccount = await prisma.account.create({
         data: {
           name: "Opening Balances",
-          slug: "opening-balances",
           type: TargetModel.AccountType.EQUITY,
           equityAccountSubtype: TargetModel.EquityAccountSubtype.GAIN_LOSS,
           groupId: equityGroup.id,
@@ -245,7 +237,6 @@ program
         return {
           id,
           name: sourceAccountCategory.name,
-          slug: slugify(sourceAccountCategory.name, { lower: true }) + `-${id}`,
           type:
             sourceAccountCategory.type === "ASSET"
               ? TargetModel.AccountType.ASSET
@@ -264,7 +255,6 @@ program
         return {
           id,
           name: sourceAccount.name,
-          slug: slugify(sourceAccount.name, { lower: true }) + `-${id}`,
           type:
             sourceAccount.categoryType === "ASSET"
               ? TargetModel.AccountType.ASSET
@@ -312,9 +302,6 @@ program
         return {
           id,
           name: sourceIncomeExpenseCategory.name,
-          slug:
-            slugify(sourceIncomeExpenseCategory.name, { lower: true }) +
-            `-${id}`,
           type: TargetModel.AccountType.EQUITY,
           equityAccountSubtype:
             type === SourceModel.BookingType.INCOME

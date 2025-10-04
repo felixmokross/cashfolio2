@@ -33,10 +33,14 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     throw new Response("Not Found", { status: 400 });
   }
 
+  const accountBook = await prisma.accountBook.findUniqueOrThrow({
+    where: { id: params.accountBookId },
+  });
+
   const [account, bookingsForPeriod, allAccounts, accountGroups] =
     await Promise.all([
       getAccount(params.accountId, params.accountBookId),
-      getBookings(params.accountId, params.accountBookId, from, to),
+      getBookings(params.accountId, accountBook, from, to),
       getAccounts(params.accountBookId),
       getAccountGroups(params.accountBookId),
     ]);

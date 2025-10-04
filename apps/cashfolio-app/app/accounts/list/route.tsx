@@ -7,14 +7,30 @@ import { getAccountsTree } from "~/account-groups/accounts-tree";
 import { ensureAuthenticated } from "~/auth/functions.server";
 import { Page } from "./page";
 import invariant from "tiny-invariant";
+import { prisma } from "~/prisma.server";
+import { getUserOrThrow } from "~/users/data";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  await ensureAuthenticated(request);
+  const userContext = await ensureAuthenticated(request);
+  const user = await getUserOrThrow(userContext);
   invariant(params.accountBookId, "accountBookId not found");
 
+  const userAccountBookLink = await prisma.userAccountBookLink.findUnique({
+    where: {
+      userId_accountBookId: {
+        userId: user.id,
+        accountBookId: params.accountBookId,
+      },
+    },
+  });
+
+  if (!userAccountBookLink) {
+    return new Response(null, { status: 404 });
+  }
+
   const [accounts, accountGroups] = await Promise.all([
-    getAccounts(params.accountBookId),
-    getAccountGroups(params.accountBookId),
+    getAccounts(userAccountBookLink.accountBookId),
+    getAccountGroups(userAccountBookLink.accountBookId),
   ]);
   const accountGroupsWithPath = accountGroups.map((ag) => ({
     ...ag,

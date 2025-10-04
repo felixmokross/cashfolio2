@@ -5,14 +5,12 @@ import { routes as transactionRoutes } from "../transactions/routes";
 import { routes as periodRoutes } from "../period/routes";
 
 export const routes = [
-  index("account-books/no-account-book/route.tsx"),
-
   route("account-books/create", "account-books/actions/create.ts"),
   route("account-books/update", "account-books/actions/update.ts"),
   route("account-books/delete", "account-books/actions/delete.ts"),
 
   route(":accountBookId", "account-books/route.tsx", [
-    index("home/route.ts"),
+    index("account-books/home/route.ts"),
     route("settings", "account-books/settings/route.tsx"),
     route("balances", "balances/route.tsx"),
     route("income", "income/route.tsx"),

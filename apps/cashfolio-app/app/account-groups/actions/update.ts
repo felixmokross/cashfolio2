@@ -1,5 +1,4 @@
 import { data, type ActionFunctionArgs } from "react-router";
-import slugify from "slugify";
 import { prisma } from "~/prisma.server";
 import { getFormValues, hasErrors, validate } from "./shared";
 import { ensureAuthenticated } from "~/auth/functions.server";
@@ -22,7 +21,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
     },
     data: {
       name: values.name,
-      slug: slugify(values.name, { lower: true }),
       parentGroupId: values.parentGroupId || null,
     },
   });

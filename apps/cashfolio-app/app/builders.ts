@@ -15,12 +15,12 @@ export function buildAccountGroup(
   return {
     id: "group_1",
     name: "My Account Group",
-    slug: "my-account-group",
 
     parentGroupId: null,
     type: AccountType.ASSET,
     createdAt: new Date(),
     updatedAt: new Date(),
+    accountBookId: "account_book_1",
     ...values,
   };
 }
@@ -29,7 +29,6 @@ export function buildAccount(values: Partial<Account> = {}): Account {
   return {
     id: "account_1",
     name: "My Account",
-    slug: "my-account",
     groupId: "group_1",
     type: AccountType.ASSET,
     unit: Unit.CURRENCY,
@@ -40,6 +39,7 @@ export function buildAccount(values: Partial<Account> = {}): Account {
     equityAccountSubtype: null,
     createdAt: new Date(),
     updatedAt: new Date(),
+    accountBookId: "account_book_1",
     ...values,
   };
 }
@@ -66,6 +66,7 @@ export function buildBooking(values: Partial<Booking> = {}): Booking {
     cryptocurrency: null,
     date: new Date(),
     description: "Test Booking",
+    accountBookId: "account_book_1",
     ...values,
   };
 }
@@ -78,6 +79,7 @@ export function buildTransaction(
     description: "Test Transaction",
     createdAt: new Date(),
     updatedAt: new Date(),
+    accountBookId: "account_book_1",
     ...values,
   };
 }
