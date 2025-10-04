@@ -28,6 +28,10 @@ vi.mock("~/redis.server", async () => ({
   redis: {},
 }));
 
+vi.mock("~/prisma.server", async () => ({
+  prisma: {},
+}));
+
 // needs to be redefined, because the real function will not use the mocked 'getExchangeRate' since it is in the same module
 async function convert(
   value: Decimal,
