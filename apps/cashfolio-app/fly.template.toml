@@ -18,5 +18,8 @@ primary_region = '$FLY_PRIMARY_REGION'
   cpu_kind = '$FLY_CPU_KIND'
   cpus = $FLY_CPUS
 
+[deploy]
+  release_command = "pnpm --filter cashfolio-app exec prisma migrate deploy"
+
 [env]
   CANONICAL_HOSTNAME = '$CANONICAL_HOSTNAME'
