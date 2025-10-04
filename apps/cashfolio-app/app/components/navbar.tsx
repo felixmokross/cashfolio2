@@ -100,7 +100,7 @@ export function Navbar() {
               <UserIcon />
               <DropdownLabel>My profile</DropdownLabel>
             </DropdownItem>
-            <DropdownItem href="/settings">
+            <DropdownItem href={`/${accountBook.id}/settings`}>
               <Cog8ToothIcon />
               <DropdownLabel>Settings</DropdownLabel>
             </DropdownItem>

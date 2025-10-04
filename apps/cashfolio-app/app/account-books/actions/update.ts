@@ -1,7 +1,7 @@
 import { data, type ActionFunctionArgs } from "react-router";
 import { ensureAuthenticated } from "~/auth/functions.server";
+import { getFormValues, hasErrors, validate } from "./shared";
 import { prisma } from "~/prisma.server";
-import { getFormValues, validate, hasErrors } from "./shared";
 
 export async function action({ request }: ActionFunctionArgs) {
   await ensureAuthenticated(request);
@@ -12,17 +12,11 @@ export async function action({ request }: ActionFunctionArgs) {
     return data({ success: false, errors }, { status: 400 });
   }
 
-  await prisma.accountBook.create({
+  await prisma.accountBook.update({
+    where: { id: values.id! },
     data: {
-      name: "New Account Book",
+      name: values.name,
       referenceCurrency: values.referenceCurrency,
-      groups: {
-        create: [
-          { name: "Assets", type: "ASSET", slug: "assets" },
-          { name: "Liabilities", type: "LIABILITY", slug: "liabilities" },
-          { name: "Equity", type: "EQUITY", slug: "equity" },
-        ],
-      },
     },
   });
 
