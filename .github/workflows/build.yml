@@ -38,6 +38,8 @@ jobs:
         uses: superfly/flyctl-actions/setup-flyctl@master
         with:
           version: ${{ env.FLYCTL_VERSION }}
+      - name: Setup
+        uses: felixmokross/webplatform/.github/actions/setup@main
       - name: Set version on cashfolio-app
         run: |
           pnpm version ${{ needs.version.outputs.version }} --git-tag-version false
