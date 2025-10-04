@@ -14,9 +14,7 @@ export const Default: Story = {
   args: {},
   render() {
     const { deleteTransactionProps, onDeleteTransaction } =
-      useDeleteTransaction({
-        returnToAccountId: "1",
-      });
+      useDeleteTransaction();
     return (
       <>
         <Button variant="destructive" onClick={() => onDeleteTransaction("1")}>

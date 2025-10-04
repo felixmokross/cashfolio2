@@ -36,6 +36,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
+    viewPrefix: "accountGroups",
     node: {
       id: "cmfb6zp1m000435oscptmvjkk",
       name: "Assets",
@@ -67,6 +68,9 @@ export const Default: Story = {
               unit: "CURRENCY",
               currency: "CHF",
               cryptocurrency: null,
+              symbol: null,
+              tradeCurrency: null,
+              equityAccountSubtype: null,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
               nodeType: "account",
@@ -81,6 +85,9 @@ export const Default: Story = {
               unit: "CURRENCY",
               currency: "CHF",
               cryptocurrency: null,
+              symbol: null,
+              tradeCurrency: null,
+              equityAccountSubtype: null,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
               nodeType: "account",

@@ -15,6 +15,7 @@ import { formatISODate } from "~/formatting";
 import { getExchangeRate } from "~/fx.server";
 import type { Unit } from "~/fx";
 import { Decimal } from "@prisma/client/runtime/library";
+import { AccountType } from "~/.prisma-client/enums";
 
 const mockGetExchangeRate = vi.fn();
 
@@ -81,6 +82,7 @@ describe.skip("generateFxBookingsForFxAccount", () => {
           }),
         ],
       },
+      new Date("2025-01-01"),
       new Date("2025-01-04"),
     );
 
@@ -110,6 +112,7 @@ describe.skip("generateFxBookingsForFxAccount", () => {
         ...buildAccount({ id: "fx-account", currency: "EUR" }),
         bookings: [],
       },
+      new Date("2025-01-01"),
       new Date("2025-01-04"),
     );
 
@@ -175,23 +178,23 @@ describe.skip("completeFxTransaction", () => {
 describe.skip("getProfitLossStatement", () => {
   test("generates the profit/loss statement", async () => {
     const fxRates = {
-      "2024-12-31_EUR_CHF": new Prisma.Decimal(1.1),
-      "2025-01-01_EUR_CHF": new Prisma.Decimal(1.2),
-      "2025-01-02_EUR_CHF": new Prisma.Decimal(1.3),
-      "2025-01-03_EUR_CHF": new Prisma.Decimal(1.2),
-      "2025-01-04_EUR_CHF": new Prisma.Decimal(0.9),
+      "2024-12-31_EUR_CHF": new Decimal(1.1),
+      "2025-01-01_EUR_CHF": new Decimal(1.2),
+      "2025-01-02_EUR_CHF": new Decimal(1.3),
+      "2025-01-03_EUR_CHF": new Decimal(1.2),
+      "2025-01-04_EUR_CHF": new Decimal(0.9),
     };
 
     async function getFxRate(
       date: Date,
       from: Unit,
       to: Unit,
-    ): Promise<Prisma.Decimal> {
+    ): Promise<Decimal> {
       if (from.unit !== "CURRENCY") throw new Error("Only currency supported");
       if (to.unit !== "CURRENCY") throw new Error("Only currency supported");
 
       if (from.currency === to.currency) {
-        return new Prisma.Decimal(1);
+        return new Decimal(1);
       }
 
       const key = `${formatISODate(date)}_${from.currency}_${to.currency}`;
@@ -206,48 +209,48 @@ describe.skip("getProfitLossStatement", () => {
     // ref currency opening balance
     const booking1 = buildBooking({
       date: new Date("2024-12-31"),
-      value: new Prisma.Decimal(1000),
+      value: new Decimal(1000),
       currency: "CHF",
     });
     const booking2 = buildBooking({
       date: new Date("2024-12-31"),
-      value: new Prisma.Decimal(-1000),
+      value: new Decimal(-1000),
       currency: "CHF",
     });
 
     // FX opening balance
     const booking3 = buildBooking({
       date: new Date("2024-12-31"),
-      value: new Prisma.Decimal(500),
+      value: new Decimal(500),
       currency: "EUR",
     });
     const booking4 = buildBooking({
       date: new Date("2024-12-31"),
-      value: new Prisma.Decimal(-500),
+      value: new Decimal(-500),
       currency: "EUR",
     });
 
     // ref currency expense
     const booking5 = buildBooking({
       date: new Date("2025-01-02"),
-      value: new Prisma.Decimal(-20),
+      value: new Decimal(-20),
       currency: "CHF",
     });
     const booking6 = buildBooking({
       date: new Date("2025-01-02"),
-      value: new Prisma.Decimal(20),
+      value: new Decimal(20),
       currency: "CHF",
     });
 
     // FX transfer
     const booking7 = buildBooking({
       date: new Date("2025-01-03"),
-      value: new Prisma.Decimal(-300),
+      value: new Decimal(-300),
       currency: "EUR",
     });
     const booking8 = buildBooking({
       date: new Date("2025-01-03"),
-      value: new Prisma.Decimal(355),
+      value: new Decimal(355),
       currency: "CHF",
     });
 
@@ -278,34 +281,17 @@ describe.skip("getProfitLossStatement", () => {
           }),
         ],
         [buildAccountGroup({ id: "root-equity", type: AccountType.EQUITY })],
-        [
-          buildTransactionWithBookings({
-            id: "transaction-1",
-            bookings: [booking1, booking2],
-          }),
-          buildTransactionWithBookings({
-            id: "transaction-2",
-            bookings: [booking3, booking4],
-          }),
-          buildTransactionWithBookings({
-            id: "transaction-3",
-            bookings: [booking5, booking6],
-          }),
-          buildTransactionWithBookings({
-            id: "transaction-4",
-            bookings: [booking7, booking8],
-          }),
-        ],
+        new Date("2025-01-01"),
         new Date("2025-01-04"),
       )
     ).valueByAccountId;
 
     expect(result).toEqual(
-      new Map<string, Prisma.Decimal>([
-        ["groceries-account", new Prisma.Decimal(-20)],
-        ["fx-conversion", new Prisma.Decimal(-5)],
-        ["fx-holding-asset-account-2", new Prisma.Decimal(-10)],
-        ["opening-balances-account", new Prisma.Decimal(1550)],
+      new Map<string, Decimal>([
+        ["groceries-account", new Decimal(-20)],
+        ["fx-conversion", new Decimal(-5)],
+        ["fx-holding-asset-account-2", new Decimal(-10)],
+        ["opening-balances-account", new Decimal(1550)],
       ]),
     );
   });
