@@ -76,6 +76,10 @@ jobs:
           CANONICAL_HOSTNAME:
             ${{ inputs.environment == 'preview' && format('https://{0}.fly.dev',
             steps.create-app.outputs.app_name) || vars.CANONICAL_HOSTNAME }}
+          BASE_URL: ${{ vars.BASE_URL }}
+          COOKIE_DOMAIN: ${{ vars.COOKIE_DOMAIN }}
+          LOGTO_APP_ID: ${{ vars.LOGTO_APP_ID }}
+          LOGTO_ENDPOINT: ${{ vars.LOGTO_ENDPOINT }}
       - name: Deploy cashfolio-app
         run: |
           flyctl deploy \
