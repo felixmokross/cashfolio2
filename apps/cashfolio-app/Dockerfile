@@ -22,7 +22,7 @@ FROM base AS build
 
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
+    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3 openssl
 
 # Install node modules
 COPY --link package.json pnpm-lock.yaml pnpm-workspace.yaml ./
