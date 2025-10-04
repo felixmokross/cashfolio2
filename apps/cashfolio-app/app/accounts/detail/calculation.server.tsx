@@ -100,6 +100,7 @@ export async function getBookings(
 }
 
 export async function getBalanceCached(
+  accountBookId: string,
   accountId: string,
   ledgerUnit: Unit,
   date: Date,
@@ -115,6 +116,7 @@ export async function getBalanceCached(
 
   const bookings = await prisma.booking.findMany({
     where: {
+      accountBookId,
       accountId,
       date: {
         gt: cacheEntry ? new Date(cacheEntry.timestamp) : undefined,

@@ -1,13 +1,11 @@
 import { data, type ActionFunctionArgs } from "react-router";
 import { prisma } from "~/prisma.server";
 import { getFormValues, hasErrors, validate } from "./shared";
-import { ensureAuthenticated } from "~/auth/functions.server";
 import { Unit, type AccountType } from "~/.prisma-client/enums";
-import invariant from "tiny-invariant";
+import { ensureAuthorized } from "~/account-books/functions.server";
 
 export async function action({ request, params }: ActionFunctionArgs) {
-  await ensureAuthenticated(request);
-  invariant(params.accountBookId, "accountBookId not found");
+  const link = await ensureAuthorized(request, params);
 
   const values = await getFormValues(request);
   const errors = validate(values);
@@ -28,7 +26,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       symbol: values.unit === Unit.SECURITY ? values.symbol : null,
       tradeCurrency:
         values.unit === Unit.SECURITY ? values.tradeCurrency : null,
-      accountBookId: params.accountBookId,
+      accountBookId: link.accountBookId,
     },
   });
 

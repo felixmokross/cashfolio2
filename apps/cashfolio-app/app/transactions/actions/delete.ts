@@ -1,12 +1,10 @@
 import { data, type ActionFunctionArgs } from "react-router";
 import { prisma } from "~/prisma.server";
 import { purgeCachedBalances } from "./shared";
-import { ensureAuthenticated } from "~/auth/functions.server";
-import invariant from "tiny-invariant";
+import { ensureAuthorized } from "~/account-books/functions.server";
 
 export async function action({ request, params }: ActionFunctionArgs) {
-  await ensureAuthenticated(request);
-  invariant(params.accountBookId, "accountBookId not found");
+  const link = await ensureAuthorized(request, params);
 
   const form = await request.formData();
   const transactionId = form.get("transactionId");
@@ -23,7 +21,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     where: {
       id_accountBookId: {
         id: transactionId,
-        accountBookId: params.accountBookId,
+        accountBookId: link.accountBookId,
       },
     },
     include: { bookings: true },
@@ -36,7 +34,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     where: {
       id_accountBookId: {
         id: transactionId,
-        accountBookId: params.accountBookId,
+        accountBookId: link.accountBookId,
       },
     },
   });

@@ -1,5 +1,6 @@
 import type { LogtoContext } from "@logto/remix";
 import invariant from "tiny-invariant";
+import { ensureAuthenticated } from "~/auth/functions.server";
 import { prisma } from "~/prisma.server";
 
 export async function getOrCreateUser(userContext: LogtoContext) {
@@ -23,4 +24,10 @@ export async function getUserOrThrow(userContext: LogtoContext) {
   return await prisma.user.findUniqueOrThrow({
     where: { externalId: userContext.claims.sub },
   });
+}
+
+export async function ensureUser(request: Request) {
+  const userContext = await ensureAuthenticated(request);
+  const user = await getUserOrThrow(userContext);
+  return user;
 }

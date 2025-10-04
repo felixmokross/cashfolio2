@@ -56,6 +56,7 @@ async function getBalances(
   }
 
   const balanceInOriginalCurrency = await getBalanceCached(
+    accountBook.id,
     node.id,
     node.unit === Unit.CURRENCY
       ? {

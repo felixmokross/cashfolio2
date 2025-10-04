@@ -90,6 +90,7 @@ export async function generateHoldingBookingsForAccount(
           };
 
   let balance = await getBalanceCached(
+    accountBook.id,
     fxAccount.id,
     fxAccountUnit,
     initialDate,
@@ -143,7 +144,12 @@ export async function generateHoldingBookingsForAccount(
     };
 
     // TODO test this better, if new balance is set before calculating the FX booking value, it's wrong
-    balance = await getBalanceCached(fxAccount.id, fxAccountUnit, date);
+    balance = await getBalanceCached(
+      accountBook.id,
+      fxAccount.id,
+      fxAccountUnit,
+      date,
+    );
     fxRate = newFxRate;
   }
 
@@ -210,6 +216,7 @@ export async function generateTransactionGainLossBookings(
 ) {
   const transactions = await prisma.transaction.findMany({
     where: {
+      accountBookId: accountBook.id,
       // this ensures a transaction is always considered in the period into which the last booking falls
       AND: [
         // at least one booking within the period

@@ -7,13 +7,12 @@ import {
 } from "./shared";
 import { data, type ActionFunctionArgs } from "react-router";
 import invariant from "tiny-invariant";
-import { ensureAuthenticated } from "~/auth/functions.server";
 import { Unit } from "~/.prisma-client/enums";
 import { Decimal } from "@prisma/client/runtime/library";
+import { ensureAuthorized } from "~/account-books/functions.server";
 
 export async function action({ request, params }: ActionFunctionArgs) {
-  await ensureAuthenticated(request);
-  invariant(params.accountBookId, "accountBookId not found");
+  const link = await ensureAuthorized(request, params);
 
   const form = await request.formData();
   const description = form.get("description");
@@ -40,7 +39,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
           value: new Decimal(b.value),
         })),
       },
-      accountBookId: params.accountBookId,
+      accountBookId: link.accountBookId,
     },
   });
 

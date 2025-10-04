@@ -5,21 +5,19 @@ import { serialize } from "~/serialization";
 import { getAccountGroups } from "~/account-groups/data";
 import { prisma } from "~/prisma.server";
 import { getPeriodDateRange } from "~/period/functions";
-import { ensureAuthenticated } from "~/auth/functions.server";
-import invariant from "tiny-invariant";
+import { ensureAuthorized } from "~/account-books/functions.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  await ensureAuthenticated(request);
-  invariant(!!params.accountBookId, "accountBookId not found in params");
+  const link = await ensureAuthorized(request, params);
 
-  const { from, to } = await getPeriodDateRange(request, params.accountBookId);
+  const { from, to } = await getPeriodDateRange(request, link.accountBookId);
 
   const [accountBook, accounts, accountGroups] = await Promise.all([
     prisma.accountBook.findUniqueOrThrow({
-      where: { id: params.accountBookId },
+      where: { id: link.accountBookId },
     }),
     prisma.account.findMany({
-      where: { accountBookId: params.accountBookId },
+      where: { accountBookId: link.accountBookId },
       orderBy: { name: "asc" },
       include: {
         bookings: {
@@ -28,7 +26,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         },
       },
     }),
-    getAccountGroups(params.accountBookId),
+    getAccountGroups(link.accountBookId),
   ]);
 
   return serialize({

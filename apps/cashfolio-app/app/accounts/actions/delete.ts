@@ -1,11 +1,9 @@
 import { data, type ActionFunctionArgs } from "react-router";
-import invariant from "tiny-invariant";
-import { ensureAuthenticated } from "~/auth/functions.server";
+import { ensureAuthorized } from "~/account-books/functions.server";
 import { prisma } from "~/prisma.server";
 
 export async function action({ request, params }: ActionFunctionArgs) {
-  await ensureAuthenticated(request);
-  invariant(params.accountBookId, "accountBookId not found");
+  const link = await ensureAuthorized(request, params);
 
   const form = await request.formData();
 
@@ -19,7 +17,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   await prisma.account.delete({
     where: {
-      id_accountBookId: { id: accountId, accountBookId: params.accountBookId },
+      id_accountBookId: { id: accountId, accountBookId: link.accountBookId },
     },
   });
   return { success: true };

@@ -1,10 +1,11 @@
 import { data, type ActionFunctionArgs } from "react-router";
-import { ensureAuthenticated } from "~/auth/functions.server";
 import { getFormValues, hasErrors, validate } from "./shared";
 import { prisma } from "~/prisma.server";
+import { ensureAuthorizedForUserAndAccountBookId } from "../functions.server";
+import { ensureUser } from "~/users/data";
 
 export async function action({ request }: ActionFunctionArgs) {
-  await ensureAuthenticated(request);
+  const user = await ensureUser(request);
 
   const values = await getFormValues(request);
   const errors = validate(values);
@@ -12,8 +13,10 @@ export async function action({ request }: ActionFunctionArgs) {
     return data({ success: false, errors }, { status: 400 });
   }
 
+  const link = await ensureAuthorizedForUserAndAccountBookId(user, values.id!);
+
   await prisma.accountBook.update({
-    where: { id: values.id! },
+    where: { id: link.accountBookId },
     data: {
       name: values.name,
       referenceCurrency: values.referenceCurrency,

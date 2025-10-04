@@ -14,15 +14,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
   invariant(userContext.claims, "No user claims");
 
   const user = await getOrCreateUser(userContext);
-  const userWithAccountBookLinks = await prisma.user.findUniqueOrThrow({
-    where: { id: user.id },
-    include: { accountBookLinks: true },
+  const links = await prisma.userAccountBookLink.findMany({
+    where: { userId: user.id },
   });
 
-  if (userWithAccountBookLinks.accountBookLinks.length > 0) {
-    return redirect(
-      `/${userWithAccountBookLinks.accountBookLinks[0].accountBookId}/accounts`,
-    );
+  if (links.length > 0) {
+    return redirect(`/${links[0].accountBookId}/accounts`);
   }
 }
 

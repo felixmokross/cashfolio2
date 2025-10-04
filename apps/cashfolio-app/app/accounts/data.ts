@@ -6,12 +6,3 @@ export async function getAccounts(accountBookId: string) {
     orderBy: { name: "asc" },
   });
 }
-
-export async function getAccountsWithBookings(endDate: Date) {
-  return await prisma.account.findMany({
-    orderBy: { name: "asc" },
-    include: {
-      bookings: { orderBy: { date: "asc" }, where: { date: { lte: endDate } } },
-    },
-  });
-}

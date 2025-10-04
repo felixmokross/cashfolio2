@@ -7,28 +7,23 @@ import { SidebarLayout } from "~/platform/sidebar-layout";
 import { prisma } from "~/prisma.server";
 import { serialize } from "~/serialization";
 import { getUserOrThrow } from "~/users/data";
-import { getFirstBookingDate } from "./functions.server";
+import {
+  ensureAuthorizedForUserAndAccountBookId,
+  getFirstBookingDate,
+} from "./functions.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const userContext = await ensureAuthenticated(request);
   const user = await getUserOrThrow(userContext);
   invariant(params.accountBookId, "accountBookId is required");
 
-  const userAccountBookLink = await prisma.userAccountBookLink.findUnique({
-    where: {
-      userId_accountBookId: {
-        userId: user.id,
-        accountBookId: params.accountBookId,
-      },
-    },
-  });
-
-  if (!userAccountBookLink) {
-    throw new Response(null, { status: 404 });
-  }
+  const link = await ensureAuthorizedForUserAndAccountBookId(
+    user,
+    params.accountBookId,
+  );
 
   const accountBook = await prisma.accountBook.findUnique({
-    where: { id: userAccountBookLink.accountBookId },
+    where: { id: link.accountBookId },
   });
   if (!accountBook) {
     throw new Response("Not Found", { status: 404 });

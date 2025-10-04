@@ -1,11 +1,10 @@
 import { data, redirect, type ActionFunctionArgs } from "react-router";
-import { ensureAuthenticated } from "~/auth/functions.server";
 import { prisma } from "~/prisma.server";
-import { getUserOrThrow } from "~/users/data";
+import { ensureUser } from "~/users/data";
+import { ensureAuthorizedForUserAndAccountBookId } from "../functions.server";
 
 export async function action({ request }: ActionFunctionArgs) {
-  const userContext = await ensureAuthenticated(request);
-  const user = await getUserOrThrow(userContext);
+  const user = await ensureUser(request);
 
   const form = await request.formData();
 
@@ -20,19 +19,13 @@ export async function action({ request }: ActionFunctionArgs) {
     );
   }
 
-  const userAccountBookLink = await prisma.userAccountBookLink.findUnique({
-    where: { userId_accountBookId: { userId: user.id, accountBookId } },
-  });
-
-  if (!userAccountBookLink) {
-    return data(
-      { success: false, errors: { accountBookId: "Not found" } },
-      { status: 404 },
-    );
-  }
+  const link = await ensureAuthorizedForUserAndAccountBookId(
+    user,
+    accountBookId,
+  );
 
   await prisma.accountBook.delete({
-    where: { id: accountBookId },
+    where: { id: link.accountBookId },
   });
 
   return redirect("/");

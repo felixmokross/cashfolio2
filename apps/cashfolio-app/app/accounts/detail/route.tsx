@@ -13,36 +13,34 @@ import {
 import { subDays } from "date-fns";
 import type { Unit } from "~/fx";
 import { getPeriodDateRange } from "~/period/functions";
-import { ensureAuthenticated } from "~/auth/functions.server";
 import type { Account } from "~/.prisma-client/client";
 import {
   AccountType,
   EquityAccountSubtype,
   Unit as UnitEnum,
 } from "~/.prisma-client/enums";
-import invariant from "tiny-invariant";
 import { prisma } from "~/prisma.server";
+import { ensureAuthorized } from "~/account-books/functions.server";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
-  await ensureAuthenticated(request);
-  invariant(params.accountBookId, "accountBookId not found");
+  const link = await ensureAuthorized(request, params);
 
-  const { from, to } = await getPeriodDateRange(request, params.accountBookId);
+  const { from, to } = await getPeriodDateRange(request, link.accountBookId);
 
   if (!params.accountId) {
     throw new Response("Not Found", { status: 400 });
   }
 
   const accountBook = await prisma.accountBook.findUniqueOrThrow({
-    where: { id: params.accountBookId },
+    where: { id: link.accountBookId },
   });
 
   const [account, bookingsForPeriod, allAccounts, accountGroups] =
     await Promise.all([
-      getAccount(params.accountId, params.accountBookId),
+      getAccount(params.accountId, link.accountBookId),
       getBookings(params.accountId, accountBook, from, to),
-      getAccounts(params.accountBookId),
-      getAccountGroups(params.accountBookId),
+      getAccounts(link.accountBookId),
+      getAccountGroups(link.accountBookId),
     ]);
   if (!account) {
     throw new Response("Not Found", { status: 404 });
@@ -69,16 +67,17 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
           }
     : {
         unit: UnitEnum.CURRENCY,
-        currency: (
-          await prisma.accountBook.findUniqueOrThrow({
-            where: { id: params.accountBookId },
-          })
-        ).referenceCurrency,
+        currency: accountBook.referenceCurrency,
       };
 
   const openingBalance =
     from && account.type !== AccountType.EQUITY
-      ? await getBalanceCached(account.id, ledgerUnit, subDays(from, 1))
+      ? await getBalanceCached(
+          accountBook.id,
+          account.id,
+          ledgerUnit,
+          subDays(from, 1),
+        )
       : undefined;
 
   const ledgerRows = await getLedgerRows(

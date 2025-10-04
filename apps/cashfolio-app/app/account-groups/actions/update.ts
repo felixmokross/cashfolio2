@@ -1,12 +1,10 @@
 import { data, type ActionFunctionArgs } from "react-router";
 import { prisma } from "~/prisma.server";
 import { getFormValues, hasErrors, validate } from "./shared";
-import { ensureAuthenticated } from "~/auth/functions.server";
-import invariant from "tiny-invariant";
+import { ensureAuthorized } from "~/account-books/functions.server";
 
 export async function action({ request, params }: ActionFunctionArgs) {
-  await ensureAuthenticated(request);
-  invariant(params.accountBookId, "accountBookId not found");
+  const link = await ensureAuthorized(request, params);
 
   const values = await getFormValues(request);
 
@@ -17,7 +15,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   await prisma.accountGroup.update({
     where: {
-      id_accountBookId: { id: values.id!, accountBookId: params.accountBookId },
+      id_accountBookId: { id: values.id!, accountBookId: link.accountBookId },
     },
     data: {
       name: values.name,
