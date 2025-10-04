@@ -1,26 +1,22 @@
 import { format, getMonth, getQuarter, getYear, type Quarter } from "date-fns";
 import { useEffect, useReducer, useRef, useState } from "react";
-import { useFetcher, useRouteLoaderData } from "react-router";
+import { useFetcher } from "react-router";
 import { today } from "~/dates";
 import { Button } from "~/platform/button";
 import { Field } from "~/platform/forms/fieldset";
 import { Select } from "~/platform/forms/select";
 import { ArrowLeftIcon, ArrowRightIcon } from "~/platform/icons/standard";
 import type { Granularity } from "./types";
-import type { loader as accountBookLoader } from "~/account-books/route";
 import { createPeriodSelectorReducer } from "./period-selector.reducer";
-import { useFirstBookingDate } from "~/account-books/hooks";
+import {
+  useAccountBookLoaderData,
+  useFirstBookingDate,
+} from "~/account-books/hooks";
 
 export function PeriodSelector() {
   const fetcher = useFetcher();
   const firstBookingDate = useFirstBookingDate();
-  const accountBookLoaderData = useRouteLoaderData<typeof accountBookLoader>(
-    "account-books/route",
-  );
-  if (!accountBookLoaderData) {
-    throw new Error("No account book loader data");
-  }
-  const { period } = accountBookLoaderData;
+  const { period, accountBook } = useAccountBookLoaderData();
 
   const [periodState, dispatch] = useReducer(
     createPeriodSelectorReducer(firstBookingDate, today()),
@@ -55,7 +51,7 @@ export function PeriodSelector() {
   return (
     <fetcher.Form
       className="contents"
-      action="/period/update"
+      action={`/${accountBook.id}/period/update`}
       method="POST"
       ref={formRef}
     >
