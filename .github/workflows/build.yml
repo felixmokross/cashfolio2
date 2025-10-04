@@ -99,6 +99,8 @@ jobs:
     if: github.event_name != 'pull_request'
     needs:
       - version
+      - cashfolio-app-typecheck
+      - cashfolio-app-unit-tests
       - cashfolio-app-build-push
     uses: ./.github/workflows/deploy-version.yml
     with:
