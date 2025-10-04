@@ -5,6 +5,7 @@ import {
   SidebarBody,
   SidebarDivider,
   SidebarFooter,
+  SidebarHeader,
   SidebarHeading,
   SidebarItem,
   SidebarLabel,
@@ -48,9 +49,9 @@ export function Navbar() {
 
   return (
     <Sidebar>
-      <SidebarBody>
+      <SidebarHeader>
         <Link
-          className="mb-2 flex items-center gap-4"
+          className="mt-1 flex items-center gap-4"
           href="/"
           aria-label="Home"
         >
@@ -59,6 +60,8 @@ export function Navbar() {
             Cashfolio
           </SidebarLabel>
         </Link>
+      </SidebarHeader>
+      <SidebarBody>
         <SidebarSection>
           <NavSidebarItem href={`/${accountBook.id}/balances`}>
             <ScaleIcon />

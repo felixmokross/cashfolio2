@@ -9,6 +9,7 @@ export const routes = [
 
   route("account-books/create", "account-books/actions/create.ts"),
   route("account-books/update", "account-books/actions/update.ts"),
+  route("account-books/delete", "account-books/actions/delete.ts"),
 
   route(":accountBookId", "account-books/route.tsx", [
     index("home/route.ts"),
