@@ -1,11 +1,3 @@
-import {
-  AccountType,
-  EquityAccountSubtype,
-  Prisma,
-  Unit,
-  type Account,
-  type AccountGroup,
-} from "~/.prisma-client/client";
 import { differenceInDays, formatISO, max, subDays } from "date-fns";
 import type { AccountWithBookings } from "~/accounts/types";
 import { refCurrency } from "~/config";
@@ -21,6 +13,13 @@ import {
 import { getBalanceCached } from "~/accounts/detail/calculation.server";
 import type { BookingWithTransaction } from "~/accounts/detail/types";
 import { prisma } from "~/prisma.server";
+import {
+  AccountType,
+  EquityAccountSubtype,
+  Unit,
+} from "~/.prisma-client/enums";
+import { Decimal } from "@prisma/client/runtime/library";
+import type { Account, AccountGroup } from "~/.prisma-client/client";
 
 export async function getIncomeStatement(
   accounts: AccountWithBookings[],
@@ -53,7 +52,7 @@ export async function getIncomeStatement(
 
     return {
       ...node,
-      value: incomeData.valueByAccountId.get(node.id) ?? new Prisma.Decimal(0),
+      value: incomeData.valueByAccountId.get(node.id) ?? new Decimal(0),
     };
   }
 
@@ -145,8 +144,8 @@ export async function generateHoldingBookingsForAccount(
 
 export async function completeTransaction(
   transaction: TransactionWithBookings,
-): Promise<Prisma.Decimal> {
-  const values = new Array<Prisma.Decimal>(transaction.bookings.length);
+): Promise<Decimal> {
+  const values = new Array<Decimal>(transaction.bookings.length);
   for (let i = 0; i < transaction.bookings.length; i++) {
     const b = transaction.bookings[i];
     values[i] = await convert(
@@ -382,14 +381,14 @@ export async function getIncomeData(
   const allEquityAccounts = equityAccounts
     .concat(holdingGainLossAccounts)
     .concat(transactionGainLossAccount);
-  const valueByAccountIdEntries = new Array<[string, Prisma.Decimal]>(
+  const valueByAccountIdEntries = new Array<[string, Decimal]>(
     allEquityAccounts.length,
   );
 
   for (let i = 0; i < allEquityAccounts.length; i++) {
     const a = allEquityAccounts[i];
 
-    const values = new Array<Prisma.Decimal>(a.bookings.length);
+    const values = new Array<Decimal>(a.bookings.length);
     for (let j = 0; j < a.bookings.length; j++) {
       const b = a.bookings[j];
       values[j] = await convert(
@@ -423,6 +422,6 @@ export async function getIncomeData(
       securityHoldingGainLossGroup,
       ...Object.values(groupsByUnit),
     ],
-    valueByAccountId: new Map<string, Prisma.Decimal>(valueByAccountIdEntries),
+    valueByAccountId: new Map<string, Decimal>(valueByAccountIdEntries),
   };
 }

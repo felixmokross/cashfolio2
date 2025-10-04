@@ -1,10 +1,11 @@
-import type { Account, Prisma } from "~/.prisma-client/client";
+import type { Decimal } from "@prisma/client/runtime/library";
+import type { Account } from "~/.prisma-client/client";
 import type { AccountsNode } from "~/account-groups/accounts-tree";
 
 export type BalancesAccountsNode = AccountsNode<
   Account,
   {
-    balance: Prisma.Decimal;
-    balanceInOriginalCurrency?: Prisma.Decimal;
+    balance: Decimal;
+    balanceInOriginalCurrency?: Decimal;
   }
 >;

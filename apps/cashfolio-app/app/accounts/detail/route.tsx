@@ -1,9 +1,3 @@
-import {
-  AccountType,
-  EquityAccountSubtype,
-  Unit as UnitEnum,
-  type Account,
-} from "~/.prisma-client/client";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { getAccountGroupPath } from "~/utils";
 import { serialize } from "~/serialization";
@@ -21,6 +15,12 @@ import { subDays } from "date-fns";
 import type { Unit } from "~/fx";
 import { getPeriodDateRange } from "~/period/functions";
 import { ensureAuthenticated } from "~/auth/functions.server";
+import type { Account } from "~/.prisma-client/client";
+import {
+  AccountType,
+  EquityAccountSubtype,
+  Unit as UnitEnum,
+} from "~/.prisma-client/enums";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   await ensureAuthenticated(request);

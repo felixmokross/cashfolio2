@@ -1,4 +1,3 @@
-import { Prisma, Unit } from "~/.prisma-client/client";
 import { prisma } from "~/prisma.server";
 import {
   hasErrors,
@@ -9,6 +8,8 @@ import {
 import { data } from "react-router";
 import invariant from "tiny-invariant";
 import { ensureAuthenticated } from "~/auth/functions.server";
+import { Unit } from "~/.prisma-client/enums";
+import { Decimal } from "@prisma/client/runtime/library";
 
 export async function action({ request }: { request: Request }) {
   await ensureAuthenticated(request);
@@ -35,7 +36,7 @@ export async function action({ request }: { request: Request }) {
           unit: Unit.CURRENCY,
           currency: b.currency,
           cryptocurrency: null, // TODO
-          value: new Prisma.Decimal(b.value),
+          value: new Decimal(b.value),
         })),
       },
     },

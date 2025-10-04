@@ -1,4 +1,5 @@
-import { Prisma, type AccountGroup } from "~/.prisma-client/client";
+import { Decimal } from "@prisma/client/runtime/library";
+import type { AccountGroup } from "./.prisma-client/client";
 
 export function getAccountGroupPath(
   accountGroupId: string,
@@ -12,11 +13,9 @@ export function getAccountGroupPath(
   return prefix + accountGroup.name;
 }
 
-export function sum(
-  values: (Prisma.Decimal | string | number)[],
-): Prisma.Decimal {
-  return values.reduce<Prisma.Decimal>(
+export function sum(values: (Decimal | string | number)[]): Decimal {
+  return values.reduce<Decimal>(
     (prev, curr) => prev.plus(curr),
-    new Prisma.Decimal(0),
+    new Decimal(0),
   );
 }

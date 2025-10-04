@@ -1,4 +1,5 @@
-import { Prisma, type Booking } from "~/.prisma-client/client";
+import { Decimal } from "@prisma/client/runtime/library";
+import type { Booking } from "~/.prisma-client/client";
 import { redis } from "~/redis.server";
 import { sum } from "~/utils";
 
@@ -16,11 +17,7 @@ export function validate(bookings: BookingFormData[]) {
     if (!b.currency) {
       errors[`bookings[${i}][currency]`] = "Currency is required";
     }
-    if (
-      !b.value ||
-      isNaN(Number(b.value)) ||
-      new Prisma.Decimal(b.value).isZero()
-    ) {
+    if (!b.value || isNaN(Number(b.value)) || new Decimal(b.value).isZero()) {
       errors[`bookings[${i}][value]`] = "Value must be a non-zero number";
     }
   }

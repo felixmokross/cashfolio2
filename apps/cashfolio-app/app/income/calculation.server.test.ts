@@ -11,10 +11,10 @@ import {
   buildBooking,
   buildTransactionWithBookings,
 } from "../builders";
-import { AccountType, Prisma } from "~/.prisma-client/client";
 import { formatISODate } from "~/formatting";
 import { getExchangeRate } from "~/fx.server";
 import type { Unit } from "~/fx";
+import { Decimal } from "@prisma/client/runtime/library";
 
 const mockGetExchangeRate = vi.fn();
 
@@ -26,7 +26,7 @@ vi.mock("~/fx.server", async () => ({
 
 // needs to be redefined, because the real function will not use the mocked 'getExchangeRate' since it is in the same module
 async function convert(
-  value: Prisma.Decimal,
+  value: Decimal,
   sourceUnit: Unit,
   targetUnit: Unit,
   date: Date,
@@ -41,18 +41,18 @@ beforeEach(() => {
 describe.skip("generateFxBookingsForFxAccount", () => {
   test("returns FX bookings for an FX account", async () => {
     const fxRates = {
-      "2024-12-31_EUR_CHF": new Prisma.Decimal(1.1),
-      "2025-01-01_EUR_CHF": new Prisma.Decimal(1.2),
-      "2025-01-02_EUR_CHF": new Prisma.Decimal(1.3),
-      "2025-01-03_EUR_CHF": new Prisma.Decimal(1.2),
-      "2025-01-04_EUR_CHF": new Prisma.Decimal(0.95),
+      "2024-12-31_EUR_CHF": new Decimal(1.1),
+      "2025-01-01_EUR_CHF": new Decimal(1.2),
+      "2025-01-02_EUR_CHF": new Decimal(1.3),
+      "2025-01-03_EUR_CHF": new Decimal(1.2),
+      "2025-01-04_EUR_CHF": new Decimal(0.95),
     };
 
     async function getFxRate(
       date: Date,
       from: Unit,
       to: Unit,
-    ): Promise<Prisma.Decimal> {
+    ): Promise<Decimal> {
       if (from.unit !== "CURRENCY") throw new Error("Only currency supported");
       if (to.unit !== "CURRENCY") throw new Error("Only currency supported");
 
@@ -72,12 +72,12 @@ describe.skip("generateFxBookingsForFxAccount", () => {
         bookings: [
           buildBooking({
             date: new Date("2024-12-31"),
-            value: new Prisma.Decimal(1000),
+            value: new Decimal(1000),
           }),
 
           buildBooking({
             date: new Date("2025-01-03"),
-            value: new Prisma.Decimal(-100),
+            value: new Decimal(-100),
           }),
         ],
       },
@@ -87,19 +87,19 @@ describe.skip("generateFxBookingsForFxAccount", () => {
     expect(result).toEqual([
       expect.objectContaining({
         date: new Date("2025-01-01"),
-        value: new Prisma.Decimal(-100),
+        value: new Decimal(-100),
       }),
       expect.objectContaining({
         date: new Date("2025-01-02"),
-        value: new Prisma.Decimal(-100),
+        value: new Decimal(-100),
       }),
       expect.objectContaining({
         date: new Date("2025-01-03"),
-        value: new Prisma.Decimal(100),
+        value: new Decimal(100),
       }),
       expect.objectContaining({
         date: new Date("2025-01-04"),
-        value: new Prisma.Decimal(225),
+        value: new Decimal(225),
       }),
     ]);
   });
@@ -120,19 +120,19 @@ describe.skip("generateFxBookingsForFxAccount", () => {
 describe.skip("completeFxTransaction", () => {
   test("completes an FX transaction", async () => {
     const fxRates = {
-      "2025-01-03_EUR_CHF": new Prisma.Decimal(0.9),
+      "2025-01-03_EUR_CHF": new Decimal(0.9),
     };
 
     async function getFxRate(
       date: Date,
       from: Unit,
       to: Unit,
-    ): Promise<Prisma.Decimal> {
+    ): Promise<Decimal> {
       if (from.unit !== "CURRENCY") throw new Error("Only currency supported");
       if (to.unit !== "CURRENCY") throw new Error("Only currency supported");
 
       if (from.currency === to.currency) {
-        return new Prisma.Decimal(1);
+        return new Decimal(1);
       }
 
       const key = `${formatISODate(date)}_${from.currency}_${to.currency}`;
@@ -153,14 +153,14 @@ describe.skip("completeFxTransaction", () => {
           id: "booking_1",
           accountId: "account_1",
           date: new Date("2025-01-03"),
-          value: new Prisma.Decimal(-100),
+          value: new Decimal(-100),
           currency: "EUR",
         }),
         buildBooking({
           id: "booking_2",
           date: new Date("2025-01-04"),
           accountId: "account_2",
-          value: new Prisma.Decimal(88),
+          value: new Decimal(88),
           currency: "CHF",
         }),
       ],
@@ -168,7 +168,7 @@ describe.skip("completeFxTransaction", () => {
       updatedAt: new Date(),
     });
 
-    expect(result).toEqual(new Prisma.Decimal(2));
+    expect(result).toEqual(new Decimal(2));
   });
 });
 

@@ -1,4 +1,5 @@
-import { AccountType, Prisma, Unit } from "~/.prisma-client/client";
+import { Decimal } from "@prisma/client/runtime/library";
+import { AccountType, Unit } from "~/.prisma-client/enums";
 import { cryptocurrencies } from "~/cryptocurrencies";
 import { currencies } from "~/currencies";
 
@@ -40,7 +41,7 @@ export function validate(values: FormValues) {
 
   if (values.openingBalance) {
     try {
-      new Prisma.Decimal(values.openingBalance); // will throw if invalid
+      new Decimal(values.openingBalance); // will throw if invalid
     } catch {
       errors.openingBalance = "Opening balance must be a valid number";
     }

@@ -1,8 +1,8 @@
-import { Prisma } from "~/.prisma-client/client";
+import { Decimal } from "@prisma/client/runtime/library";
 
 export type Serialize<T> =
   // Turn Decimal into string
-  T extends Prisma.Decimal
+  T extends Decimal
     ? number
     : T extends Date
       ? string
@@ -21,8 +21,8 @@ export type Serialize<T> =
 
 export function serialize<T>(input: T): Serialize<T> {
   // Decimal check (Prisma re-exports Decimal.js, which provides isDecimal)
-  if (Prisma.Decimal.isDecimal(input as any)) {
-    return (input as unknown as Prisma.Decimal).toNumber() as Serialize<T>;
+  if (Decimal.isDecimal(input as any)) {
+    return (input as unknown as Decimal).toNumber() as Serialize<T>;
   }
 
   if (input instanceof Date) {

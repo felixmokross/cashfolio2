@@ -1,8 +1,3 @@
-import {
-  Prisma,
-  Unit as UnitEnum,
-  type Booking,
-} from "~/.prisma-client/client";
 import type { BookingWithTransaction, LedgerRow } from "./types";
 import { convert } from "~/fx.server";
 import { redis } from "~/redis.server";
@@ -16,6 +11,9 @@ import {
   generateTransactionGainLossBookings,
   TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
 } from "~/income/calculation.server";
+import { Decimal } from "@prisma/client/runtime/library";
+import type { Booking } from "~/.prisma-client/client";
+import { Unit as UnitEnum } from "~/.prisma-client/enums";
 
 export async function getAccount(accountId: string) {
   if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
@@ -103,7 +101,7 @@ export async function getBalanceCached(
     : [];
 
   if (cacheEntry && isEqual(cacheEntry.timestamp, date)) {
-    return new Prisma.Decimal(cacheEntry.value);
+    return new Decimal(cacheEntry.value);
   }
 
   const bookings = await prisma.booking.findMany({
@@ -117,7 +115,7 @@ export async function getBalanceCached(
   });
 
   const balance = (
-    cacheEntry ? new Prisma.Decimal(cacheEntry.value) : new Prisma.Decimal(0)
+    cacheEntry ? new Decimal(cacheEntry.value) : new Decimal(0)
   ).plus(await getBalance(bookings, ledgerUnit));
   console.log(
     `Basis date: ${cacheEntry ? new Date(cacheEntry.timestamp) : "none"}`,
@@ -130,7 +128,7 @@ export async function getBalanceCached(
 }
 
 export async function getBalance(bookings: Booking[], ledgerUnit: Unit) {
-  let balance = new Prisma.Decimal(0);
+  let balance = new Decimal(0);
   for (let i = 0; i < bookings.length; i++) {
     balance = balance.add(
       await getBookingValueInLedgerUnit(bookings[i], ledgerUnit),
@@ -142,11 +140,11 @@ export async function getBalance(bookings: Booking[], ledgerUnit: Unit) {
 export async function getLedgerRows(
   bookings: BookingWithTransaction[],
   ledgerUnit: Unit,
-  openingBalance?: Prisma.Decimal,
+  openingBalance?: Decimal,
 ) {
   const rows = new Array<LedgerRow>(bookings.length + 1);
 
-  let balance = openingBalance ?? new Prisma.Decimal(0);
+  let balance = openingBalance ?? new Decimal(0);
 
   for (let i = 0; i < bookings.length; i++) {
     const valueInLedgerUnit = await getBookingValueInLedgerUnit(

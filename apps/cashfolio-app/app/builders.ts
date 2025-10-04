@@ -1,12 +1,11 @@
-import {
-  AccountType,
-  Prisma,
-  Unit,
-  type Account,
-  type AccountGroup,
-  type Booking,
-  type Transaction,
-} from "~/.prisma-client/client";
+import { Decimal } from "@prisma/client/runtime/library";
+import type {
+  Account,
+  AccountGroup,
+  Booking,
+  Transaction,
+} from "./.prisma-client/client";
+import { AccountType, Unit } from "./.prisma-client/enums";
 import type { AccountWithBookings } from "./accounts/types";
 import type { TransactionWithBookings } from "./transactions/types";
 
@@ -56,7 +55,7 @@ export function buildBooking(values: Partial<Booking> = {}): Booking {
     id: "booking_1",
     transactionId: "transaction_1",
     accountId: "account_1",
-    value: new Prisma.Decimal(100),
+    value: new Decimal(100),
     unit: Unit.CURRENCY,
     currency: "CHF",
     cryptocurrency: null,
