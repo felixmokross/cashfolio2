@@ -1,5 +1,5 @@
 import type { Account, AccountGroup } from "~/.prisma-client/client";
-import type { AccountType } from "~/.prisma-client/enums";
+import { AccountType } from "~/.prisma-client/enums";
 
 export function getAccountsTree<TAccount extends Account = Account>(
   accounts: TAccount[],
