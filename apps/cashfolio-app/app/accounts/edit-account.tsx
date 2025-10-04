@@ -13,7 +13,6 @@ import type { Serialize } from "~/serialization";
 import { AccountGroupCombobox } from "~/account-groups/account-group-combobox";
 import type { AccountGroupOption } from "~/types";
 import { CurrencyCombobox } from "~/components/currency-combobox";
-import { refCurrency } from "~/config";
 import { CryptocurrencyCombobox } from "~/components/cryptocurrency-combobox";
 import {
   CancelButton,
@@ -169,7 +168,9 @@ export function EditAccount({
                   <Label>Currency</Label>
                   <CurrencyCombobox
                     name="currency"
-                    defaultValue={account?.currency || refCurrency}
+                    defaultValue={
+                      account?.currency || accountBook.referenceCurrency
+                    }
                   />
                 </Field>
               )}

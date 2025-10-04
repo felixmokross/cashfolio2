@@ -4,21 +4,29 @@ import {
 } from "~/account-groups/accounts-tree";
 import type { BalancesAccountsNode } from "./types";
 import { sum } from "~/utils";
-import { refCurrency } from "~/config";
 import { convert } from "~/fx.server";
 import { getBalanceCached } from "~/accounts/detail/calculation.server";
 import { Unit } from "~/.prisma-client/enums";
-import type { Account, AccountGroup } from "~/.prisma-client/client";
+import type {
+  Account,
+  AccountBook,
+  AccountGroup,
+} from "~/.prisma-client/client";
 
 export async function getBalanceSheet(
+  accountBook: AccountBook,
   accounts: Account[],
   accountGroups: AccountGroup[],
   date: Date,
 ) {
   const accountsTree = getAccountsTree(accounts, accountGroups);
 
-  const assets = await getBalances(accountsTree.ASSET!, date);
-  const liabilities = await getBalances(accountsTree.LIABILITY!, date);
+  const assets = await getBalances(accountBook, accountsTree.ASSET!, date);
+  const liabilities = await getBalances(
+    accountBook,
+    accountsTree.LIABILITY!,
+    date,
+  );
   return {
     assets,
     liabilities,
@@ -27,13 +35,14 @@ export async function getBalanceSheet(
 }
 
 async function getBalances(
+  accountBook: AccountBook,
   node: AccountsNode<Account>,
   date: Date,
 ): Promise<BalancesAccountsNode> {
   if (node.nodeType === "accountGroup") {
     const children: BalancesAccountsNode[] = [];
     for (const child of node.children) {
-      const balances = await getBalances(child, date);
+      const balances = await getBalances(accountBook, child, date);
       if (!balances.balance.isZero()) {
         children.push(balances);
       }
@@ -69,7 +78,9 @@ async function getBalances(
   return {
     ...node,
     balanceInOriginalCurrency:
-      node.currency !== refCurrency ? balanceInOriginalCurrency : undefined,
+      node.currency !== accountBook.referenceCurrency
+        ? balanceInOriginalCurrency
+        : undefined,
     balance: await convert(
       balanceInOriginalCurrency,
       node.unit === Unit.CURRENCY
@@ -81,7 +92,7 @@ async function getBalances(
               symbol: node.symbol!,
               tradeCurrency: node.tradeCurrency!,
             },
-      { unit: Unit.CURRENCY, currency: refCurrency },
+      { unit: Unit.CURRENCY, currency: accountBook.referenceCurrency },
       date,
     ),
   };

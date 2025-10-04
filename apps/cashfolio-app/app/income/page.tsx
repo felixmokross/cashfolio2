@@ -10,12 +10,14 @@ import {
 } from "~/platform/table";
 import type { LoaderData } from "~/income/route";
 import { IncomeTableRows } from "./table-rows";
+import { useAccountBook } from "~/account-books/use-account-book";
 
 export function Page({ loaderData: { rootNode } }: { loaderData: LoaderData }) {
+  const accountBook = useAccountBook();
   return (
     <>
       <Heading>Income</Heading>
-      <Text>Reference Currency: CHF</Text>
+      <Text>Reference Currency: {accountBook.referenceCurrency}</Text>
 
       <Table
         dense

@@ -10,16 +10,18 @@ import {
 } from "~/platform/table";
 import type { LoaderData } from "~/balances/route";
 import { BalancesTableRows } from "./table-rows";
+import { useAccountBook } from "~/account-books/use-account-book";
 
 export function Page({
   loaderData: { balanceSheet },
 }: {
   loaderData: LoaderData;
 }) {
+  const accountBook = useAccountBook();
   return (
     <>
       <Heading>Balances</Heading>
-      <Text>Reference Currency: CHF</Text>
+      <Text>Reference Currency: {accountBook.referenceCurrency}</Text>
 
       <div className="xl:grid grid-cols-2 gap-12 mt-8">
         <Table dense bleed striped fixedLayout>

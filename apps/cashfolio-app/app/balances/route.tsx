@@ -6,20 +6,26 @@ import { getAccounts } from "~/accounts/data";
 import { getAccountGroups } from "~/account-groups/data";
 import { getPeriodDateRange } from "~/period/functions";
 import { ensureAuthenticated } from "~/auth/functions.server";
+import invariant from "tiny-invariant";
+import { prisma } from "~/prisma.server";
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request, params }: LoaderFunctionArgs) {
   await ensureAuthenticated(request);
+  invariant(!!params.accountBookId, "accountBookId not found in params");
 
   const { to: date } = await getPeriodDateRange(request);
 
-  const [accounts, accountGroups] = await Promise.all([
-    getAccounts(),
-    getAccountGroups(),
+  const [accountBook, accounts, accountGroups] = await Promise.all([
+    prisma.accountBook.findUniqueOrThrow({
+      where: { id: params.accountBookId },
+    }),
+    getAccounts(params.accountBookId),
+    getAccountGroups(params.accountBookId),
   ]);
 
   return serialize({
     balanceSheet: {
-      ...(await getBalanceSheet(accounts, accountGroups, date)),
+      ...(await getBalanceSheet(accountBook, accounts, accountGroups, date)),
     },
   });
 }

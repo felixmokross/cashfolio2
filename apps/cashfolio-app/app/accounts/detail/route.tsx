@@ -1,7 +1,6 @@
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { getAccountGroupPath } from "~/utils";
 import { serialize } from "~/serialization";
-import { refCurrency } from "~/config";
 import { Page } from "./page";
 import { getAccountGroups } from "~/account-groups/data";
 import { getAccounts } from "../data";
@@ -22,6 +21,7 @@ import {
   Unit as UnitEnum,
 } from "~/.prisma-client/enums";
 import invariant from "tiny-invariant";
+import { prisma } from "~/prisma.server";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   await ensureAuthenticated(request);
@@ -63,7 +63,14 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
             symbol: account.symbol!,
             tradeCurrency: account.tradeCurrency!,
           }
-    : { unit: UnitEnum.CURRENCY, currency: refCurrency };
+    : {
+        unit: UnitEnum.CURRENCY,
+        currency: (
+          await prisma.accountBook.findUniqueOrThrow({
+            where: { id: params.accountBookId },
+          })
+        ).referenceCurrency,
+      };
 
   const openingBalance =
     from && account.type !== AccountType.EQUITY

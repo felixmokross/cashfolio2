@@ -14,6 +14,14 @@ export async function action({ request }: ActionFunctionArgs) {
   await prisma.accountBook.create({
     data: {
       name: "New Account Book",
+      referenceCurrency: values.referenceCurrency,
+      groups: {
+        create: [
+          { name: "Assets", type: "ASSET", slug: "assets" },
+          { name: "Liabilities", type: "LIABILITY", slug: "liabilities" },
+          { name: "Equity", type: "EQUITY", slug: "equity" },
+        ],
+      },
     },
   });
 
@@ -22,10 +30,14 @@ export async function action({ request }: ActionFunctionArgs) {
 
 async function getFormValues(request: Request): Promise<FormValues> {
   const form = await request.formData();
-  return {};
+  return {
+    referenceCurrency: form.get("referenceCurrency")?.toString() || "",
+  };
 }
 
-type FormValues = {};
+type FormValues = {
+  referenceCurrency: string;
+};
 
 type FormErrors = { form?: string } & Partial<Record<keyof FormValues, string>>;
 
@@ -35,6 +47,10 @@ function hasErrors(errors: FormErrors) {
 
 function validate(values: FormValues) {
   const errors: FormErrors = {};
+
+  if (!values.referenceCurrency) {
+    errors.referenceCurrency = "This field is required";
+  }
 
   return errors;
 }

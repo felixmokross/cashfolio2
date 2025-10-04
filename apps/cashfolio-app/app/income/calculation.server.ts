@@ -1,6 +1,5 @@
 import { differenceInDays, formatISO, max, subDays } from "date-fns";
 import type { AccountWithBookings } from "~/accounts/types";
-import { refCurrency } from "~/config";
 import { formatISODate } from "~/formatting";
 import type { TransactionWithBookings } from "~/transactions/types";
 import { sum } from "~/utils";
@@ -19,15 +18,21 @@ import {
   Unit,
 } from "~/.prisma-client/enums";
 import { Decimal } from "@prisma/client/runtime/library";
-import type { Account, AccountGroup } from "~/.prisma-client/client";
+import type {
+  Account,
+  AccountBook,
+  AccountGroup,
+} from "~/.prisma-client/client";
 
 export async function getIncomeStatement(
+  accountBook: AccountBook,
   accounts: AccountWithBookings[],
   accountGroups: AccountGroup[],
   fromDate: Date,
   toDate: Date,
 ) {
   const incomeData = await getIncomeData(
+    accountBook,
     accounts,
     accountGroups,
     fromDate,
@@ -60,6 +65,7 @@ export async function getIncomeStatement(
 }
 
 export async function generateHoldingBookingsForAccount(
+  accountBook: AccountBook,
   fxAccount: AccountWithBookings,
   fromDate: Date,
   toDate: Date,
@@ -96,7 +102,7 @@ export async function generateHoldingBookingsForAccount(
 
   let fxRate = await getExchangeRate(
     fxAccountUnit,
-    { unit: Unit.CURRENCY, currency: refCurrency },
+    { unit: Unit.CURRENCY, currency: accountBook.referenceCurrency },
     initialDate,
   );
 
@@ -108,7 +114,7 @@ export async function generateHoldingBookingsForAccount(
     const date = fxAccount.bookings[i]?.date ?? toDate;
     const newFxRate = await getExchangeRate(
       fxAccountUnit,
-      { unit: Unit.CURRENCY, currency: refCurrency },
+      { unit: Unit.CURRENCY, currency: accountBook.referenceCurrency },
       date,
     );
     const fxRateDiff = newFxRate.minus(fxRate);
@@ -119,7 +125,7 @@ export async function generateHoldingBookingsForAccount(
       accountId: fxAccount.id,
       value: balance.mul(fxRateDiff).negated(),
       unit: Unit.CURRENCY,
-      currency: refCurrency,
+      currency: accountBook.referenceCurrency,
       cryptocurrency: null,
       symbol: null,
       tradeCurrency: null,
@@ -143,6 +149,7 @@ export async function generateHoldingBookingsForAccount(
 }
 
 export async function completeTransaction(
+  accountBook: AccountBook,
   transaction: TransactionWithBookings,
 ): Promise<Decimal> {
   const values = new Array<Decimal>(transaction.bookings.length);
@@ -162,7 +169,7 @@ export async function completeTransaction(
               symbol: b.symbol!,
               tradeCurrency: b.tradeCurrency!,
             },
-      { unit: Unit.CURRENCY, currency: refCurrency },
+      { unit: Unit.CURRENCY, currency: accountBook.referenceCurrency },
       b.date,
     );
   }
@@ -195,6 +202,7 @@ export function generateTransactionGainLossAccount(
 }
 
 export async function generateTransactionGainLossBookings(
+  accountBook: AccountBook,
   fromDate: Date,
   toDate: Date,
 ) {
@@ -226,11 +234,11 @@ export async function generateTransactionGainLossBookings(
       id: `transaction-gain-loss-${t.id}`,
       date: max(t.bookings.map((b) => b.date)),
       unit: Unit.CURRENCY,
-      currency: refCurrency,
+      currency: accountBook.referenceCurrency,
       cryptocurrency: null,
       symbol: null,
       tradeCurrency: null,
-      value: await completeTransaction(t),
+      value: await completeTransaction(accountBook, t),
       accountId: TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
       description: `Transaction Gain/Loss for transaction ${t.description}`,
       transactionId: t.id,
@@ -265,6 +273,7 @@ export function generateHoldingGainLossAccount(account: Account): Account {
 }
 
 export async function getIncomeData(
+  accountBook: AccountBook,
   accounts: AccountWithBookings[],
   accountGroups: AccountGroup[],
   fromDate: Date,
@@ -321,7 +330,8 @@ export async function getIncomeData(
       ([AccountType.ASSET, AccountType.LIABILITY] as AccountType[]).includes(
         a.type,
       ) &&
-      (a.unit !== Unit.CURRENCY || a.currency !== refCurrency),
+      (a.unit !== Unit.CURRENCY ||
+        a.currency !== accountBook.referenceCurrency),
   );
 
   const holdingGainLossAccounts = new Array<AccountWithBookings>(
@@ -369,13 +379,22 @@ export async function getIncomeData(
 
     holdingGainLossAccounts[i] = {
       ...generateHoldingGainLossAccount(a),
-      bookings: await generateHoldingBookingsForAccount(a, fromDate, toDate),
+      bookings: await generateHoldingBookingsForAccount(
+        accountBook,
+        a,
+        fromDate,
+        toDate,
+      ),
     };
   }
 
   const transactionGainLossAccount: AccountWithBookings = {
     ...generateTransactionGainLossAccount(equityRootGroup),
-    bookings: await generateTransactionGainLossBookings(fromDate, toDate),
+    bookings: await generateTransactionGainLossBookings(
+      accountBook,
+      fromDate,
+      toDate,
+    ),
   };
 
   const allEquityAccounts = equityAccounts
@@ -405,7 +424,7 @@ export async function getIncomeData(
                 symbol: b.symbol!,
                 tradeCurrency: b.tradeCurrency!,
               },
-        { unit: Unit.CURRENCY, currency: refCurrency },
+        { unit: Unit.CURRENCY, currency: accountBook.referenceCurrency },
         b.date,
       );
     }

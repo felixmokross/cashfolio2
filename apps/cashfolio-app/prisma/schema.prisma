@@ -33,8 +33,9 @@ enum Unit {
 }
 
 model AccountBook {
-  id   String @default(cuid())
-  name String
+  id                String @default(cuid())
+  name              String
+  referenceCurrency String
 
   groups       AccountGroup[]
   accounts     Account[]

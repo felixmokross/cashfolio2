@@ -6,14 +6,20 @@ import { getAccountGroups } from "~/account-groups/data";
 import { prisma } from "~/prisma.server";
 import { getPeriodDateRange } from "~/period/functions";
 import { ensureAuthenticated } from "~/auth/functions.server";
+import invariant from "tiny-invariant";
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request, params }: LoaderFunctionArgs) {
   await ensureAuthenticated(request);
+  invariant(!!params.accountBookId, "accountBookId not found in params");
 
   const { from, to } = await getPeriodDateRange(request);
 
-  const [accounts, accountGroups] = await Promise.all([
+  const [accountBook, accounts, accountGroups] = await Promise.all([
+    prisma.accountBook.findUniqueOrThrow({
+      where: { id: params.accountBookId },
+    }),
     prisma.account.findMany({
+      where: { accountBookId: params.accountBookId },
       orderBy: { name: "asc" },
       include: {
         bookings: {
@@ -22,11 +28,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
         },
       },
     }),
-    getAccountGroups(),
+    getAccountGroups(params.accountBookId),
   ]);
 
   return serialize({
-    rootNode: await getIncomeStatement(accounts, accountGroups, from, to),
+    rootNode: await getIncomeStatement(
+      accountBook,
+      accounts,
+      accountGroups,
+      from,
+      to,
+    ),
   });
 }
 export type LoaderData = ReturnType<typeof useLoaderData<typeof loader>>;
