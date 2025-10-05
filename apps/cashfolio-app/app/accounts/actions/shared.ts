@@ -16,6 +16,7 @@ export async function getFormValues(request: Request) {
     cryptocurrency: form.get("cryptocurrency")?.toString(),
     symbol: form.get("symbol")?.toString(),
     tradeCurrency: form.get("tradeCurrency")?.toString(),
+    isActive: form.get("isActive") === "on",
   } as FormValues;
 }
 
@@ -97,6 +98,7 @@ export type FormValues = {
   cryptocurrency?: string;
   symbol?: string;
   tradeCurrency?: string;
+  isActive: boolean;
 };
 
 export type FormErrors = { form?: string } & Partial<

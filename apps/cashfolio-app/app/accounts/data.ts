@@ -1,8 +1,11 @@
 import { prisma } from "~/prisma.server";
 
-export async function getAccounts(accountBookId: string) {
+export async function getAccounts(
+  accountBookId: string,
+  { isActive }: { isActive?: boolean } = {},
+) {
   return await prisma.account.findMany({
-    where: { accountBookId },
+    where: { accountBookId, isActive },
     orderBy: { name: "asc" },
   });
 }

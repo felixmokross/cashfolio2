@@ -27,6 +27,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       tradeCurrency:
         values.unit === Unit.SECURITY ? values.tradeCurrency : null,
       accountBookId: link.accountBookId,
+      isActive: values.isActive,
     },
   });
 

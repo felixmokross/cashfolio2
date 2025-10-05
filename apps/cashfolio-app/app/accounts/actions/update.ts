@@ -28,6 +28,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       symbol: values.unit === Unit.SECURITY ? values.symbol : null,
       tradeCurrency:
         values.unit === Unit.SECURITY ? values.tradeCurrency : null,
+      isActive: values.isActive,
     },
   });
 

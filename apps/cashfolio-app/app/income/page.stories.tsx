@@ -38,6 +38,7 @@ export const Default: Story = {
             nodeType: "account",
             value: 5000,
             accountBookId: "cmf2w6x7e0000kdw5g4qv3y3v",
+            isActive: true,
           },
           {
             id: "freelance-account",
@@ -55,6 +56,7 @@ export const Default: Story = {
             nodeType: "account",
             value: 1200,
             accountBookId: "cmf2w6x7e0000kdw5g4qv3y3v",
+            isActive: true,
           },
         ],
         value: 6200,

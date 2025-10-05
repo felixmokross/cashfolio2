@@ -53,15 +53,20 @@ export function Page({
       <div className="flex justify-between items-center">
         <Heading className="flex items-center gap-4">
           {account.path}
-          <Badge>
-            {ledgerUnit.unit === "CURRENCY"
-              ? ledgerUnit.currency!
-              : ledgerUnit.unit === "CRYPTOCURRENCY"
-                ? ledgerUnit.cryptocurrency!
-                : ledgerUnit.unit === "SECURITY"
-                  ? ledgerUnit.symbol
-                  : null}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge>
+              {ledgerUnit.unit === "CURRENCY"
+                ? ledgerUnit.currency!
+                : ledgerUnit.unit === "CRYPTOCURRENCY"
+                  ? ledgerUnit.cryptocurrency!
+                  : ledgerUnit.unit === "SECURITY"
+                    ? ledgerUnit.symbol
+                    : null}
+            </Badge>
+            {!account.isActive && (
+              <Badge color="accent-negative">Inactive</Badge>
+            )}
+          </div>
         </Heading>
 
         <Button hierarchy="primary" onClick={() => onNewTransaction()}>

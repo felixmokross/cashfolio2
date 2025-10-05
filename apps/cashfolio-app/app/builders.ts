@@ -40,6 +40,7 @@ export function buildAccount(values: Partial<Account> = {}): Account {
     createdAt: new Date(),
     updatedAt: new Date(),
     accountBookId: "account_book_1",
+    isActive: true,
     ...values,
   };
 }

@@ -52,6 +52,7 @@ export const Default: Story = {
                   balance: 997920,
                   balanceInOriginalCurrency: 997920,
                   accountBookId: "cmf2w6x7e0000kdw5g4qv3y3v",
+                  isActive: true,
                 },
                 {
                   id: "cmfa835a4000335gbj92m3cn8",
@@ -70,6 +71,7 @@ export const Default: Story = {
                   balance: 100,
                   balanceInOriginalCurrency: 100,
                   accountBookId: "cmf2w6x7e0000kdw5g4qv3y3v",
+                  isActive: true,
                 },
               ],
             },
@@ -103,6 +105,7 @@ export const Default: Story = {
               balance: -1500,
               balanceInOriginalCurrency: -1500,
               accountBookId: "cmf2w6x7e0000kdw5g4qv3y3v",
+              isActive: true,
             },
           ],
         },

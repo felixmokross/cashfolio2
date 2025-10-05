@@ -6,7 +6,13 @@ import {
   DialogDescription,
   DialogTitle,
 } from "~/platform/dialog";
-import { Field, FieldGroup, Fieldset, Label } from "~/platform/forms/fieldset";
+import {
+  Description,
+  Field,
+  FieldGroup,
+  Fieldset,
+  Label,
+} from "~/platform/forms/fieldset";
 import { Input } from "~/platform/forms/input";
 import { Radio, RadioField, RadioGroup } from "~/platform/forms/radio";
 import type { Serialize } from "~/serialization";
@@ -20,6 +26,7 @@ import {
   CreateOrSaveButton,
 } from "~/platform/forms/form-dialog";
 import { useAccountBook } from "~/account-books/hooks";
+import { Switch, SwitchField } from "~/platform/forms/switch";
 
 export function useEditAccount() {
   const [isOpen, setIsOpen] = useState(false);
@@ -62,7 +69,7 @@ export function EditAccount({
   return (
     <FormDialog
       open={isOpen}
-      size="3xl"
+      size="xl"
       onClose={onClose}
       entityId={account?.id}
       action={
@@ -199,6 +206,17 @@ export function EditAccount({
                 </FieldGroup>
               )}
             </div>
+            <SwitchField>
+              <Label>Is Active</Label>
+              <Description>
+                Inactive accounts are hidden in most places. Use this if the
+                account was closed or is not used anymore actively.
+              </Description>
+              <Switch
+                name="isActive"
+                defaultChecked={account?.isActive ?? true}
+              />
+            </SwitchField>
           </FieldGroup>
         </Fieldset>
       </DialogBody>

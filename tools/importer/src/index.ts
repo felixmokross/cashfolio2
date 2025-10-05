@@ -336,6 +336,7 @@ program
                   .tradingCurrency
               : null,
           accountBookId,
+          isActive: !sourceAccount.closingDate,
         };
       }
 
@@ -362,6 +363,7 @@ program
           symbol: null,
           tradeCurrency: null,
           accountBookId,
+          isActive: true,
         };
       }
 

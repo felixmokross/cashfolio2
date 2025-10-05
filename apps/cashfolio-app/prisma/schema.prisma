@@ -89,6 +89,7 @@ model Account {
   name                 String
   type                 AccountType
   equityAccountSubtype EquityAccountSubtype?
+  isActive             Boolean               @default(true)
 
   group   AccountGroup @relation(fields: [groupId, accountBookId], references: [id, accountBookId], onDelete: Restrict)
   groupId String

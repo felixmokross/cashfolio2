@@ -206,6 +206,7 @@ export function generateTransactionGainLossAccount(
     symbol: null,
     tradeCurrency: null,
     accountBookId: equityRootGroup.accountBookId,
+    isActive: true,
   };
 }
 
@@ -279,6 +280,7 @@ export function generateHoldingGainLossAccount(account: Account): Account {
     createdAt: new Date(),
     updatedAt: new Date(),
     accountBookId: account.accountBookId,
+    isActive: true,
   };
 }
 

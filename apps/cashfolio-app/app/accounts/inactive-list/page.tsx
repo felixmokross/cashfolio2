@@ -11,7 +11,7 @@ import {
 import { DeleteAccount, useDeleteAccount } from "~/accounts/delete-account";
 import { Heading } from "~/platform/heading";
 import { Button } from "~/platform/button";
-import { ArchiveBoxIcon, PlusCircleIcon } from "~/platform/icons/standard";
+import { ChevronDoubleLeftIcon } from "~/platform/icons/standard";
 import { AccountList } from "../account-list";
 
 export function Page({
@@ -19,9 +19,8 @@ export function Page({
 }: {
   loaderData: LoaderData;
 }) {
-  const { editAccountProps, onNewAccount, onEditAccount } = useEditAccount();
-  const { editAccountGroupProps, onNewAccountGroup, onEditAccountGroup } =
-    useEditAccountGroup();
+  const { editAccountProps, onEditAccount } = useEditAccount();
+  const { editAccountGroupProps, onEditAccountGroup } = useEditAccountGroup();
 
   const { deleteAccountGroupProps, onDeleteAccountGroup } =
     useDeleteAccountGroup();
@@ -31,19 +30,11 @@ export function Page({
   return (
     <div>
       <div className="flex justify-between items-center gap-4">
-        <Heading>Accounts</Heading>
+        <Heading>Inactive Accounts</Heading>
         <div className="flex gap-4">
-          <Button hierarchy="tertiary" href="./inactive">
-            <ArchiveBoxIcon />
-            Inactive Accounts
-          </Button>
-          <Button hierarchy="secondary" onClick={() => onNewAccount()}>
-            <PlusCircleIcon />
-            New Account
-          </Button>
-          <Button hierarchy="secondary" onClick={() => onNewAccountGroup()}>
-            <PlusCircleIcon />
-            New Group
+          <Button hierarchy="tertiary" href="..">
+            <ChevronDoubleLeftIcon />
+            Back to Active Accounts
           </Button>
         </div>
       </div>

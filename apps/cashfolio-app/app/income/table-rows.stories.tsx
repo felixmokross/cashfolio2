@@ -71,6 +71,7 @@ export const Default: Story = {
               nodeType: "account",
               value: 1200,
               accountBookId: "cmf2w6x7e0000kdw5g4qv3y3v",
+              isActive: true,
             },
             {
               id: "cmfa835a4000335gbj92m3cn8",
@@ -88,6 +89,7 @@ export const Default: Story = {
               nodeType: "account",
               value: -200,
               accountBookId: "cmf2w6x7e0000kdw5g4qv3y3v",
+              isActive: true,
             },
           ],
         },
