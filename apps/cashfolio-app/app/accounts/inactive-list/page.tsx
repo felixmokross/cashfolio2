@@ -44,6 +44,7 @@ export function Page({
         tree={tree}
         onEditAccountGroup={onEditAccountGroup}
         onDeleteAccountGroup={onDeleteAccountGroup}
+        viewPrefix="inactive-accounts-list"
       />
     </div>
   );

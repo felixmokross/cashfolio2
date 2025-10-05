@@ -58,6 +58,7 @@ export function Page({
         tree={tree}
         onEditAccountGroup={onEditAccountGroup}
         onDeleteAccountGroup={onDeleteAccountGroup}
+        viewPrefix="accounts-list"
       />
     </div>
   );

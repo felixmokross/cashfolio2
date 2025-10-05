@@ -16,6 +16,7 @@ export function AccountList({
   tree,
   onEditAccountGroup,
   onDeleteAccountGroup,
+  viewPrefix,
 }: {
   tree: LoaderData["tree"];
   onEditAccountGroup: ReturnType<
@@ -24,6 +25,7 @@ export function AccountList({
   onDeleteAccountGroup: ReturnType<
     typeof useDeleteAccountGroup
   >["onDeleteAccountGroup"];
+  viewPrefix: string;
 }) {
   return (
     <>
@@ -55,6 +57,7 @@ export function AccountList({
             }
             onEditAccountGroup={onEditAccountGroup}
             onDeleteAccountGroup={onDeleteAccountGroup}
+            viewPrefix={viewPrefix}
           />
         </TableBody>
       </Table>

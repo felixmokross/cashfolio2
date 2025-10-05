@@ -10,13 +10,15 @@ export function AccountsTableRows({
   node,
   onEditAccountGroup,
   onDeleteAccountGroup,
+  viewPrefix,
 }: {
   node: Serialize<AccountsNode>;
   onEditAccountGroup: (accountGroup: Serialize<AccountGroup>) => void;
   onDeleteAccountGroup: (accountGroupId: string) => void;
+  viewPrefix: string;
 }) {
   return (
-    <AccountsNodeChildrenTableRows node={node} viewPrefix="accounts-list">
+    <AccountsNodeChildrenTableRows node={node} viewPrefix={viewPrefix}>
       {(node) => (
         <>
           <TableCell className="w-40 space-x-2">
