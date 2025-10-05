@@ -39,7 +39,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     },
   });
 
-  await purgeCachedBalances(transaction.bookings);
+  await purgeCachedBalances(link.accountBookId, transaction.bookings);
 
   return data({ success: true });
 }

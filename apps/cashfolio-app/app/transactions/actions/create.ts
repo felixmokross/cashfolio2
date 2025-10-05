@@ -44,6 +44,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   });
 
   await purgeCachedBalances(
+    link.accountBookId,
     bookings.map((b) => ({ date: new Date(b.date), accountId: b.accountId })),
   );
   return data({ success: true, errors: undefined });

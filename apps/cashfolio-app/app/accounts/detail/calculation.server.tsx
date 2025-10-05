@@ -105,7 +105,7 @@ export async function getBalanceCached(
   ledgerUnit: Unit,
   date: Date,
 ) {
-  const cacheKey = `account:${accountId}:balance`;
+  const cacheKey = `account-book:${accountBookId}:account:${accountId}:balance`;
   const [cacheEntry] = (await redis.exists(cacheKey))
     ? await redis.ts.REVRANGE(cacheKey, "-", date.getTime(), { COUNT: 1 })
     : [];
