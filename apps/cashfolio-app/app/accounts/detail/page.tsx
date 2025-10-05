@@ -23,23 +23,37 @@ import { TextLink } from "~/platform/text";
 import {
   Dropdown,
   DropdownButton,
+  DropdownDivider,
   DropdownItem,
   DropdownMenu,
 } from "~/platform/dropdown";
 import {
   EllipsisVerticalIcon,
   PencilSquareIcon,
+  PlusCircleIcon,
   TrashIcon,
 } from "~/platform/icons/standard";
 import { Badge } from "~/platform/badge";
 import { isSameUnit } from "~/fx";
 import { useAccountBook } from "~/account-books/hooks";
+import { EditAccount, useEditAccount } from "../edit-account";
+import { DeleteAccount, useDeleteAccount } from "../delete-account";
 
 export function Page({
-  loaderData: { account, allAccounts, ledgerUnit, openingBalance, ledgerRows },
+  loaderData: {
+    account,
+    allAccounts,
+    ledgerUnit,
+    openingBalance,
+    ledgerRows,
+    accountGroups,
+  },
 }: {
   loaderData: LoaderData;
 }) {
+  const { editAccountProps, onEditAccount } = useEditAccount();
+  const { deleteAccountProps, onDeleteAccount } = useDeleteAccount();
+
   const { editTransactionProps, onNewTransaction, onEditTransaction } =
     useEditTransaction();
 
@@ -69,9 +83,32 @@ export function Page({
           </div>
         </Heading>
 
-        <Button hierarchy="primary" onClick={() => onNewTransaction()}>
-          New Transaction
-        </Button>
+        <EditAccount {...editAccountProps} accountGroups={accountGroups} />
+        <DeleteAccount {...deleteAccountProps} />
+
+        <div className="flex gap-4">
+          <Button hierarchy="primary" onClick={() => onNewTransaction()}>
+            <PlusCircleIcon />
+            New Transaction
+          </Button>
+          <Dropdown>
+            <DropdownButton as={Button} hierarchy="secondary">
+              <EllipsisVerticalIcon />
+              <span className="sr-only">Account Actions</span>
+            </DropdownButton>
+            <DropdownMenu>
+              <DropdownItem onClick={() => onEditAccount(account)}>
+                <PencilSquareIcon />
+                Edit Account
+              </DropdownItem>
+              <DropdownDivider />
+              <DropdownItem onClick={() => onDeleteAccount(account.id)}>
+                <TrashIcon />
+                Delete Account
+              </DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
+        </div>
       </div>
 
       <EditTransaction

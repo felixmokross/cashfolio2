@@ -19,14 +19,14 @@ export function Page({
 }: {
   loaderData: LoaderData;
 }) {
-  const { editAccountProps, onNewAccount, onEditAccount } = useEditAccount();
+  const { editAccountProps, onNewAccount } = useEditAccount();
   const { editAccountGroupProps, onNewAccountGroup, onEditAccountGroup } =
     useEditAccountGroup();
 
   const { deleteAccountGroupProps, onDeleteAccountGroup } =
     useDeleteAccountGroup();
 
-  const { deleteAccountProps, onDeleteAccount } = useDeleteAccount();
+  const { deleteAccountProps } = useDeleteAccount();
 
   return (
     <div>
@@ -56,9 +56,7 @@ export function Page({
       <DeleteAccountGroup {...deleteAccountGroupProps} />
       <AccountList
         tree={tree}
-        onEditAccount={onEditAccount}
         onEditAccountGroup={onEditAccountGroup}
-        onDeleteAccount={onDeleteAccount}
         onDeleteAccountGroup={onDeleteAccountGroup}
       />
     </div>

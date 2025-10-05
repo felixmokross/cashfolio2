@@ -1,8 +1,7 @@
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { getAccountGroupPath } from "~/utils";
 import { serialize } from "~/serialization";
 import { Page } from "./page";
-import { getAccountGroups } from "~/account-groups/data";
+import { getAccountGroupsWithPath } from "~/account-groups/data";
 import { getAccounts } from "../data";
 import {
   getLedgerRows,
@@ -40,16 +39,17 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       getAccount(params.accountId, link.accountBookId),
       getBookings(params.accountId, accountBook, from, to),
       getAccounts(link.accountBookId),
-      getAccountGroups(link.accountBookId),
+      getAccountGroupsWithPath(link.accountBookId),
     ]);
   if (!account) {
     throw new Response("Not Found", { status: 404 });
   }
 
   function getAccountPath(account: Account) {
-    return `${getAccountGroupPath(account.groupId, accountGroups)} / ${
-      account.name
-    }`;
+    const accountGroupPath = accountGroups.find(
+      (ag) => ag.id === account.groupId,
+    )?.path;
+    return `${accountGroupPath} / ${account.name}`;
   }
 
   const ledgerUnit: Unit = account.unit
@@ -119,6 +119,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         path: getAccountPath(a),
       }))
       .toSorted((a, b) => a.path.localeCompare(b.path)),
+    accountGroups,
   });
 }
 

@@ -19,13 +19,10 @@ export function Page({
 }: {
   loaderData: LoaderData;
 }) {
-  const { editAccountProps, onEditAccount } = useEditAccount();
   const { editAccountGroupProps, onEditAccountGroup } = useEditAccountGroup();
 
   const { deleteAccountGroupProps, onDeleteAccountGroup } =
     useDeleteAccountGroup();
-
-  const { deleteAccountProps, onDeleteAccount } = useDeleteAccount();
 
   return (
     <div>
@@ -38,18 +35,14 @@ export function Page({
           </Button>
         </div>
       </div>
-      <EditAccount {...editAccountProps} accountGroups={accountGroups} />
       <EditAccountGroup
         {...editAccountGroupProps}
         accountGroups={accountGroups}
       />
-      <DeleteAccount {...deleteAccountProps} />
       <DeleteAccountGroup {...deleteAccountGroupProps} />
       <AccountList
         tree={tree}
-        onEditAccount={onEditAccount}
         onEditAccountGroup={onEditAccountGroup}
-        onDeleteAccount={onDeleteAccount}
         onDeleteAccountGroup={onDeleteAccountGroup}
       />
     </div>
