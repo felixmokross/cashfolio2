@@ -4,6 +4,7 @@ import type { Period } from "./period/types";
 
 type SessionData = {
   period: Period;
+  viewPreferences: Record<string, string>;
 };
 
 type SessionFlashData = {

@@ -5,10 +5,12 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  type LoaderFunctionArgs,
 } from "react-router";
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import { getSession } from "./sessions.server";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -46,6 +48,13 @@ export const links: Route.LinksFunction = () => [
     href: "/site.webmanifest",
   },
 ];
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const session = await getSession(request.headers.get("Cookie"));
+  const viewPreferences = session.get("viewPreferences") ?? {};
+
+  return { viewPreferences };
+}
 
 export const meta: Route.MetaFunction = () => [
   { name: "apple-mobile-web-app-title", content: "Cashfolio" },

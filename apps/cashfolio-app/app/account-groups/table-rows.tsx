@@ -3,13 +3,15 @@ import { TableCell, TableRow } from "~/platform/table";
 import clsx from "clsx";
 import type { AccountsNode } from "./accounts-tree";
 import type { Account } from "~/.prisma-client/client";
-import { useLayoutEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
   WalletIcon,
 } from "~/platform/icons/standard";
 import { useAccountBook } from "~/account-books/hooks";
+import { useFetcher, useRouteLoaderData } from "react-router";
+import type { loader as rootLoader } from "~/root";
 
 export function AccountsNodeChildrenTableRows<TData = {}>({
   node,
@@ -48,31 +50,33 @@ export function AccountsNodeTableRow<TData = {}>({
   children?: (node: Serialize<AccountsNode<Account, TData>>) => ReactNode;
   viewPrefix: string;
 }) {
-  const expandedStateKey = `${viewPrefix}-account-group-${node.id}-expanded`;
-  const [isExpanded, setIsExpanded] = useState(false);
   const accountBook = useAccountBook();
 
-  useLayoutEffect(() => {
-    setIsExpanded(sessionStorage.getItem(expandedStateKey) === "true");
-  }, [expandedStateKey]);
+  const expandedStateKey = `${viewPrefix}-account-group-${node.id}-expanded`;
+  const rootLoaderData = useRouteLoaderData<typeof rootLoader>("root");
+  const isExpanded =
+    rootLoaderData?.viewPreferences?.[expandedStateKey] === "true";
 
   const ExpandCollapseIcon = isExpanded ? ChevronDownIcon : ChevronRightIcon;
 
+  const fetcher = useFetcher();
+
   function toggleExpanded() {
-    const newValue = !isExpanded;
-    sessionStorage.setItem(expandedStateKey, newValue ? "true" : "false");
-    setIsExpanded(newValue);
+    const formData = new FormData();
+    formData.append("key", expandedStateKey);
+    formData.append("value", (!isExpanded).toString());
+
+    fetcher.submit(formData, {
+      method: "POST",
+      action: `/view-preferences/set`,
+    });
   }
   return (
     <>
       <TableRow
         {...(node.nodeType === "account"
           ? { href: `/${accountBook.id}/accounts/${node.id}` }
-          : {
-              onClick: () => {
-                toggleExpanded();
-              },
-            })}
+          : { onClick: () => toggleExpanded() })}
       >
         <TableCell>
           <div
