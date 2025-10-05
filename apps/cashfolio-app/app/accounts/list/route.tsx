@@ -11,7 +11,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const [accounts, accountGroups] = await Promise.all([
     getAccounts(link.accountBookId, { isActive: true }),
-    getAccountGroupsWithPath(link.accountBookId),
+    getAccountGroupsWithPath(link.accountBookId, { isActive: true }),
   ]);
 
   const tree = getAccountsTree(accounts, accountGroups);

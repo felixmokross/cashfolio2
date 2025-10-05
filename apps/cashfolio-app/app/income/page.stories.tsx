@@ -21,6 +21,7 @@ export const Default: Story = {
         updatedAt: "2024-09-01T00:00:00.000Z",
         nodeType: "accountGroup",
         accountBookId: "cmf2w6x7e0000kdw5g4qv3y3v",
+        isActive: true,
         children: [
           {
             id: "salary-account",

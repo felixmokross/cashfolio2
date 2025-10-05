@@ -1,6 +1,9 @@
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { ensureAuthorized } from "~/account-books/functions.server";
-import { getAccountsTree } from "~/account-groups/accounts-tree";
+import {
+  getAccountsTree,
+  type AccountsNode,
+} from "~/account-groups/accounts-tree";
 import { serialize, type Serialize } from "~/serialization";
 import { Page } from "./page";
 import { getAccountGroupsWithPath } from "~/account-groups/data";
@@ -14,8 +17,30 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     getAccountGroupsWithPath(link.accountBookId),
   ]);
 
-  const tree = getAccountsTree(accounts, accountGroups);
+  const tree = filterAccountsTree(getAccountsTree(accounts, accountGroups));
   return serialize({ tree, accounts, accountGroups });
+}
+
+function filterAccountsTree(tree: ReturnType<typeof getAccountsTree>) {
+  return Object.fromEntries(
+    Object.entries(tree)
+      .filter(([, node]) => hasInactive(node))
+      .map(([key, node]) => [
+        key,
+        {
+          ...node,
+          children: node.children.filter((c) => hasInactive(c)),
+        },
+      ]),
+  );
+}
+
+function hasInactive(node: AccountsNode): boolean {
+  return (
+    node.isActive === false ||
+    (node.nodeType === "accountGroup" &&
+      node.children.some((c) => hasInactive(c)))
+  );
 }
 
 export type LoaderData = Serialize<Awaited<ReturnType<typeof loader>>>;

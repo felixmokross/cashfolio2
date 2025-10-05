@@ -62,6 +62,10 @@ export function AccountsNodeTableRow<TData = {}>({
   const fetcher = useFetcher();
 
   function toggleExpanded() {
+    if (node.nodeType === "accountGroup" && node.children.length === 0) {
+      return;
+    }
+
     const formData = new FormData();
     formData.append("key", expandedStateKey);
     formData.append("value", (!isExpanded).toString());
@@ -98,7 +102,12 @@ export function AccountsNodeTableRow<TData = {}>({
               {node.nodeType === "account" ? (
                 <WalletIcon className="size-4 shrink-0" />
               ) : (
-                <ExpandCollapseIcon className="size-4 shrink-0" />
+                <ExpandCollapseIcon
+                  className={clsx(
+                    "size-4 shrink-0",
+                    node.children.length === 0 && "invisible",
+                  )}
+                />
               )}
               <span className="truncate">{node.name}</span>
             </div>

@@ -20,8 +20,45 @@ export async function action({ request, params }: ActionFunctionArgs) {
     data: {
       name: values.name,
       parentGroupId: values.parentGroupId || null,
+      isActive: values.isActive,
     },
   });
 
+  if (values.id && !values.isActive) {
+    await deactiveChildNodes(link.accountBookId, values.id);
+  }
+
   return { success: true };
+}
+
+async function deactiveChildNodes(
+  accountBookId: string,
+  accountGroupId: string,
+) {
+  const childAccounts = await prisma.account.findMany({
+    where: { groupId: accountGroupId, isActive: true },
+  });
+
+  for (const childAccount of childAccounts) {
+    await prisma.account.update({
+      where: {
+        id_accountBookId: { id: childAccount.id, accountBookId: accountBookId },
+      },
+      data: { isActive: false },
+    });
+  }
+
+  const childGroups = await prisma.accountGroup.findMany({
+    where: { parentGroupId: accountGroupId, isActive: true },
+  });
+
+  for (const childGroup of childGroups) {
+    await prisma.accountGroup.update({
+      where: {
+        id_accountBookId: { id: childGroup.id, accountBookId: accountBookId },
+      },
+      data: { isActive: false },
+    });
+    await deactiveChildNodes(accountBookId, childGroup.id);
+  }
 }

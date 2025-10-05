@@ -289,6 +289,7 @@ program
               ? assetsGroup.id
               : liabilitiesGroup.id,
           accountBookId,
+          isActive: true,
         };
       }
 

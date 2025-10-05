@@ -1,7 +1,12 @@
 import type { AccountGroup, AccountType } from "~/.prisma-client/client";
 import { useState } from "react";
 import { DialogActions, DialogBody, DialogTitle } from "~/platform/dialog";
-import { Field, FieldGroup, Label } from "~/platform/forms/fieldset";
+import {
+  Description,
+  Field,
+  FieldGroup,
+  Label,
+} from "~/platform/forms/fieldset";
 import { Input } from "~/platform/forms/input";
 import { Radio, RadioField, RadioGroup } from "~/platform/forms/radio";
 import type { Serialize } from "~/serialization";
@@ -13,6 +18,7 @@ import {
   FormDialog,
 } from "~/platform/forms/form-dialog";
 import { useAccountBook } from "~/account-books/hooks";
+import { Switch, SwitchField } from "~/platform/forms/switch";
 
 export function useEditAccountGroup() {
   const [isOpen, setIsOpen] = useState(false);
@@ -54,6 +60,7 @@ export function EditAccountGroup({
       open={isOpen}
       onClose={onClose}
       size="3xl"
+      entityId={accountGroup?.id}
       action={
         accountGroup
           ? `/${accountBook.id}/account-groups/update`
@@ -105,6 +112,18 @@ export function EditAccountGroup({
               name="parentGroupId"
             />
           </Field>
+          <SwitchField>
+            <Label>Is Active</Label>
+            <Description>
+              Inactive account groups are hidden in most places. Deactivating
+              this account group will also deactivate all its sub-groups and
+              accounts.
+            </Description>
+            <Switch
+              name="isActive"
+              defaultChecked={accountGroup?.isActive ?? true}
+            />
+          </SwitchField>
         </FieldGroup>
       </DialogBody>
       <DialogActions>

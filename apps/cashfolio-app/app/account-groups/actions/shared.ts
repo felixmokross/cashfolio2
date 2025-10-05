@@ -7,6 +7,7 @@ export async function getFormValues(request: Request): Promise<FormValues> {
     name: form.get("name")?.toString() ?? "",
     type: form.get("type")?.toString() ?? "",
     parentGroupId: form.get("parentGroupId")?.toString(),
+    isActive: form.get("isActive") === "on",
   };
 }
 
@@ -35,6 +36,7 @@ export type FormValues = {
   name: string;
   type?: string;
   parentGroupId?: string;
+  isActive: boolean;
 };
 
 export type FormErrors = { form?: string } & Partial<

@@ -4,7 +4,7 @@ import { AccountType } from "~/.prisma-client/enums";
 export function getAccountsTree<TAccount extends Account = Account>(
   accounts: TAccount[],
   accountGroups: AccountGroup[],
-): { [K in AccountType]?: AccountsNode<TAccount> } {
+): { [K in AccountType]?: AccountGroupNode<TAccount> } {
   const childrenByParentId: Record<string, AccountsNode<TAccount>[]> = {};
   for (const g of accountGroups) {
     if (!g.parentGroupId) continue;

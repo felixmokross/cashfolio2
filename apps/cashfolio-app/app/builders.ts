@@ -21,6 +21,7 @@ export function buildAccountGroup(
     createdAt: new Date(),
     updatedAt: new Date(),
     accountBookId: "account_book_1",
+    isActive: true,
     ...values,
   };
 }

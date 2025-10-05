@@ -19,6 +19,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       type: values.type as AccountType,
       parentGroupId: values.parentGroupId || null,
       accountBookId: link.accountBookId,
+      isActive: values.isActive,
     },
   });
 

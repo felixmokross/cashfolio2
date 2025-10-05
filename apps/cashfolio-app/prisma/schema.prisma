@@ -65,9 +65,10 @@ model AccountBook {
 }
 
 model AccountGroup {
-  id   String      @default(cuid())
-  name String
-  type AccountType
+  id       String      @default(cuid())
+  name     String
+  type     AccountType
+  isActive Boolean     @default(true)
 
   parentGroup   AccountGroup? @relation("parent-child", fields: [parentGroupId, accountBookId], references: [id, accountBookId], onDelete: Restrict)
   parentGroupId String?

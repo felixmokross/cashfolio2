@@ -305,6 +305,7 @@ export async function getIncomeData(
     createdAt: new Date(),
     updatedAt: new Date(),
     accountBookId: accountBook.id,
+    isActive: true,
   };
 
   const fxHoldingGainLossGroup: AccountGroup = {
@@ -315,6 +316,7 @@ export async function getIncomeData(
     createdAt: new Date(),
     updatedAt: new Date(),
     accountBookId: accountBook.id,
+    isActive: true,
   };
 
   const cryptoHoldingGainLossGroup: AccountGroup = {
@@ -325,6 +327,7 @@ export async function getIncomeData(
     createdAt: new Date(),
     updatedAt: new Date(),
     accountBookId: accountBook.id,
+    isActive: true,
   };
 
   const securityHoldingGainLossGroup: AccountGroup = {
@@ -335,6 +338,7 @@ export async function getIncomeData(
     createdAt: new Date(),
     updatedAt: new Date(),
     accountBookId: accountBook.id,
+    isActive: true,
   };
 
   const nonRefCurrencyAccounts = accounts.filter(
@@ -367,6 +371,7 @@ export async function getIncomeData(
               createdAt: new Date(),
               updatedAt: new Date(),
               accountBookId: accountBook.id,
+              isActive: true,
             }
           : a.unit === Unit.CRYPTOCURRENCY
             ? {
@@ -377,6 +382,7 @@ export async function getIncomeData(
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 accountBookId: accountBook.id,
+                isActive: true,
               }
             : {
                 id: `security-${a.symbol}-accounts`,
@@ -386,6 +392,7 @@ export async function getIncomeData(
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 accountBookId: accountBook.id,
+                isActive: true,
               };
     }
 
