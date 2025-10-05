@@ -1,78 +1,119 @@
 import { program } from "commander";
-import { prisma } from "cashfolio-app/app/prisma.server";
 import * as TargetModel from "cashfolio-app/app/.prisma-client/client";
 import { MongoClient } from "mongodb";
 import "dotenv/config";
 import { createId } from "@paralleldrive/cuid2";
 import * as SourceModel from "./source-model";
+import { PrismaClient } from "cashfolio-app/app/.prisma-client/client";
 
-async function clearDatabase() {
-  await prisma.transaction.deleteMany();
-  await prisma.account.deleteMany();
-  await prisma.accountGroup.deleteMany();
+async function clearAccountBook(
+  targetDbClient: PrismaClient,
+  accountBookId: string,
+) {
+  console.log("Clearing account book");
+  await targetDbClient.transaction.deleteMany({ where: { accountBookId } });
+  await targetDbClient.account.deleteMany({ where: { accountBookId } });
+  await targetDbClient.accountGroup.deleteMany({ where: { accountBookId } });
 }
 
-program.command("clear").action(async () => {
-  console.log("Clearing database…");
-  await clearDatabase();
-  console.log("Done");
-});
+async function connectToTargetDb() {
+  const targetDbClient = new PrismaClient({
+    datasources: { db: { url: process.env.TARGET_DATABASE_URL } },
+  });
+  // connect eagerly
+  await targetDbClient.$connect();
+  return targetDbClient;
+}
+
+async function ensureAccountBookExists(
+  targetDbClient: PrismaClient,
+  accountBookId: string,
+) {
+  const accountBook = await targetDbClient.accountBook.findUnique({
+    where: { id: accountBookId },
+  });
+  if (!accountBook) {
+    throw new Error(`Account book with ID ${accountBookId} not found`);
+  }
+}
+
+program
+  .command("clear")
+  .argument("<account-book-id>", "ID of the account book to clear")
+  .action(async (accountBookId) => {
+    const targetDbClient = await connectToTargetDb();
+    await ensureAccountBookExists(targetDbClient, accountBookId);
+    await clearAccountBook(targetDbClient, accountBookId);
+    console.log("Done");
+  });
 
 program
   .name("importer")
-  .action(async () => {
-    console.log(`Importing data…`);
-
+  .argument("<account-book-id>", "ID of the account book to import into")
+  .action(async (accountBookId: string) => {
     const sourceDbClient = await MongoClient.connect(
       process.env.SOURCE_DATABASE_URI!,
     );
+
+    const targetDbClient = await connectToTargetDb();
+
+    await ensureAccountBookExists(targetDbClient, accountBookId);
+
     try {
       // clear existing data in target DB
-      await clearDatabase();
+      await clearAccountBook(targetDbClient, accountBookId);
 
-      const assetsGroup = await prisma.accountGroup.create({
+      console.log(`Importing data…`);
+
+      const assetsGroup = await targetDbClient.accountGroup.create({
         data: {
           name: "Assets",
           type: TargetModel.AccountType.ASSET,
+          accountBookId,
         },
       });
 
-      const liabilitiesGroup = await prisma.accountGroup.create({
+      const liabilitiesGroup = await targetDbClient.accountGroup.create({
         data: {
           name: "Liabilities",
           type: TargetModel.AccountType.LIABILITY,
+          accountBookId,
         },
       });
 
-      const equityGroup = await prisma.accountGroup.create({
+      const equityGroup = await targetDbClient.accountGroup.create({
         data: {
           name: "Equity",
           type: TargetModel.AccountType.EQUITY,
+          accountBookId,
         },
       });
 
-      const expensesGroup = await prisma.accountGroup.create({
+      const expensesGroup = await targetDbClient.accountGroup.create({
         data: {
           name: "Expenses",
           type: TargetModel.AccountType.EQUITY,
           parentGroupId: equityGroup.id,
+          accountBookId,
         },
       });
 
-      const incomeGroup = await prisma.accountGroup.create({
+      const incomeGroup = await targetDbClient.accountGroup.create({
         data: {
           name: "Income",
           type: TargetModel.AccountType.EQUITY,
           parentGroupId: equityGroup.id,
+          accountBookId,
         },
       });
 
-      const investmentGainLossAccount = await prisma.account.create({
+      const investmentGainLossAccount = await targetDbClient.account.create({
         data: {
           name: "Investment Gain/Loss",
           type: TargetModel.AccountType.EQUITY,
           equityAccountSubtype: TargetModel.EquityAccountSubtype.GAIN_LOSS,
           groupId: equityGroup.id,
+          accountBookId,
         },
       });
 
@@ -94,7 +135,7 @@ program
       console.log(
         `Creating ${Object.values(accountGroupsBySourceAccountCategoryId).length} account groups…`,
       );
-      await prisma.accountGroup.createMany({
+      await targetDbClient.accountGroup.createMany({
         data: Object.values(accountGroupsBySourceAccountCategoryId),
       });
 
@@ -156,17 +197,18 @@ program
       ];
 
       console.log(`Creating ${accounts.length} accounts…`);
-      await prisma.account.createMany({
+      await targetDbClient.account.createMany({
         data: accounts,
       });
 
       // opening balances
-      const openingBalancesAccount = await prisma.account.create({
+      const openingBalancesAccount = await targetDbClient.account.create({
         data: {
           name: "Opening Balances",
           type: TargetModel.AccountType.EQUITY,
           equityAccountSubtype: TargetModel.EquityAccountSubtype.GAIN_LOSS,
           groupId: equityGroup.id,
+          accountBookId,
         },
       });
 
@@ -182,6 +224,7 @@ program
         const openingBalanceTransaction: TargetModel.Prisma.TransactionCreateInput =
           {
             description: "Opening Balance",
+            accountBook: { connect: { id: accountBookId } },
             bookings: {
               create: [
                 {
@@ -205,7 +248,7 @@ program
             },
           };
 
-        await prisma.transaction.create({
+        await targetDbClient.transaction.create({
           data: openingBalanceTransaction,
         });
       }
@@ -219,7 +262,7 @@ program
 
       console.log(`Creating ${transactions.length} transactions…`);
       for (let i = 0; i < transactions.length; i++) {
-        await prisma.transaction.create({
+        await targetDbClient.transaction.create({
           data: transactions[i],
         });
 
@@ -245,6 +288,7 @@ program
             sourceAccountCategory.type === "ASSET"
               ? assetsGroup.id
               : liabilitiesGroup.id,
+          accountBookId,
         };
       }
 
@@ -291,6 +335,7 @@ program
               ? sourceStocksById[sourceAccount.unit.stockId.toString()]
                   .tradingCurrency
               : null,
+          accountBookId,
         };
       }
 
@@ -316,6 +361,7 @@ program
           cryptocurrency: null,
           symbol: null,
           tradeCurrency: null,
+          accountBookId,
         };
       }
 
@@ -346,28 +392,24 @@ program
                     : 1,
                 ),
                 account: {
-                  connect:
-                    b.type === SourceModel.BookingType.DEPOSIT ||
-                    b.type === SourceModel.BookingType.CHARGE
-                      ? {
-                          id: accountsBySourceAccountId[b.accountId.toString()]
-                            .id,
-                        }
-                      : b.type === SourceModel.BookingType.INCOME
-                        ? {
-                            id: accountsBySourceIncomeCategoryId[
-                              b.incomeCategoryId.toString()
-                            ].id,
-                          }
-                        : b.type === SourceModel.BookingType.EXPENSE
-                          ? {
-                              id: accountsBySourceExpenseCategoryId[
-                                b.expenseCategoryId.toString()
-                              ].id,
-                            }
-                          : {
-                              id: investmentGainLossAccount.id,
-                            },
+                  connect: {
+                    id_accountBookId: {
+                      id:
+                        b.type === SourceModel.BookingType.DEPOSIT ||
+                        b.type === SourceModel.BookingType.CHARGE
+                          ? accountsBySourceAccountId[b.accountId.toString()].id
+                          : b.type === SourceModel.BookingType.INCOME
+                            ? accountsBySourceIncomeCategoryId[
+                                b.incomeCategoryId.toString()
+                              ].id
+                            : b.type === SourceModel.BookingType.EXPENSE
+                              ? accountsBySourceExpenseCategoryId[
+                                  b.expenseCategoryId.toString()
+                                ].id
+                              : investmentGainLossAccount.id,
+                      accountBookId,
+                    },
+                  },
                 },
                 unit: isCrypto
                   ? TargetModel.Unit.CRYPTOCURRENCY
@@ -413,9 +455,11 @@ program
                           .tradingCurrency
                       : null
                     : null,
+                accountBook: { connect: { id: accountBookId } },
               };
             }),
           },
+          accountBook: { connect: { id: accountBookId } },
         };
       }
 
@@ -441,4 +485,5 @@ const symbolMapping = {
   "AEEM-FP": "AEEM.PA",
   "EMIM-NA": "EMIM.AS",
   "VWCE.XETRA": "VWCE.DE",
+  "FWRA.XSWX": "FWRA.L",
 };
