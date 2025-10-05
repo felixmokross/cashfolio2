@@ -37,7 +37,7 @@ export default function Route() {
         </TableHead>
         <TableBody>
           {accountBooks.map((ab) => (
-            <TableRow>
+            <TableRow key={ab.id}>
               <TableCell>{ab.id}</TableCell>
               <TableCell>{ab.name}</TableCell>
               <TableCell>

@@ -42,7 +42,7 @@ export default function Route() {
         </TableHead>
         <TableBody>
           {users.map((u) => (
-            <TableRow>
+            <TableRow key={u.id}>
               <TableCell>{u.id}</TableCell>
               <TableCell>{u.externalId}</TableCell>
               <TableCell className="text-right">
