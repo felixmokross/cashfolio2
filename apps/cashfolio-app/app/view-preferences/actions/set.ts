@@ -16,7 +16,7 @@ export async function action({ request }: ActionFunctionArgs) {
     where: { id: user.id },
     data: {
       viewPreferences: {
-        ...(user.viewPreferences as object | null),
+        ...(user.viewPreferences as Record<string, string> | null),
         [key]: value,
       },
     },

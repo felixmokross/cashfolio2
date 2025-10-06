@@ -52,7 +52,9 @@ export const links: Route.LinksFunction = () => [
 export async function loader({ request }: LoaderFunctionArgs) {
   const user = await ensureUser(request);
 
-  return { viewPreferences: user.viewPreferences || {} };
+  return {
+    viewPreferences: user.viewPreferences as Record<string, string>,
+  };
 }
 
 export const meta: Route.MetaFunction = () => [
