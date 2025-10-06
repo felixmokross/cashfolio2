@@ -60,7 +60,7 @@ export function Page({
               />
             </TableBody>
           </Table>
-          <Table dense bleed grid striped fixedLayout>
+          <Table dense bleed striped fixedLayout>
             <TableBody>
               <TableRow>
                 <TableHeader>Equity</TableHeader>
