@@ -9,9 +9,14 @@ import { getAccounts } from "../data";
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);
 
+  const showInactive =
+    new URL(request.url).searchParams.get("showInactive") === "true";
+
+  const queryFilter = showInactive ? undefined : { isActive: true };
+
   const [accounts, accountGroups] = await Promise.all([
-    getAccounts(link.accountBookId, { isActive: true }),
-    getAccountGroupsWithPath(link.accountBookId, { isActive: true }),
+    getAccounts(link.accountBookId, queryFilter),
+    getAccountGroupsWithPath(link.accountBookId, queryFilter),
   ]);
 
   const tree = getAccountsTree(accounts, accountGroups);

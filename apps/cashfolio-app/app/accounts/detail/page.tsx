@@ -87,10 +87,12 @@ export function Page({
         <DeleteAccount {...deleteAccountProps} />
 
         <div className="flex gap-4">
-          <Button hierarchy="primary" onClick={() => onNewTransaction()}>
-            <PlusCircleIcon />
-            New Transaction
-          </Button>
+          {account.isActive && (
+            <Button hierarchy="primary" onClick={() => onNewTransaction()}>
+              <PlusCircleIcon />
+              New Transaction
+            </Button>
+          )}
           <Dropdown>
             <DropdownButton as={Button} hierarchy="secondary">
               <EllipsisVerticalIcon />

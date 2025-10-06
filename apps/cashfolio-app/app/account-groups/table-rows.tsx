@@ -12,18 +12,25 @@ import {
 import { useAccountBook } from "~/account-books/hooks";
 import { useFetcher, useRouteLoaderData } from "react-router";
 import type { loader as rootLoader } from "~/root";
+import { Badge } from "~/platform/badge";
+
+type AccountsNodeTableRowOptions = {
+  showInactiveBadge?: boolean;
+};
 
 export function AccountsNodeChildrenTableRows<TData = {}>({
   node,
   level = 0,
   children,
   viewPrefix,
+  options = {},
 }: {
   node: Serialize<AccountsNode<Account, TData>>;
   level?: number;
   negated?: boolean;
   children?: (node: Serialize<AccountsNode<Account, TData>>) => ReactNode;
   viewPrefix: string;
+  options?: AccountsNodeTableRowOptions;
 }) {
   if (node.nodeType === "account") {
     return null;
@@ -35,6 +42,7 @@ export function AccountsNodeChildrenTableRows<TData = {}>({
       level={level}
       children={children}
       viewPrefix={viewPrefix}
+      options={options}
     />
   ));
 }
@@ -44,11 +52,13 @@ export function AccountsNodeTableRow<TData = {}>({
   level,
   children,
   viewPrefix,
+  options,
 }: {
   node: Serialize<AccountsNode<Account, TData>>;
   level: number;
   children?: (node: Serialize<AccountsNode<Account, TData>>) => ReactNode;
   viewPrefix: string;
+  options: AccountsNodeTableRowOptions;
 }) {
   const accountBook = useAccountBook();
 
@@ -110,6 +120,9 @@ export function AccountsNodeTableRow<TData = {}>({
                 />
               )}
               <span className="truncate">{node.name}</span>
+              {options.showInactiveBadge && !node.isActive && (
+                <Badge color="accent-negative">Inactive</Badge>
+              )}
             </div>
           </div>
         </TableCell>
@@ -122,6 +135,7 @@ export function AccountsNodeTableRow<TData = {}>({
           level={level + 1}
           children={children}
           viewPrefix={viewPrefix}
+          options={options}
         />
       )}
     </>

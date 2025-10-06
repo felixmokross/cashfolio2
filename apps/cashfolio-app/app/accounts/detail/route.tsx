@@ -34,16 +34,19 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     where: { id: link.accountBookId },
   });
 
-  const [account, bookingsForPeriod, allAccounts, accountGroups] =
-    await Promise.all([
-      getAccount(params.accountId, link.accountBookId),
-      getBookings(params.accountId, accountBook, from, to),
-      getAccounts(link.accountBookId),
-      getAccountGroupsWithPath(link.accountBookId),
-    ]);
+  const [account, bookingsForPeriod, allAccounts] = await Promise.all([
+    getAccount(params.accountId, link.accountBookId),
+    getBookings(params.accountId, accountBook, from, to),
+    getAccounts(link.accountBookId, { isActive: true }),
+  ]);
   if (!account) {
     throw new Response("Not Found", { status: 404 });
   }
+
+  const accountGroups = await getAccountGroupsWithPath(
+    link.accountBookId,
+    account.isActive ? { isActive: true } : undefined,
+  );
 
   function getAccountPath(account: Account) {
     const accountGroupPath = accountGroups.find(

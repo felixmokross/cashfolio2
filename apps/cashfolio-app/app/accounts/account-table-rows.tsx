@@ -18,7 +18,11 @@ export function AccountsTableRows({
   viewPrefix: string;
 }) {
   return (
-    <AccountsNodeChildrenTableRows node={node} viewPrefix={viewPrefix}>
+    <AccountsNodeChildrenTableRows
+      node={node}
+      viewPrefix={viewPrefix}
+      options={{ showInactiveBadge: true }}
+    >
       {(node) => (
         <>
           <TableCell className="w-40 space-x-2">
