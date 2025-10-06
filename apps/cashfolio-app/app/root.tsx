@@ -10,7 +10,7 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { getSession } from "./sessions.server";
+import { ensureUser } from "./users/data";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -50,10 +50,9 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
-  const viewPreferences = session.get("viewPreferences") ?? {};
+  const user = await ensureUser(request);
 
-  return { viewPreferences };
+  return { viewPreferences: user.viewPreferences || {} };
 }
 
 export const meta: Route.MetaFunction = () => [
