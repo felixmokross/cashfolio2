@@ -210,7 +210,7 @@ export function PeriodSelector() {
                       firstMonthIndex + index === getMonth(today())
                         ? "MTD"
                         : format(
-                            `${periodState.year}-${firstMonthIndex + index + 1}`,
+                            Date.UTC(periodState.year, firstMonthIndex + index),
                             "MMMM",
                           )}
                     </option>
