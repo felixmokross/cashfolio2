@@ -12,7 +12,7 @@ import type {
   AccountBook,
   AccountGroup,
 } from "~/.prisma-client/client";
-import type { AccountGroupNode } from "~/types";
+import type { AccountGroupNode, AccountNode } from "~/types";
 import { Decimal } from "@prisma/client/runtime/library";
 import { prisma } from "~/prisma.server";
 
@@ -24,11 +24,7 @@ export async function getBalanceSheet(
 ) {
   const accountsTree = getAccountsTree(accounts, accountGroups);
 
-  let assets = (await getBalances(
-    accountBook,
-    accountsTree.ASSET!,
-    date,
-  )) as BalancesAccountsNode & AccountGroupNode;
+  let assets = await getBalances(accountBook, accountsTree.ASSET!, date);
 
   // TODO verify, improve
   const transferClearingBalance = sum(
@@ -79,7 +75,7 @@ export async function getBalanceSheet(
     ...assets,
     balance: assets.balance.plus(transferClearingBalance),
     children: [
-      ...assets.children,
+      ...(assets as BalancesAccountsNode & AccountGroupNode).children,
       {
         nodeType: "account",
         id: "transfer-clearing",
@@ -98,10 +94,9 @@ export async function getBalanceSheet(
         tradeCurrency: null,
         equityAccountSubtype: null,
         type: "ASSET",
-        children: [],
       },
     ],
-  };
+  } as BalancesAccountsNode & AccountGroupNode;
 
   const liabilities = await getBalances(
     accountBook,
