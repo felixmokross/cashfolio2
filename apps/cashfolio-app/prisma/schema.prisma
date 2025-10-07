@@ -39,6 +39,9 @@ model User {
   viewPreferences Json?
 
   accountBookLinks UserAccountBookLink[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model UserAccountBookLink {
@@ -62,6 +65,9 @@ model AccountBook {
   bookings     Booking[]
 
   userLinks UserAccountBookLink[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@id([id])
 }
