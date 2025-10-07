@@ -231,7 +231,6 @@ export async function generateTransactionGainLossBookings(
     },
     include: {
       bookings: {
-        where: { date: { gte: fromDate, lte: toDate } },
         orderBy: { date: "asc" },
       },
     },
