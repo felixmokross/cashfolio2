@@ -12,6 +12,9 @@ import type {
   AccountBook,
   AccountGroup,
 } from "~/.prisma-client/client";
+import type { AccountGroupNode } from "~/types";
+import { Decimal } from "@prisma/client/runtime/library";
+import { prisma } from "~/prisma.server";
 
 export async function getBalanceSheet(
   accountBook: AccountBook,
@@ -21,7 +24,85 @@ export async function getBalanceSheet(
 ) {
   const accountsTree = getAccountsTree(accounts, accountGroups);
 
-  const assets = await getBalances(accountBook, accountsTree.ASSET!, date);
+  let assets = (await getBalances(
+    accountBook,
+    accountsTree.ASSET!,
+    date,
+  )) as BalancesAccountsNode & AccountGroupNode;
+
+  // TODO verify, improve
+  const transferClearingBalance = sum(
+    await Promise.all(
+      (
+        await prisma.transaction.findMany({
+          where: {
+            accountBookId: accountBook.id,
+            AND: [
+              { bookings: { some: { date: { lte: date } } } },
+              { bookings: { some: { date: { gt: date } } } },
+            ],
+          },
+          include: { bookings: { where: { date: { gt: date } } } },
+        })
+      ).map(async (t) =>
+        sum(
+          await Promise.all(
+            t.bookings.map((b) =>
+              convert(
+                b.value,
+                b.unit === Unit.CURRENCY
+                  ? { unit: Unit.CURRENCY, currency: b.currency! }
+                  : b.unit === Unit.CRYPTOCURRENCY
+                    ? {
+                        unit: Unit.CRYPTOCURRENCY,
+                        cryptocurrency: b.cryptocurrency!,
+                      }
+                    : {
+                        unit: Unit.SECURITY,
+                        symbol: b.symbol!,
+                        tradeCurrency: b.tradeCurrency!,
+                      },
+                {
+                  unit: Unit.CURRENCY,
+                  currency: accountBook.referenceCurrency,
+                },
+                b.date,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  assets = {
+    ...assets,
+    balance: assets.balance.plus(transferClearingBalance),
+    children: [
+      ...assets.children,
+      {
+        nodeType: "account",
+        id: "transfer-clearing",
+        name: "Transfer Clearing",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        groupId: assets.id,
+        accountBookId: assets.accountBookId,
+        unit: Unit.CURRENCY,
+        currency: accountBook.referenceCurrency,
+        balance: transferClearingBalance,
+        balanceInOriginalCurrency: new Decimal(0),
+        isActive: true,
+        cryptocurrency: null,
+        symbol: null,
+        tradeCurrency: null,
+        equityAccountSubtype: null,
+        type: "ASSET",
+        children: [],
+      },
+    ],
+  };
+
   const liabilities = await getBalances(
     accountBook,
     accountsTree.LIABILITY!,
