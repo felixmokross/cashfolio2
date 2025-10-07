@@ -75,7 +75,13 @@ describe.skip("generateFxBookingsForFxAccount", () => {
     );
 
     const result = await generateHoldingBookingsForAccount(
-      { id: "book-1", name: "Account Book", referenceCurrency: "CHF" },
+      {
+        id: "book-1",
+        name: "Account Book",
+        referenceCurrency: "CHF",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       {
         ...buildAccount({ id: "fx-account", currency: "EUR" }),
         bookings: [
@@ -116,7 +122,13 @@ describe.skip("generateFxBookingsForFxAccount", () => {
 
   test("returns an empty array if there is no booking", async () => {
     const result = await generateHoldingBookingsForAccount(
-      { id: "book-1", name: "Account Book", referenceCurrency: "CHF" },
+      {
+        id: "book-1",
+        name: "Account Book",
+        referenceCurrency: "CHF",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       {
         ...buildAccount({ id: "fx-account", currency: "EUR" }),
         bookings: [],
@@ -158,7 +170,13 @@ describe.skip("completeFxTransaction", () => {
     );
 
     const result = await completeTransaction(
-      { id: "book-1", name: "Account Book", referenceCurrency: "CHF" },
+      {
+        id: "book-1",
+        name: "Account Book",
+        referenceCurrency: "CHF",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       {
         id: "transaction_1",
         description: "FX transaction",
@@ -269,7 +287,13 @@ describe.skip("getProfitLossStatement", () => {
 
     const result = (
       await getIncomeData(
-        { id: "book-1", name: "Account Book", referenceCurrency: "CHF" },
+        {
+          id: "book-1",
+          name: "Account Book",
+          referenceCurrency: "CHF",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
         [
           buildAccountWithBookings({
             id: "asset-account-1",

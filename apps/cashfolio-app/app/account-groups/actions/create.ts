@@ -20,6 +20,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       parentGroupId: values.parentGroupId || null,
       accountBookId: link.accountBookId,
       isActive: values.isActive,
+      sortOrder: values.sortOrder,
     },
   });
 

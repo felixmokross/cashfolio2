@@ -290,6 +290,7 @@ program
               : liabilitiesGroup.id,
           accountBookId,
           isActive: true,
+          sortOrder: sourceAccountCategory.order,
         };
       }
 

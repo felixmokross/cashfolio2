@@ -8,6 +8,9 @@ export async function getFormValues(request: Request): Promise<FormValues> {
     type: form.get("type")?.toString() ?? "",
     parentGroupId: form.get("parentGroupId")?.toString(),
     isActive: form.get("isActive") === "on",
+    sortOrder: form.get("sortOrder")
+      ? parseInt(form.get("sortOrder")!.toString(), 10)
+      : undefined,
   };
 }
 
@@ -36,6 +39,7 @@ export type FormValues = {
   name: string;
   type?: string;
   parentGroupId?: string;
+  sortOrder?: number;
   isActive: boolean;
 };
 

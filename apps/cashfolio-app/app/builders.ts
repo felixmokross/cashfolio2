@@ -22,6 +22,7 @@ export function buildAccountGroup(
     updatedAt: new Date(),
     accountBookId: "account_book_1",
     isActive: true,
+    sortOrder: 1,
     ...values,
   };
 }

@@ -44,6 +44,7 @@ export const Default: Story = {
       value: 1000,
       accountBookId: "cmf2w6x7e0000kdw5g4qv3y3v",
       isActive: true,
+      sortOrder: 1,
       children: [
         {
           id: "cmfa7oxid000135gbi0addrl2",
@@ -56,6 +57,7 @@ export const Default: Story = {
           value: 1000,
           accountBookId: "cmf2w6x7e0000kdw5g4qv3y3v",
           isActive: true,
+          sortOrder: 1,
           children: [
             {
               id: "cmf2x1kpe0003kdw5kzymh88n",

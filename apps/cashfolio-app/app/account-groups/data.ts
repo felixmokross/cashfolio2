@@ -9,7 +9,7 @@ export async function getAccountGroups(
 ) {
   return await prisma.accountGroup.findMany({
     where: { accountBookId, isActive },
-    orderBy: { name: "asc" },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
 }
 

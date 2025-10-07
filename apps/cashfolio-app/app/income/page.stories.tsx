@@ -22,6 +22,7 @@ export const Default: Story = {
         nodeType: "accountGroup",
         accountBookId: "cmf2w6x7e0000kdw5g4qv3y3v",
         isActive: true,
+        sortOrder: 1,
         children: [
           {
             id: "salary-account",

@@ -19,6 +19,7 @@ import {
 } from "~/platform/forms/form-dialog";
 import { useAccountBook } from "~/account-books/hooks";
 import { Switch, SwitchField } from "~/platform/forms/switch";
+import { FormattedNumberInput } from "~/platform/forms/formatted-number-input";
 
 export function useEditAccountGroup() {
   const [isOpen, setIsOpen] = useState(false);
@@ -102,16 +103,25 @@ export function EditAccountGroup({
               </RadioGroup>
             </Field>
           </div>
-          <Field>
-            <Label>Parent Group</Label>
-            <AccountGroupCombobox
-              accountGroups={accountGroups.filter(
-                (g) => g.type === selectedType && g.id !== accountGroup?.id,
-              )}
-              defaultValue={accountGroup?.parentGroupId ?? ""}
-              name="parentGroupId"
-            />
-          </Field>
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
+            <Field>
+              <Label>Parent Group</Label>
+              <AccountGroupCombobox
+                accountGroups={accountGroups.filter(
+                  (g) => g.type === selectedType && g.id !== accountGroup?.id,
+                )}
+                defaultValue={accountGroup?.parentGroupId ?? ""}
+                name="parentGroupId"
+              />
+            </Field>
+            <Field>
+              <Label>Sort Order</Label>
+              <FormattedNumberInput
+                name="sortOrder"
+                defaultValue={accountGroup?.sortOrder ?? ""}
+              />
+            </Field>
+          </div>
           <SwitchField>
             <Label>Is Active</Label>
             <Description>
