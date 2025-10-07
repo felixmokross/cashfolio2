@@ -6,7 +6,7 @@ import { getPeriod } from "~/period/functions";
 import { SidebarLayout } from "~/platform/sidebar-layout";
 import { prisma } from "~/prisma.server";
 import { serialize } from "~/serialization";
-import { getUserOrThrow } from "~/users/data";
+import { getOrCreateUser } from "~/users/data";
 import {
   ensureAuthorizedForUserAndAccountBookId,
   getFirstBookingDate,
@@ -14,7 +14,7 @@ import {
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const userContext = await ensureAuthenticated(request);
-  const user = await getUserOrThrow(userContext);
+  const user = await getOrCreateUser(userContext);
   invariant(params.accountBookId, "accountBookId is required");
 
   const link = await ensureAuthorizedForUserAndAccountBookId(

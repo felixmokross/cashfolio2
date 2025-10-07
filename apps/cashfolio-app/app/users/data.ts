@@ -6,28 +6,17 @@ import { prisma } from "~/prisma.server";
 export async function getOrCreateUser(userContext: LogtoContext) {
   invariant(userContext.claims, "No user claims");
 
-  let user = await prisma.user.findUnique({
+  const user = await prisma.user.upsert({
     where: { externalId: userContext.claims.sub },
+    create: { externalId: userContext.claims.sub },
+    update: {},
   });
-  if (!user) {
-    user = await prisma.user.create({
-      data: { externalId: userContext.claims.sub },
-    });
-  }
 
   return user;
 }
 
-export async function getUserOrThrow(userContext: LogtoContext) {
-  invariant(userContext.claims, "No user claims");
-
-  return await prisma.user.findUniqueOrThrow({
-    where: { externalId: userContext.claims.sub },
-  });
-}
-
 export async function ensureUser(request: Request) {
   const userContext = await ensureAuthenticated(request);
-  const user = await getUserOrThrow(userContext);
+  const user = await getOrCreateUser(userContext);
   return user;
 }
