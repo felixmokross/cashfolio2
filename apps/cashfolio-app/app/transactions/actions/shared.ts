@@ -24,7 +24,10 @@ export function validate(bookings: BookingFormData[]) {
 
   if (bookings.length < 2) {
     errors.form = "At least two bookings are required.";
-  } else if (!sum(bookings.map((b) => b.value)).isZero()) {
+  } else if (
+    !sum(bookings.map((b) => b.value)).isZero() &&
+    new Set(bookings.map((b) => b.currency)).size === 1
+  ) {
     errors.form = "The sum of all bookings must be zero.";
   }
 

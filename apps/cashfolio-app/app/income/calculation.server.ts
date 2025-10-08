@@ -158,7 +158,7 @@ export async function generateHoldingBookingsForAccount(
 }
 
 export async function completeTransaction(
-  accountBook: AccountBook,
+  referenceCurrency: string,
   transaction: TransactionWithBookings,
 ): Promise<Decimal> {
   const values = new Array<Decimal>(transaction.bookings.length);
@@ -178,7 +178,7 @@ export async function completeTransaction(
               symbol: b.symbol!,
               tradeCurrency: b.tradeCurrency!,
             },
-      { unit: Unit.CURRENCY, currency: accountBook.referenceCurrency },
+      { unit: Unit.CURRENCY, currency: referenceCurrency },
       b.date,
     );
   }
@@ -240,21 +240,11 @@ export async function generateTransactionGainLossBookings(
   const bookings = new Array<BookingWithTransaction>(transactions.length);
   for (let i = 0; i < transactions.length; i++) {
     const t = transactions[i];
-    bookings[i] = {
-      id: `transaction-gain-loss-${t.id}`,
-      date: max(t.bookings.map((b) => b.date)),
-      unit: Unit.CURRENCY,
-      currency: accountBook.referenceCurrency,
-      cryptocurrency: null,
-      symbol: null,
-      tradeCurrency: null,
-      value: await completeTransaction(accountBook, t),
-      accountId: TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
-      description: `Transaction Gain/Loss for transaction ${t.description}`,
-      transactionId: t.id,
-      transaction: t,
-      accountBookId: accountBook.id,
-    };
+    bookings[i] = await generateTransactionGainLossBooking(
+      accountBook.id,
+      accountBook.referenceCurrency,
+      t,
+    );
   }
   return (
     bookings
@@ -263,6 +253,28 @@ export async function generateTransactionGainLossBookings(
       .toSorted((a, b) => differenceInDays(b.date, a.date))
       .toReversed()
   );
+}
+
+export async function generateTransactionGainLossBooking(
+  accountBookId: string,
+  referenceCurrency: string,
+  transaction: TransactionWithBookings,
+) {
+  return {
+    id: `transaction-gain-loss-${transaction.id}`,
+    date: max(transaction.bookings.map((b) => b.date)),
+    unit: Unit.CURRENCY,
+    currency: referenceCurrency,
+    cryptocurrency: null,
+    symbol: null,
+    tradeCurrency: null,
+    value: await completeTransaction(referenceCurrency, transaction),
+    accountId: TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
+    description: `Transaction Gain/Loss for transaction ${transaction.description}`,
+    transactionId: transaction.id,
+    transaction: transaction,
+    accountBookId,
+  };
 }
 
 export function generateHoldingGainLossAccount(account: Account): Account {

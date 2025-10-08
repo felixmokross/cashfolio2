@@ -3,11 +3,12 @@ import { convert } from "~/fx.server";
 import { redis } from "~/redis.server";
 import { prisma } from "~/prisma.server";
 import type { Unit } from "~/fx";
-import { isEqual } from "date-fns";
+import { isAfter, isEqual } from "date-fns";
 import {
   generateHoldingBookingsForAccount,
   generateHoldingGainLossAccount,
   generateTransactionGainLossAccount,
+  generateTransactionGainLossBooking,
   generateTransactionGainLossBookings,
   TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
 } from "~/income/calculation.server";
@@ -16,6 +17,7 @@ import type { AccountBook, Booking } from "~/.prisma-client/client";
 import { Unit as UnitEnum } from "~/.prisma-client/enums";
 import { sum } from "~/utils";
 import { TRANSFER_CLEARING_ACCOUNT_ID } from "../constants";
+import invariant from "tiny-invariant";
 
 export async function getAccount(accountId: string, accountBookId: string) {
   if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
@@ -144,52 +146,76 @@ export async function getBalanceCached(
   return balance;
 }
 
-export async function getTransferClearingBalance(
+async function getTransferClearingBalance(
   accountBookId: string,
   ledgerUnit: Unit,
   date: Date,
 ) {
   // TODO improve, make more granular (account per transaction and/or currency/unit etc)
-  // TODO ensure to include Transaction Gain/Loss bookings, these should also be part of the transfer clearing
   return sum(
     await Promise.all(
       (
-        await prisma.transaction.findMany({
-          where: {
-            accountBookId,
-            AND: [
-              { bookings: { some: { date: { lte: date } } } },
-              { bookings: { some: { date: { gt: date } } } },
-            ],
-          },
-          include: { bookings: { where: { date: { gt: date } } } },
-        })
+        await getTransferClearingTransactions(accountBookId, ledgerUnit, date)
       ).map(async (t) =>
         sum(
           await Promise.all(
-            t.bookings.map((b) =>
-              convert(
-                b.value,
-                b.unit === UnitEnum.CURRENCY
-                  ? { unit: UnitEnum.CURRENCY, currency: b.currency! }
-                  : b.unit === UnitEnum.CRYPTOCURRENCY
-                    ? {
-                        unit: UnitEnum.CRYPTOCURRENCY,
-                        cryptocurrency: b.cryptocurrency!,
-                      }
-                    : {
-                        unit: UnitEnum.SECURITY,
-                        symbol: b.symbol!,
-                        tradeCurrency: b.tradeCurrency!,
-                      },
-                ledgerUnit,
-                b.date,
+            t.bookings
+              .filter((b) => isAfter(b.date, date))
+              .map((b) =>
+                convert(
+                  b.value,
+                  b.unit === UnitEnum.CURRENCY
+                    ? { unit: UnitEnum.CURRENCY, currency: b.currency! }
+                    : b.unit === UnitEnum.CRYPTOCURRENCY
+                      ? {
+                          unit: UnitEnum.CRYPTOCURRENCY,
+                          cryptocurrency: b.cryptocurrency!,
+                        }
+                      : {
+                          unit: UnitEnum.SECURITY,
+                          symbol: b.symbol!,
+                          tradeCurrency: b.tradeCurrency!,
+                        },
+                  ledgerUnit,
+                  b.date,
+                ),
               ),
-            ),
           ),
         ),
       ),
     ),
+  );
+}
+
+async function getTransferClearingTransactions(
+  accountBookId: string,
+  ledgerUnit: Unit,
+  date: Date,
+) {
+  invariant(ledgerUnit.unit === UnitEnum.CURRENCY, "Currency unit expected");
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      accountBookId,
+      AND: [
+        { bookings: { some: { date: { lte: date } } } },
+        { bookings: { some: { date: { gt: date } } } },
+      ],
+    },
+    include: { bookings: true },
+  });
+
+  return await Promise.all(
+    transactions.map(async (t) => ({
+      ...t,
+      bookings: [
+        ...t.bookings,
+        await generateTransactionGainLossBooking(
+          accountBookId,
+          ledgerUnit.currency,
+          t,
+        ),
+      ],
+    })),
   );
 }
 

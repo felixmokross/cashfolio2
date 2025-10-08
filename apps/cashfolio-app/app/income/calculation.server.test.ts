@@ -162,38 +162,29 @@ describe.skip("completeFxTransaction", () => {
       getFxRate(date, from, to),
     );
 
-    const result = await completeTransaction(
-      {
-        id: "book-1",
-        name: "Account Book",
-        referenceCurrency: "CHF",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: "transaction_1",
-        description: "FX transaction",
-        bookings: [
-          buildBooking({
-            id: "booking_1",
-            accountId: "account_1",
-            date: new Date("2025-01-03"),
-            value: new Decimal(-100),
-            currency: "EUR",
-          }),
-          buildBooking({
-            id: "booking_2",
-            date: new Date("2025-01-04"),
-            accountId: "account_2",
-            value: new Decimal(88),
-            currency: "CHF",
-          }),
-        ],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        accountBookId: "book-1",
-      },
-    );
+    const result = await completeTransaction("CHF", {
+      id: "transaction_1",
+      description: "FX transaction",
+      bookings: [
+        buildBooking({
+          id: "booking_1",
+          accountId: "account_1",
+          date: new Date("2025-01-03"),
+          value: new Decimal(-100),
+          currency: "EUR",
+        }),
+        buildBooking({
+          id: "booking_2",
+          date: new Date("2025-01-04"),
+          accountId: "account_2",
+          value: new Decimal(88),
+          currency: "CHF",
+        }),
+      ],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      accountBookId: "book-1",
+    });
 
     expect(result).toEqual(new Decimal(2));
   });

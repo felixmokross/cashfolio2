@@ -98,7 +98,16 @@ test("returns a transfer clearing balance for uncleared transactions", async () 
   ]);
   vi.mocked(prisma.transaction.findMany).mockResolvedValue([
     buildTransactionWithBookings({
-      bookings: [buildBooking({ value: new Decimal(200) })],
+      bookings: [
+        buildBooking({
+          date: new Date(Date.UTC(2025, 7, 31)),
+          value: new Decimal(-200),
+        }),
+        buildBooking({
+          date: new Date(Date.UTC(2025, 8, 1)),
+          value: new Decimal(200),
+        }),
+      ],
     }),
   ]);
 
@@ -114,7 +123,7 @@ test("returns a transfer clearing balance for uncleared transactions", async () 
         { bookings: { some: { date: { gt: date } } } },
       ],
     },
-    include: { bookings: { where: { date: { gt: date } } } },
+    include: { bookings: true },
   });
 
   expect(result).toEqual(
