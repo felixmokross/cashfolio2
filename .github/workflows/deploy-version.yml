@@ -80,6 +80,8 @@ jobs:
           COOKIE_DOMAIN: ${{ vars.COOKIE_DOMAIN }}
           LOGTO_APP_ID: ${{ vars.LOGTO_APP_ID }}
           LOGTO_ENDPOINT: ${{ vars.LOGTO_ENDPOINT }}
+          LOGTO_TENANT_ID: ${{ vars.LOGTO_TENANT_ID }}
+          LOGTO_MANAGEMENT_APP_ID: ${{ vars.LOGTO_MANAGEMENT_APP_ID }}
       - name: Deploy cashfolio-app
         run: |
           flyctl deploy \
