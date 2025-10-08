@@ -21,6 +21,10 @@ vi.mock("~/fx.server", async () => ({
     mockGetExchangeRate(...args),
 }));
 
+vi.mock("~/prisma.server", () => ({
+  prisma: {},
+}));
+
 vi.mock("~/redis.server", async () => ({
   redis: {},
 }));
