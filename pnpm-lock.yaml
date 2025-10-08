@@ -26,6 +26,9 @@ importers:
       '@internationalized/date':
         specifier: ^3.9.0
         version: 3.9.0
+      '@logto/api':
+        specifier: ^1.32.0
+        version: 1.32.0
       '@logto/remix':
         specifier: ^3.0.10
         version: 3.0.10(@remix-run/node@2.17.1(typescript@5.9.2))
@@ -536,6 +539,10 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.30':
     resolution: {integrity: sha512-GQ7Nw5G2lTu/BtHTKfXhKHok2WGetd4XYcVKGx00SjAk8GMwgJM3zr6zORiPGuOE+/vkc90KtTosSSvaCjKb2Q==}
+
+  '@logto/api@1.32.0':
+    resolution: {integrity: sha512-oX2YLyBu8oo4od7VWwZNXCiavaeUiOW6/ExEbxHfCQJ/UhKuSIX6UEwnuOo5KSplGkM7gVpmKmPnxjNgpYC8Bg==}
+    engines: {node: ^22.14.0 || ^24.0.0}
 
   '@logto/client@3.1.4':
     resolution: {integrity: sha512-aaz1XrLLTBii5lz3c7oHr/kqcR2iTbTehxlCn3YMnSyGUBVjoUYH4eU37wqf08nEYjtsLaSndYu63WVN8/Fpqw==}
@@ -2713,6 +2720,12 @@ packages:
     resolution: {integrity: sha512-7x81NCL719oNbsq/3mh+hVrAWmFuEYUqrq/Iw3kUzH8ReypT9QQ0BLoJS7/G9k6N81XjW4qHWtjWwe/9eLy1EQ==}
     engines: {node: '>=12'}
 
+  openapi-fetch@0.14.1:
+    resolution: {integrity: sha512-l7RarRHxlEZYjMLd/PR0slfMVse2/vvIAGm75/F7J6MlQ8/b9uUQmUF2kCPrQhJqMXSxmYWObVgeYXbFYzZR+A==}
+
+  openapi-typescript-helpers@0.0.15:
+    resolution: {integrity: sha512-opyTPaunsklCBpTK8JGef6mfPhLSnyy5a0IN9vKtx3+4aExf+KxEqYwIy3hqkedXIB97u357uLMJsOnm3GVjsw==}
+
   p-limit@4.0.0:
     resolution: {integrity: sha512-5b0R4txpzjPWVw/cXXUResoD4hb6U/x9BH08L7nw+GN1sezDzPdxeRvpc9c433fZhBan/wusjbCsqwqm4EIBIQ==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
@@ -3825,6 +3838,10 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@logto/api@1.32.0':
+    dependencies:
+      openapi-fetch: 0.14.1
 
   '@logto/client@3.1.4':
     dependencies:
@@ -6402,6 +6419,12 @@ snapshots:
       define-lazy-prop: 2.0.0
       is-docker: 2.2.1
       is-wsl: 2.2.0
+
+  openapi-fetch@0.14.1:
+    dependencies:
+      openapi-typescript-helpers: 0.0.15
+
+  openapi-typescript-helpers@0.0.15: {}
 
   p-limit@4.0.0:
     dependencies:

@@ -11,6 +11,7 @@ import {
 } from "~/platform/table";
 import { prisma } from "~/prisma.server";
 import { serialize } from "~/serialization";
+import { createManagementApi } from "@logto/api/management";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   await ensureAuthenticated(request);
@@ -22,7 +23,20 @@ export async function loader({ request }: LoaderFunctionArgs) {
       _count: { select: { accountBookLinks: true } },
     },
   });
-  return serialize({ users });
+
+  const { apiClient } = createManagementApi(process.env.LOGTO_TENANT_ID!, {
+    clientId: process.env.LOGTO_MANAGEMENT_APP_ID!,
+    clientSecret: process.env.LOGTO_MANAGEMENT_APP_SECRET!,
+  });
+
+  const response = await apiClient.GET("/api/users");
+
+  return serialize({
+    users: users.map((u) => ({
+      ...u,
+      email: response.data?.find((x) => x.id === u.externalId)?.primaryEmail,
+    })),
+  });
 }
 
 export default function Route() {
@@ -35,6 +49,7 @@ export default function Route() {
           <TableRow>
             <TableHeader>ID</TableHeader>
             <TableHeader>External ID</TableHeader>
+            <TableHeader>Email</TableHeader>
             <TableHeader className="text-right">
               No. of Account Books
             </TableHeader>
@@ -45,6 +60,7 @@ export default function Route() {
             <TableRow key={u.id}>
               <TableCell>{u.id}</TableCell>
               <TableCell>{u.externalId}</TableCell>
+              <TableCell>{u.email}</TableCell>
               <TableCell className="text-right">
                 {u._count.accountBookLinks}
               </TableCell>
