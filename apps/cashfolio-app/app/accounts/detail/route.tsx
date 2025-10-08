@@ -2,7 +2,7 @@ import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { serialize } from "~/serialization";
 import { Page } from "./page";
 import { getAccountGroupsWithPath } from "~/account-groups/data";
-import { getAccounts } from "../data";
+import { getAccounts } from "../functions.server";
 import {
   getLedgerRows,
   getBalanceCached,
@@ -34,11 +34,11 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     where: { id: link.accountBookId },
   });
 
-  const [account, bookingsForPeriod, allAccounts] = await Promise.all([
+  const [account, bookingsForPeriod] = await Promise.all([
     getAccount(params.accountId, link.accountBookId),
     getBookings(params.accountId, accountBook, from, to),
-    getAccounts(link.accountBookId, { isActive: true }),
   ]);
+
   if (!account) {
     throw new Response("Not Found", { status: 404 });
   }
@@ -47,6 +47,10 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     link.accountBookId,
     account.isActive ? { isActive: true } : undefined,
   );
+
+  const allAccounts = await getAccounts(accountBook, accountGroups, {
+    isActive: true,
+  });
 
   function getAccountPath(account: Account) {
     const accountGroupPath = accountGroups.find(

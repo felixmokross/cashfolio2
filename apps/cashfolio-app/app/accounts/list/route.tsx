@@ -4,7 +4,8 @@ import { getAccountGroupsWithPath } from "~/account-groups/data";
 import { getAccountsTree } from "~/account-groups/accounts-tree";
 import { Page } from "./page";
 import { ensureAuthorized } from "~/account-books/functions.server";
-import { getAccounts } from "../data";
+import { getAccounts } from "../functions.server";
+import { prisma } from "~/prisma.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);
@@ -14,10 +15,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const queryFilter = showInactive ? undefined : { isActive: true };
 
-  const [accounts, accountGroups] = await Promise.all([
-    getAccounts(link.accountBookId, queryFilter),
+  const [accountBook, accountGroups] = await Promise.all([
+    prisma.accountBook.findUniqueOrThrow({ where: { id: link.accountBookId } }),
     getAccountGroupsWithPath(link.accountBookId, queryFilter),
   ]);
+
+  const accounts = await getAccounts(accountBook, accountGroups, queryFilter);
 
   const tree = getAccountsTree(accounts, accountGroups);
   return serialize({ tree, accounts, accountGroups });

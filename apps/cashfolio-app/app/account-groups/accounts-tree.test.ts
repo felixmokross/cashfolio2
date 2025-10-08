@@ -1,7 +1,8 @@
 import { expect, test } from "vitest";
 import { getAccountsTree } from "./accounts-tree";
-import { buildAccount, buildAccountGroup } from "~/builders";
 import { AccountType } from "~/.prisma-client/enums";
+import { buildAccount } from "~/accounts/builders";
+import { buildAccountGroup } from "./builders";
 
 test("builds the accounts tree", () => {
   const result = getAccountsTree(

@@ -14,6 +14,8 @@ import {
 import { Decimal } from "@prisma/client/runtime/library";
 import type { AccountBook, Booking } from "~/.prisma-client/client";
 import { Unit as UnitEnum } from "~/.prisma-client/enums";
+import { sum } from "~/utils";
+import { TRANSFER_CLEARING_ACCOUNT_ID } from "../constants";
 
 export async function getAccount(accountId: string, accountBookId: string) {
   if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
@@ -105,6 +107,10 @@ export async function getBalanceCached(
   ledgerUnit: Unit,
   date: Date,
 ) {
+  if (accountId === TRANSFER_CLEARING_ACCOUNT_ID) {
+    return await getTransferClearingBalance(accountBookId, ledgerUnit, date);
+  }
+
   const cacheKey = `account-book:${accountBookId}:account:${accountId}:balance`;
   const [cacheEntry] = (await redis.exists(cacheKey))
     ? await redis.ts.REVRANGE(cacheKey, "-", date.getTime(), { COUNT: 1 })
@@ -136,6 +142,55 @@ export async function getBalanceCached(
   await redis.ts.add(cacheKey, date.getTime(), balance.toNumber());
 
   return balance;
+}
+
+export async function getTransferClearingBalance(
+  accountBookId: string,
+  ledgerUnit: Unit,
+  date: Date,
+) {
+  // TODO improve, make more granular (account per transaction and/or currency/unit etc)
+  // TODO ensure to include Transaction Gain/Loss bookings, these should also be part of the transfer clearing
+  return sum(
+    await Promise.all(
+      (
+        await prisma.transaction.findMany({
+          where: {
+            accountBookId,
+            AND: [
+              { bookings: { some: { date: { lte: date } } } },
+              { bookings: { some: { date: { gt: date } } } },
+            ],
+          },
+          include: { bookings: { where: { date: { gt: date } } } },
+        })
+      ).map(async (t) =>
+        sum(
+          await Promise.all(
+            t.bookings.map((b) =>
+              convert(
+                b.value,
+                b.unit === UnitEnum.CURRENCY
+                  ? { unit: UnitEnum.CURRENCY, currency: b.currency! }
+                  : b.unit === UnitEnum.CRYPTOCURRENCY
+                    ? {
+                        unit: UnitEnum.CRYPTOCURRENCY,
+                        cryptocurrency: b.cryptocurrency!,
+                      }
+                    : {
+                        unit: UnitEnum.SECURITY,
+                        symbol: b.symbol!,
+                        tradeCurrency: b.tradeCurrency!,
+                      },
+                ledgerUnit,
+                b.date,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 export async function getBalance(bookings: Booking[], ledgerUnit: Unit) {

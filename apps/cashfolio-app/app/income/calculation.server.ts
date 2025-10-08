@@ -23,6 +23,7 @@ import type {
   AccountBook,
   AccountGroup,
 } from "~/.prisma-client/client";
+import { buildAccount } from "~/accounts/builders";
 
 export async function getIncomeStatement(
   accountBook: AccountBook,

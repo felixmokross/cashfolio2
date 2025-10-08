@@ -4,17 +4,14 @@ import {
   generateHoldingBookingsForAccount,
   getIncomeData,
 } from "./calculation.server";
-import {
-  buildAccount,
-  buildAccountGroup,
-  buildAccountWithBookings,
-  buildBooking,
-} from "../builders";
+import { buildBooking } from "../transactions/builders";
 import { formatISODate } from "~/formatting";
 import { getExchangeRate } from "~/fx.server";
 import type { Unit } from "~/fx";
 import { Decimal } from "@prisma/client/runtime/library";
 import { AccountType } from "~/.prisma-client/enums";
+import { buildAccount, buildAccountWithBookings } from "~/accounts/builders";
+import { buildAccountGroup } from "~/account-groups/builders";
 
 const mockGetExchangeRate = vi.fn();
 
@@ -26,10 +23,6 @@ vi.mock("~/fx.server", async () => ({
 
 vi.mock("~/redis.server", async () => ({
   redis: {},
-}));
-
-vi.mock("~/prisma.server", async () => ({
-  prisma: {},
 }));
 
 // needs to be redefined, because the real function will not use the mocked 'getExchangeRate' since it is in the same module
