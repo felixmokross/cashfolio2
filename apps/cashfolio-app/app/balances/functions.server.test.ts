@@ -21,6 +21,18 @@ vi.mock("~/prisma.server", () => ({
   },
 }));
 
+vi.mock("~/redis.server", () => ({
+  redis: {
+    get: vi.fn(),
+    set: vi.fn(),
+    exists: vi.fn(),
+    ts: {
+      add: vi.fn(),
+      REVRANGE: vi.fn(),
+    },
+  },
+}));
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
