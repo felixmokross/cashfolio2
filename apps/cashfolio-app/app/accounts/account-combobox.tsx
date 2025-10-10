@@ -1,6 +1,7 @@
 import type { ComponentPropsWithoutRef } from "react";
 import {
   Combobox,
+  ComboboxDescription,
   ComboboxLabel,
   ComboboxOption,
 } from "~/platform/forms/combobox";
@@ -15,22 +16,28 @@ export function AccountCombobox({
 > & {
   accounts: AccountOption[];
 }) {
-  function getDisplayValue(accountId: string) {
+  function getLabel(accountId: string) {
     const account = accounts.find((a) => a.id === accountId);
-    return account?.path ?? "";
+    return account?.name ?? "";
+  }
+
+  function getDescription(accountId: string) {
+    const account = accounts.find((a) => a.id === accountId);
+    return account?.groupPath ?? "";
   }
 
   return (
     <Combobox
       {...props}
       displayValue={(accountId) =>
-        accountId ? getDisplayValue(accountId) : ""
+        accountId ? `${getLabel(accountId)} (${getDescription(accountId)})` : ""
       }
       options={accounts.map((a) => a.id)}
     >
       {(accountId) => (
         <ComboboxOption value={accountId}>
-          <ComboboxLabel>{getDisplayValue(accountId)}</ComboboxLabel>
+          <ComboboxLabel>{getLabel(accountId)}</ComboboxLabel>
+          <ComboboxDescription>{getDescription(accountId)}</ComboboxDescription>
         </ComboboxOption>
       )}
     </Combobox>

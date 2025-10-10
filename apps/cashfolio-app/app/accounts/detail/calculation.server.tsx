@@ -234,7 +234,7 @@ export async function getLedgerRows(
   ledgerUnit: Unit,
   openingBalance?: Decimal,
 ) {
-  const rows = new Array<LedgerRow>(bookings.length + 1);
+  const rows = new Array<LedgerRow>(bookings.length);
 
   let balance = openingBalance ?? new Decimal(0);
 

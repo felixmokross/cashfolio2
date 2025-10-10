@@ -54,7 +54,7 @@ export function DeleteTransaction({
         This will delete the transaction and all its associated bookings.
       </AlertDescription>
       <AlertActions>
-        <CancelButton />
+        <CancelButton autoFocus />
         <DeleteButton />
       </AlertActions>
     </FormDialog>

@@ -6,6 +6,7 @@ import { sum } from "~/utils";
 export function validate(bookings: BookingFormData[]) {
   const errors: FormErrors = {};
 
+  let hasBookingValueError = false;
   for (let i = 0; i < bookings.length; i++) {
     const b = bookings[i];
     if (!b.date || isNaN(new Date(b.date).getTime())) {
@@ -18,6 +19,7 @@ export function validate(bookings: BookingFormData[]) {
       errors[`bookings[${i}][currency]`] = "Currency is required";
     }
     if (!b.value || isNaN(Number(b.value)) || new Decimal(b.value).isZero()) {
+      hasBookingValueError = true;
       errors[`bookings[${i}][value]`] = "Value must be a non-zero number";
     }
   }
@@ -25,6 +27,7 @@ export function validate(bookings: BookingFormData[]) {
   if (bookings.length < 2) {
     errors.form = "At least two bookings are required.";
   } else if (
+    !hasBookingValueError &&
     !sum(bookings.map((b) => b.value)).isZero() &&
     new Set(bookings.map((b) => b.currency)).size === 1
   ) {

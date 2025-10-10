@@ -20,10 +20,12 @@ export type FormKey = "new" | `edit-${string}`;
 export type FormDialogContextType = {
   entityId?: string;
   fetcher: ReturnType<typeof useFetcher<FetcherData>>;
-  onDialogClose: () => void;
+  onDialogClose: (action: FormCloseAction) => void;
 };
 
 const FormDialogContext = createContext<FormDialogContextType | null>(null);
+
+type FormCloseAction = "submit" | "cancel";
 
 export function FormDialog({
   children,
@@ -37,7 +39,7 @@ export function FormDialog({
   "onClose" | "children"
 > & {
   entityId?: string;
-  onClose: () => void;
+  onClose: (action: FormCloseAction) => void;
   action?: string;
   children?: ReactNode | ((context: FormDialogContextType) => ReactNode);
   dialogComponent?: typeof Alert & typeof Dialog;
@@ -49,12 +51,12 @@ export function FormDialog({
 
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data?.success) {
-      onDialogClose();
+      onDialogClose("submit");
     }
   }, [fetcher.state, fetcher.data?.success, onDialogClose]);
 
-  function onDialogClose() {
-    onClose();
+  function onDialogClose(action: FormCloseAction) {
+    onClose(action);
     // delay a bit for the dialog close animation
     setTimeout(() => setSubmitCount((v) => v + 1), 500);
   }
@@ -65,7 +67,7 @@ export function FormDialog({
     entityId,
   };
   return (
-    <DialogComponent {...props} onClose={onDialogClose}>
+    <DialogComponent {...props} onClose={() => onDialogClose("cancel")}>
       <fetcher.Form className="contents" action={action} method="POST">
         <FormDialogContext.Provider value={contextValue}>
           {typeof children === "function" ? children(contextValue) : children}
@@ -75,10 +77,22 @@ export function FormDialog({
   );
 }
 
-export function CancelButton() {
+type CancelButtonProps = Omit<TertiaryButtonProps, "hierarchy" | "children">;
+
+type TertiaryButtonProps = ComponentProps<typeof Button> & {
+  hierarchy: "tertiary";
+};
+
+export function CancelButton(
+  props: Omit<TertiaryButtonProps, "hierarchy" | "children" | "onClick">,
+) {
   const { onDialogClose } = useFormDialogContext();
   return (
-    <Button hierarchy="tertiary" onClick={() => onDialogClose()}>
+    <Button
+      {...(props as TertiaryButtonProps)}
+      hierarchy="tertiary"
+      onClick={() => onDialogClose("cancel")}
+    >
       Cancel
     </Button>
   );
@@ -121,7 +135,7 @@ export function FormErrorMessage() {
   return <ErrorMessage>{fetcher.data.errors.form}</ErrorMessage>;
 }
 
-function useFormDialogContext() {
+export function useFormDialogContext() {
   const context = useContext(FormDialogContext);
   if (!context) {
     throw new Error("useFormDialogContext must be used within a FormDialog");

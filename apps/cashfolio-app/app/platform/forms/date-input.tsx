@@ -1,6 +1,6 @@
 import * as Headless from "@headlessui/react";
 import type { ReactNode } from "react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type {
   AriaButtonProps,
   AriaDatePickerProps,
@@ -48,6 +48,7 @@ type DateInputProps = {
   disabled?: boolean;
   onChange?: (value: CalendarDate | null) => void;
   "aria-labelledby"?: string;
+  autoFocus?: boolean;
 };
 
 export function DateInput({
@@ -58,6 +59,7 @@ export function DateInput({
   onChange,
   disabled = false,
   "aria-labelledby": labelledby,
+  autoFocus,
 }: DateInputProps) {
   const props: AriaDatePickerProps<CalendarDate> = {
     defaultValue: defaultValue ? parseDate(defaultValue) : undefined,
@@ -68,6 +70,7 @@ export function DateInput({
 
   const state = useDatePickerState(props);
   const ref = useRef(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { groupProps, fieldProps, buttonProps, dialogProps, calendarProps } =
     useDatePicker(props, state, ref);
 
@@ -99,8 +102,15 @@ export function DateInput({
           type="hidden"
           name={name}
           value={state.value?.toString() || ""}
+          ref={inputRef}
         />
-        <DateField {...fieldProps} />
+        <DateField
+          {...fieldProps}
+          autoFocus={autoFocus}
+          onEnterKeyDown={() => {
+            inputRef.current?.form?.requestSubmit();
+          }}
+        />
         <DatePickerButton {...buttonProps} isDisabled={disabled}>
           <CalendarDaysIcon />
         </DatePickerButton>
@@ -116,9 +126,12 @@ export function DateInput({
   );
 }
 
-type DateFieldProps = AriaDatePickerProps<DateValue>;
+type DateFieldProps = AriaDatePickerProps<DateValue> & {
+  autoFocus?: boolean;
+  onEnterKeyDown?: () => void;
+};
 
-function DateField(props: DateFieldProps) {
+function DateField({ autoFocus, onEnterKeyDown, ...props }: DateFieldProps) {
   const { locale } = useLocale();
   const state = useDateFieldState({
     ...props,
@@ -132,7 +145,13 @@ function DateField(props: DateFieldProps) {
   return (
     <span {...fieldProps} ref={ref} className="inline-flex gap-1">
       {state.segments.map((segment, i) => (
-        <DateFieldSegment key={i} segment={segment} state={state} />
+        <DateFieldSegment
+          key={i}
+          segment={segment}
+          state={state}
+          autoFocus={segment.type === "day" && autoFocus ? true : undefined}
+          onEnterKeyDown={onEnterKeyDown}
+        />
       ))}
     </span>
   );
@@ -141,15 +160,33 @@ function DateField(props: DateFieldProps) {
 type DateFieldSegmentProps = {
   segment: DateSegment;
   state: DateFieldState;
+  autoFocus?: boolean;
+  onEnterKeyDown?: () => void;
 };
 
-function DateFieldSegment({ segment, state }: DateFieldSegmentProps) {
-  const ref = useRef(null);
+function DateFieldSegment({
+  segment,
+  state,
+  autoFocus,
+  onEnterKeyDown,
+}: DateFieldSegmentProps) {
+  const ref = useRef<HTMLSpanElement>(null);
   const { segmentProps } = useDateSegment(segment, state, ref);
 
+  useEffect(() => {
+    if (autoFocus) {
+      ref.current!.focus();
+    }
+  }, [autoFocus]);
   return (
     <span
       {...segmentProps}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          onEnterKeyDown?.();
+        }
+        segmentProps.onKeyDown?.(e as React.KeyboardEvent<HTMLDivElement>);
+      }}
       ref={ref}
       className={clsx(
         "rounded-sm focus:outline-none focus:ring-2 focus:ring-accent-neutral-500",

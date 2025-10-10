@@ -4,7 +4,7 @@ export type AccountOption = Pick<
   Account,
   "id" | "name" | "groupId" | "unit" | "currency" | "cryptocurrency"
 > & {
-  path: string;
+  groupPath: string;
 };
 
 export type AccountGroupOption = Pick<

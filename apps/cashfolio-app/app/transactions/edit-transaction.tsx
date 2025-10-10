@@ -1,6 +1,11 @@
 import { Button } from "~/platform/button";
 import { DialogActions, DialogBody, DialogTitle } from "~/platform/dialog";
-import { Field, FieldGroup } from "~/platform/forms/fieldset";
+import {
+  ErrorMessage,
+  Field,
+  FieldGroup,
+  Label,
+} from "~/platform/forms/fieldset";
 import { Input } from "~/platform/forms/input";
 import type { AccountOption } from "~/types";
 import { AccountCombobox } from "~/accounts/account-combobox";
@@ -16,12 +21,12 @@ import {
 import { FormattedNumberInput } from "~/platform/forms/formatted-number-input";
 import { useState } from "react";
 import { PlusIcon, TrashIcon } from "~/platform/icons/standard";
-import { useFetcher } from "react-router";
+import { useFetcher, type FetcherWithComponents } from "react-router";
 import { createId } from "@paralleldrive/cuid2";
 import type { Serialize } from "~/serialization";
 import type { Booking } from "~/.prisma-client/client";
 import { CurrencyCombobox } from "../components/currency-combobox";
-import { formatISO } from "date-fns";
+import { formatISO, subDays } from "date-fns";
 import type { TransactionWithBookings } from "~/transactions/types";
 import { CryptocurrencyCombobox } from "~/components/cryptocurrency-combobox";
 import type { action } from "./actions/create";
@@ -30,8 +35,13 @@ import {
   FormDialog,
   FormErrorMessage,
   CreateOrSaveButton,
+  type FetcherData,
+  useFormDialogContext,
 } from "~/platform/forms/form-dialog";
 import { useAccountBook } from "~/account-books/hooks";
+import { formatISODate } from "~/formatting";
+import { today } from "~/dates";
+import { Checkbox, CheckboxField } from "~/platform/forms/checkbox";
 
 type BookingFormValues = Serialize<
   Pick<
@@ -68,25 +78,34 @@ export function useEditTransaction() {
   };
 }
 
+type InputMode = "simple" | "split";
+
 export function EditTransaction({
   isOpen,
   onClose,
   accounts,
   transaction,
   lockedAccountId,
+  defaultDate,
 }: {
   isOpen: boolean;
   onClose: () => void;
   accounts: AccountOption[];
   transaction?: Serialize<TransactionWithBookings>;
   lockedAccountId: string;
+  defaultDate?: string;
 }) {
   const accountBook = useAccountBook();
+  const [createAnother, setCreateAnother] = useState(false);
   return (
     <FormDialog
-      size="5xl"
+      size="2xl"
       open={isOpen}
-      onClose={onClose}
+      onClose={(action) => {
+        if (action === "cancel" || !createAnother) {
+          onClose();
+        }
+      }}
       action={
         transaction
           ? `/${accountBook.id}/transactions/update`
@@ -94,39 +113,168 @@ export function EditTransaction({
       }
       entityId={transaction?.id}
     >
-      {({ fetcher }) => (
+      <>
+        <input type="hidden" name="transactionId" value={transaction?.id} />
+        <DialogTitle>
+          {transaction ? "Edit Transaction" : "New Transaction"}
+        </DialogTitle>
+        <DialogBody>
+          <TransactionFormGroup
+            accounts={accounts}
+            transaction={transaction}
+            lockedAccountId={lockedAccountId}
+            defaultDate={defaultDate}
+          />
+        </DialogBody>
+        <DialogActions>
+          <CheckboxField className="mr-4">
+            <Checkbox
+              onChange={(value) => setCreateAnother(value)}
+              checked={createAnother}
+            />
+            <Label>Create another</Label>
+          </CheckboxField>
+          <CancelButton />
+          <CreateOrSaveButton />
+        </DialogActions>
+      </>
+    </FormDialog>
+  );
+}
+
+function TransactionFormGroup({
+  accounts,
+  transaction,
+  lockedAccountId,
+  defaultDate,
+}: {
+  accounts: AccountOption[];
+  transaction?: Serialize<TransactionWithBookings>;
+  lockedAccountId: string;
+  defaultDate?: string;
+}) {
+  const { fetcher } = useFormDialogContext();
+  const [mode, setMode] = useState<InputMode>(transaction ? "split" : "simple");
+  return (
+    <FieldGroup>
+      {mode === "simple" ? (
+        <SimpleForm
+          accounts={accounts}
+          lockedAccountId={lockedAccountId}
+          defaultDate={defaultDate}
+        />
+      ) : (
         <>
-          <input type="hidden" name="transactionId" value={transaction?.id} />
-          <DialogTitle>
-            {transaction ? "Edit Transaction" : "New Transaction"}
-          </DialogTitle>
-          <DialogBody>
-            <FieldGroup>
-              <Field>
-                <Input
-                  type="text"
-                  name="description"
-                  placeholder="Description"
-                  defaultValue={transaction?.description}
-                  invalid={!!fetcher.data?.errors?.description}
-                />
-              </Field>
-              <BookingsTable
-                transaction={transaction}
-                accounts={accounts}
-                lockedAccountId={lockedAccountId}
-                data={fetcher.data}
-              />
-              <FormErrorMessage />
-            </FieldGroup>
-          </DialogBody>
-          <DialogActions>
-            <CancelButton />
-            <CreateOrSaveButton />
-          </DialogActions>
+          <Field>
+            <Input
+              type="text"
+              name="description"
+              placeholder="Description"
+              defaultValue={transaction?.description}
+              invalid={!!fetcher.data?.errors?.description}
+            />
+          </Field>
+          <BookingsTable
+            transaction={transaction}
+            accounts={accounts}
+            lockedAccountId={lockedAccountId}
+            data={fetcher.data}
+          />
         </>
       )}
-    </FormDialog>
+      <FormErrorMessage />
+    </FieldGroup>
+  );
+}
+
+function SimpleForm({
+  accounts,
+  lockedAccountId,
+  defaultDate,
+}: {
+  accounts: AccountOption[];
+  lockedAccountId: string;
+  defaultDate?: string;
+}) {
+  defaultDate = defaultDate ?? formatISODate(today());
+  const [date, setDate] = useState<string>(defaultDate ?? "");
+  const [value, setValue] = useState<number>();
+  const currency =
+    accounts.find((a) => a.id === lockedAccountId)!.currency ?? "";
+  const { fetcher } = useFormDialogContext();
+  return (
+    <>
+      <input type="hidden" name="bookings[0][currency]" value={currency} />
+      <input type="hidden" name="bookings[1][currency]" value={currency} />
+
+      <div className="flex flex-col gap-8 sm:grid sm:grid-cols-12 sm:gap-4">
+        <Field className="col-span-3">
+          <Label>Date</Label>
+          <DateInput
+            name="bookings[0][date]"
+            onChange={(value) => setDate(value?.toString() ?? "")}
+            defaultValue={defaultDate}
+            autoFocus
+            invalid={!!fetcher.data?.errors?.[`bookings[0][date]`]}
+          />
+          {fetcher.data?.errors?.[`bookings[0][date]`] && (
+            <ErrorMessage>
+              {fetcher.data?.errors?.[`bookings[0][date]`]}
+            </ErrorMessage>
+          )}
+          <input type="hidden" name="bookings[1][date]" value={date} />
+        </Field>
+        <Field className="col-span-9">
+          <Label>Account</Label>
+          <AccountCombobox
+            accounts={accounts}
+            name="bookings[1][accountId]"
+            invalid={!!fetcher.data?.errors?.[`bookings[1][accountId]`]}
+          />
+          {fetcher.data?.errors?.[`bookings[1][accountId]`] && (
+            <ErrorMessage>
+              {fetcher.data?.errors?.[`bookings[1][accountId]`]}
+            </ErrorMessage>
+          )}
+          <input
+            type="hidden"
+            name="bookings[0][accountId]"
+            value={lockedAccountId}
+          />
+        </Field>
+      </div>
+      <div className="flex flex-col gap-8 sm:grid sm:grid-cols-12 sm:gap-4">
+        <Field className="col-span-9">
+          <Label>Description (optional)</Label>
+          <Input
+            type="text"
+            name="description"
+            invalid={!!fetcher.data?.errors?.description}
+          />
+          {fetcher.data?.errors?.description && (
+            <ErrorMessage>{fetcher.data?.errors?.description}</ErrorMessage>
+          )}
+        </Field>
+        <Field className="col-span-3">
+          <Label>Value</Label>
+          <FormattedNumberInput
+            onValueChange={({ floatValue }) => setValue(floatValue)}
+            name="bookings[0][value]"
+            invalid={!!fetcher.data?.errors?.[`bookings[0][value]`]}
+          />
+          <input
+            type="hidden"
+            name="bookings[1][value]"
+            value={value ? -value : undefined}
+          />
+          {fetcher.data?.errors?.[`bookings[0][value]`] && (
+            <ErrorMessage>
+              {fetcher.data?.errors?.[`bookings[0][value]`]}
+            </ErrorMessage>
+          )}
+        </Field>
+      </div>
+    </>
   );
 }
 

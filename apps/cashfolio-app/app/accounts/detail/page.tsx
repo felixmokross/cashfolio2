@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/platform/table";
-import { formatDate, formatMoney } from "~/formatting";
+import { formatDate, formatISODate, formatMoney } from "~/formatting";
 import { Fragment } from "react/jsx-runtime";
 import { TextLink } from "~/platform/text";
 import {
@@ -62,11 +62,13 @@ export function Page({
 
   const accountBook = useAccountBook();
 
+  // TODO why do we get here no 0 index?
+  console.log(ledgerRows);
   return (
     <>
       <div className="flex justify-between items-center">
         <Heading className="flex items-center gap-4">
-          {account.path}
+          {account.groupPath} / {account.name}
           <div className="flex items-center gap-2">
             <Badge>
               {ledgerUnit.unit === "CURRENCY"
@@ -117,6 +119,11 @@ export function Page({
         {...editTransactionProps}
         accounts={allAccounts}
         lockedAccountId={account.id}
+        defaultDate={
+          ledgerRows[0]?.booking.date
+            ? formatISODate(new Date(ledgerRows[0].booking.date))
+            : undefined
+        }
       />
       <DeleteTransaction {...deleteTransactionProps} />
 
@@ -144,10 +151,7 @@ export function Page({
         </TableHead>
         <TableBody>
           {ledgerRows.map((lr) => (
-            <TableRow
-              key={lr.booking?.id ?? "opening-balance"}
-              className="group"
-            >
+            <TableRow key={lr.booking.id} className="group">
               <TableCell>{formatDate(lr.booking.date)}</TableCell>
               <TableCell className="truncate">
                 {Array.from(
@@ -205,14 +209,14 @@ export function Page({
                   </DropdownButton>
                   <DropdownMenu anchor="bottom end">
                     <DropdownItem
-                      onClick={() => onEditTransaction(lr.booking!.transaction)}
+                      onClick={() => onEditTransaction(lr.booking.transaction)}
                     >
                       <PencilSquareIcon />
                       Edit
                     </DropdownItem>
                     <DropdownItem
                       onClick={() =>
-                        onDeleteTransaction(lr.booking!.transactionId)
+                        onDeleteTransaction(lr.booking.transactionId)
                       }
                     >
                       <TrashIcon />

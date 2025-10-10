@@ -52,11 +52,11 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     isActive: true,
   });
 
-  function getAccountPath(account: Account) {
+  function getAccountGroupPath(account: Account) {
     const accountGroupPath = accountGroups.find(
       (ag) => ag.id === account.groupId,
     )?.path;
-    return `${accountGroupPath} / ${account.name}`;
+    return accountGroupPath ?? "";
   }
 
   const ledgerUnit: Unit = account.unit
@@ -97,7 +97,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     ledgerUnit,
     account: {
       ...account,
-      path: getAccountPath(account),
+      groupPath: getAccountGroupPath(account),
     },
     openingBalance:
       account.type === AccountType.LIABILITY
@@ -123,9 +123,10 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     allAccounts: allAccounts
       .map((a) => ({
         ...a,
-        path: getAccountPath(a),
+        groupPath: getAccountGroupPath(a),
       }))
-      .toSorted((a, b) => a.path.localeCompare(b.path)),
+      .toSorted((a, b) => a.groupPath.localeCompare(b.groupPath))
+      .toSorted((a, b) => a.name.localeCompare(b.name)),
     accountGroups,
   });
 }

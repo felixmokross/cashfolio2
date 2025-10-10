@@ -31,7 +31,10 @@ export function FormattedNumberInput({
         {...props}
         valueIsNumericString={true}
         defaultValue={defaultValue}
-        onValueChange={({ floatValue }) => setValue(floatValue)}
+        onValueChange={(values, sourceInfo) => {
+          setValue(values.floatValue);
+          props.onValueChange?.(values, sourceInfo);
+        }}
         thousandSeparator={thousandSeparator}
         decimalSeparator={decimalSeparator}
         customInput={Input}
