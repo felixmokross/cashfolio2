@@ -10,14 +10,6 @@ import { Input } from "~/platform/forms/input";
 import type { AccountOption } from "~/types";
 import { AccountCombobox } from "~/accounts/account-combobox";
 import { DateInput } from "~/platform/forms/date-input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/platform/table";
 import { FormattedNumberInput } from "~/platform/forms/formatted-number-input";
 import { useState } from "react";
 import { PlusIcon, TrashIcon } from "~/platform/icons/standard";
@@ -219,9 +211,6 @@ function SimpleForm({
   const { fetcher } = useFormDialogContext();
   return (
     <>
-      <input type="hidden" name="bookings[0][currency]" value={currency} />
-      <input type="hidden" name="bookings[1][currency]" value={currency} />
-
       <div className="flex flex-col gap-8 sm:grid sm:grid-cols-12 sm:gap-4">
         <Field className="col-span-3">
           <Label>Date</Label>
@@ -259,7 +248,7 @@ function SimpleForm({
         </Field>
       </div>
       <div className="flex flex-col gap-8 sm:grid sm:grid-cols-12 sm:gap-4">
-        <Field className="col-span-9">
+        <Field className="col-span-7">
           <Label>Description (optional)</Label>
           <Input
             type="text"
@@ -269,6 +258,24 @@ function SimpleForm({
           {fetcher.data?.errors?.description && (
             <ErrorMessage>{fetcher.data?.errors?.description}</ErrorMessage>
           )}
+        </Field>
+        <Field className="col-span-2">
+          <Label>Currency</Label>
+          <CurrencyCombobox
+            placeholder="Ccy."
+            value={currency ?? ""}
+            disabled={true}
+          />
+          <input
+            type="hidden"
+            name={`bookings[0][currency]`}
+            value={currency ?? ""}
+          />
+          <input
+            type="hidden"
+            name={`bookings[1][currency]`}
+            value={currency ?? ""}
+          />
         </Field>
         <Field className="col-span-3">
           <Label>Value</Label>
@@ -308,6 +315,7 @@ function BookingsTable({
     transaction
       ? transaction.bookings.map((b) => ({
           ...b,
+          isAccountLocked: b.accountId === lockedAccountId ? true : undefined,
           date: formatISO(b.date, { representation: "date" }),
           value: b.value.toString(),
         }))
@@ -388,21 +396,31 @@ function BookingsTable({
                     <Field className="col-span-4">
                       {/* TODO support SECURITY accounts */}
                       {selectedAccount?.unit === "CURRENCY" ? (
-                        <CurrencyCombobox
-                          placeholder="Ccy."
-                          name={`bookings[${i}][currency]`}
-                          defaultValue={booking.currency ?? ""}
-                          invalid={!!data?.errors?.[`bookings[${i}][currency]`]}
-                        />
+                        <>
+                          <CurrencyCombobox
+                            placeholder="Ccy."
+                            value={selectedAccount?.currency ?? ""}
+                            disabled={true}
+                          />
+                          <input
+                            type="hidden"
+                            name={`bookings[${i}][currency]`}
+                            value={selectedAccount?.currency ?? ""}
+                          />
+                        </>
                       ) : selectedAccount?.unit === "CRYPTOCURRENCY" ? (
-                        <CryptocurrencyCombobox
-                          placeholder="Ccy."
-                          name={`bookings[${i}][cryptocurrency]`}
-                          defaultValue={booking.cryptocurrency ?? ""}
-                          invalid={
-                            !!data?.errors?.[`bookings[${i}][cryptocurrency]`]
-                          }
-                        />
+                        <>
+                          <CryptocurrencyCombobox
+                            placeholder="Ccy."
+                            value={selectedAccount?.cryptocurrency ?? ""}
+                            disabled={true}
+                          />
+                          <input
+                            type="hidden"
+                            name={`bookings[${i}][cryptocurrency]`}
+                            value={selectedAccount?.cryptocurrency ?? ""}
+                          />
+                        </>
                       ) : (
                         // TODO determine how we solve this. An Equity account does not have a unit because bookings can have any unit
                         <CurrencyCombobox

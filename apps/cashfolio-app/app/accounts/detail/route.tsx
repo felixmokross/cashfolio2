@@ -10,16 +10,12 @@ import {
   getBookings,
 } from "./calculation.server";
 import { subDays } from "date-fns";
-import type { Unit } from "~/fx";
 import { getPeriodDateRange } from "~/period/functions";
 import type { Account } from "~/.prisma-client/client";
-import {
-  AccountType,
-  EquityAccountSubtype,
-  Unit as UnitEnum,
-} from "~/.prisma-client/enums";
+import { AccountType, EquityAccountSubtype } from "~/.prisma-client/enums";
 import { prisma } from "~/prisma.server";
 import { ensureAuthorized } from "~/account-books/functions.server";
+import { getAccountUnitInfo, getCurrencyUnitInfo } from "~/units/functions";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);
@@ -59,42 +55,28 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     return accountGroupPath ?? "";
   }
 
-  const ledgerUnit: Unit = account.unit
-    ? account.unit === UnitEnum.CURRENCY
-      ? { unit: UnitEnum.CURRENCY, currency: account.currency! }
-      : account.unit === UnitEnum.CRYPTOCURRENCY
-        ? {
-            unit: UnitEnum.CRYPTOCURRENCY,
-            cryptocurrency: account.cryptocurrency!,
-          }
-        : {
-            unit: UnitEnum.SECURITY,
-            symbol: account.symbol!,
-            tradeCurrency: account.tradeCurrency!,
-          }
-    : {
-        unit: UnitEnum.CURRENCY,
-        currency: accountBook.referenceCurrency,
-      };
+  const ledgerUnitInfo =
+    getAccountUnitInfo(account) ??
+    getCurrencyUnitInfo(accountBook.referenceCurrency);
 
   const openingBalance =
     from && account.type !== AccountType.EQUITY
       ? await getBalanceCached(
           accountBook.id,
           account.id,
-          ledgerUnit,
+          ledgerUnitInfo,
           subDays(from, 1),
         )
       : undefined;
 
   const ledgerRows = await getLedgerRows(
     bookingsForPeriod,
-    ledgerUnit,
+    ledgerUnitInfo,
     openingBalance,
   );
 
   return serialize({
-    ledgerUnit,
+    ledgerUnitInfo,
     account: {
       ...account,
       groupPath: getAccountGroupPath(account),

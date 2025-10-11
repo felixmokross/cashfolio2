@@ -2,64 +2,68 @@ import { Unit as UnitEnum } from "./.prisma-client/enums";
 import { formatISODate } from "./formatting";
 import { redis } from "~/redis.server";
 import { subDays } from "date-fns";
-import { isSameUnit, type Unit } from "./fx";
 import { Decimal } from "@prisma/client/runtime/library";
+import { getUnitLabel, isSameUnit } from "./units/functions";
+import type { UnitInfo } from "./units/types";
 
 const baseCurrency = "USD";
-const baseUnit: Unit = { unit: UnitEnum.CURRENCY, currency: baseCurrency };
+const baseUnitInfo: UnitInfo = {
+  unit: UnitEnum.CURRENCY,
+  currency: baseCurrency,
+};
 
 export async function convert(
   value: Decimal,
-  sourceUnit: Unit,
-  targetUnit: Unit,
+  sourceUnitInfo: UnitInfo,
+  targetUnitInfo: UnitInfo,
   date: Date,
 ) {
   if (value.isZero()) {
     return new Decimal(0);
   }
 
-  const rate = await getExchangeRate(sourceUnit, targetUnit, date);
+  const rate = await getExchangeRate(sourceUnitInfo, targetUnitInfo, date);
   if (!rate) {
     throw new Error(
-      `No FX rate for ${unitToString(sourceUnit)} to ${unitToString(targetUnit)} on ${date}`,
+      `No FX rate for ${getUnitLabel(sourceUnitInfo)} to ${getUnitLabel(targetUnitInfo)} on ${date}`,
     );
   }
   return rate.mul(value);
 }
 
 export async function getExchangeRate(
-  sourceUnit: Unit,
-  targetUnit: Unit,
+  sourceUnitInfo: UnitInfo,
+  targetUnitInfo: UnitInfo,
   date: Date,
 ) {
-  if (isSameUnit(sourceUnit, targetUnit)) {
+  if (isSameUnit(sourceUnitInfo, targetUnitInfo)) {
     return new Decimal(1);
   }
 
-  const baseToTargetRate = await getBaseRate(date, targetUnit);
-  const baseToSourceRate = await getBaseRate(date, sourceUnit);
+  const baseToTargetRate = await getBaseRate(date, targetUnitInfo);
+  const baseToSourceRate = await getBaseRate(date, sourceUnitInfo);
 
   return baseToTargetRate.dividedBy(baseToSourceRate);
 }
 
-async function getBaseRate(date: Date, unit: Unit): Promise<Decimal> {
-  if (isSameUnit(unit, baseUnit)) {
+async function getBaseRate(date: Date, unitInfo: UnitInfo): Promise<Decimal> {
+  if (isSameUnit(unitInfo, baseUnitInfo)) {
     return new Decimal(1);
   }
 
-  switch (unit.unit) {
+  switch (unitInfo.unit) {
     case UnitEnum.CURRENCY:
       const fxRates = await getFxExchangeRates(date);
-      return new Decimal(fxRates[`${baseCurrency}${unit.currency}`]);
+      return new Decimal(fxRates[`${baseCurrency}${unitInfo.currency}`]);
     case UnitEnum.CRYPTOCURRENCY:
       const cryptoPrices = await getCryptocurrencyPrices(date);
-      return new Decimal(1).dividedBy(cryptoPrices[unit.cryptocurrency]);
+      return new Decimal(1).dividedBy(cryptoPrices[unitInfo.cryptocurrency]);
     case UnitEnum.SECURITY:
       return new Decimal(1).dividedBy(
         await convert(
-          await getSecurityPrice(date, unit.symbol),
-          { unit: UnitEnum.CURRENCY, currency: unit.tradeCurrency },
-          baseUnit,
+          await getSecurityPrice(date, unitInfo.symbol),
+          { unit: UnitEnum.CURRENCY, currency: unitInfo.tradeCurrency },
+          baseUnitInfo,
           date,
         ),
       );
@@ -156,13 +160,4 @@ async function getSecurityPrice(
   }
 
   return new Decimal(cacheEntry);
-}
-
-function unitToString(unit: Unit) {
-  switch (unit.unit) {
-    case UnitEnum.CURRENCY:
-      return unit.currency;
-    case UnitEnum.CRYPTOCURRENCY:
-      return `${unit.cryptocurrency} (crypto)`;
-  }
 }

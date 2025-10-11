@@ -7,11 +7,11 @@ import {
 import { buildBooking } from "../transactions/builders";
 import { formatISODate } from "~/formatting";
 import { getExchangeRate } from "~/fx.server";
-import type { Unit } from "~/fx";
 import { Decimal } from "@prisma/client/runtime/library";
 import { AccountType } from "~/.prisma-client/enums";
 import { buildAccount, buildAccountWithBookings } from "~/accounts/builders";
 import { buildAccountGroup } from "~/account-groups/builders";
+import type { UnitInfo } from "~/units/types";
 
 const mockGetExchangeRate = vi.fn();
 
@@ -32,11 +32,13 @@ vi.mock("~/redis.server", async () => ({
 // needs to be redefined, because the real function will not use the mocked 'getExchangeRate' since it is in the same module
 async function convert(
   value: Decimal,
-  sourceUnit: Unit,
-  targetUnit: Unit,
+  sourceUnitInfo: UnitInfo,
+  targetUnitInfo: UnitInfo,
   date: Date,
 ) {
-  return (await getExchangeRate(sourceUnit, targetUnit, date)).mul(value);
+  return (await getExchangeRate(sourceUnitInfo, targetUnitInfo, date)).mul(
+    value,
+  );
 }
 
 beforeEach(() => {
@@ -55,8 +57,8 @@ describe.skip("generateFxBookingsForFxAccount", () => {
 
     async function getFxRate(
       date: Date,
-      from: Unit,
-      to: Unit,
+      from: UnitInfo,
+      to: UnitInfo,
     ): Promise<Decimal> {
       if (from.unit !== "CURRENCY") throw new Error("Only currency supported");
       if (to.unit !== "CURRENCY") throw new Error("Only currency supported");
@@ -67,8 +69,8 @@ describe.skip("generateFxBookingsForFxAccount", () => {
       return fxRates[key as keyof typeof fxRates];
     }
 
-    mockGetExchangeRate.mockImplementation((from: Unit, to: Unit, date: Date) =>
-      getFxRate(date, from, to),
+    mockGetExchangeRate.mockImplementation(
+      (from: UnitInfo, to: UnitInfo, date: Date) => getFxRate(date, from, to),
     );
 
     const result = await generateHoldingBookingsForAccount(
@@ -146,8 +148,8 @@ describe.skip("completeFxTransaction", () => {
 
     async function getFxRate(
       date: Date,
-      from: Unit,
-      to: Unit,
+      from: UnitInfo,
+      to: UnitInfo,
     ): Promise<Decimal> {
       if (from.unit !== "CURRENCY") throw new Error("Only currency supported");
       if (to.unit !== "CURRENCY") throw new Error("Only currency supported");
@@ -162,8 +164,8 @@ describe.skip("completeFxTransaction", () => {
       return fxRates[key as keyof typeof fxRates];
     }
 
-    mockGetExchangeRate.mockImplementation((from: Unit, to: Unit, date: Date) =>
-      getFxRate(date, from, to),
+    mockGetExchangeRate.mockImplementation(
+      (from: UnitInfo, to: UnitInfo, date: Date) => getFxRate(date, from, to),
     );
 
     const result = await completeTransaction("CHF", {
@@ -206,8 +208,8 @@ describe.skip("getProfitLossStatement", () => {
 
     async function getFxRate(
       date: Date,
-      from: Unit,
-      to: Unit,
+      from: UnitInfo,
+      to: UnitInfo,
     ): Promise<Decimal> {
       if (from.unit !== "CURRENCY") throw new Error("Only currency supported");
       if (to.unit !== "CURRENCY") throw new Error("Only currency supported");
@@ -222,8 +224,8 @@ describe.skip("getProfitLossStatement", () => {
       return fxRates[key as keyof typeof fxRates];
     }
 
-    mockGetExchangeRate.mockImplementation((from: Unit, to: Unit, date: Date) =>
-      getFxRate(date, from, to),
+    mockGetExchangeRate.mockImplementation(
+      (from: UnitInfo, to: UnitInfo, date: Date) => getFxRate(date, from, to),
     );
     // ref currency opening balance
     const booking1 = buildBooking({

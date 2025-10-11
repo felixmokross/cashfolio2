@@ -2,7 +2,6 @@ import type { BookingWithTransaction, LedgerRow } from "./types";
 import { convert } from "~/fx.server";
 import { redis } from "~/redis.server";
 import { prisma } from "~/prisma.server";
-import type { Unit } from "~/fx";
 import { isAfter, isEqual } from "date-fns";
 import {
   generateHoldingBookingsForAccount,
@@ -18,6 +17,8 @@ import { Unit as UnitEnum } from "~/.prisma-client/enums";
 import { sum } from "~/utils";
 import { TRANSFER_CLEARING_ACCOUNT_ID } from "../constants";
 import invariant from "tiny-invariant";
+import type { UnitInfo } from "~/units/types";
+import { getUnitInfo } from "~/units/functions";
 
 export async function getAccount(accountId: string, accountBookId: string) {
   if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
@@ -106,11 +107,15 @@ export async function getBookings(
 export async function getBalanceCached(
   accountBookId: string,
   accountId: string,
-  ledgerUnit: Unit,
+  ledgerUnitInfo: UnitInfo,
   date: Date,
 ) {
   if (accountId === TRANSFER_CLEARING_ACCOUNT_ID) {
-    return await getTransferClearingBalance(accountBookId, ledgerUnit, date);
+    return await getTransferClearingBalance(
+      accountBookId,
+      ledgerUnitInfo,
+      date,
+    );
   }
 
   const cacheKey = `account-book:${accountBookId}:account:${accountId}:balance`;
@@ -135,7 +140,7 @@ export async function getBalanceCached(
 
   const balance = (
     cacheEntry ? new Decimal(cacheEntry.value) : new Decimal(0)
-  ).plus(await getBalance(bookings, ledgerUnit));
+  ).plus(await getBalance(bookings, ledgerUnitInfo));
   console.log(
     `Basis date: ${cacheEntry ? new Date(cacheEntry.timestamp) : "none"}`,
   );
@@ -148,37 +153,25 @@ export async function getBalanceCached(
 
 async function getTransferClearingBalance(
   accountBookId: string,
-  ledgerUnit: Unit,
+  ledgerUnitInfo: UnitInfo,
   date: Date,
 ) {
   // TODO improve, make more granular (account per transaction and/or currency/unit etc)
   return sum(
     await Promise.all(
       (
-        await getTransferClearingTransactions(accountBookId, ledgerUnit, date)
+        await getTransferClearingTransactions(
+          accountBookId,
+          ledgerUnitInfo,
+          date,
+        )
       ).map(async (t) =>
         sum(
           await Promise.all(
             t.bookings
               .filter((b) => isAfter(b.date, date))
               .map((b) =>
-                convert(
-                  b.value,
-                  b.unit === UnitEnum.CURRENCY
-                    ? { unit: UnitEnum.CURRENCY, currency: b.currency! }
-                    : b.unit === UnitEnum.CRYPTOCURRENCY
-                      ? {
-                          unit: UnitEnum.CRYPTOCURRENCY,
-                          cryptocurrency: b.cryptocurrency!,
-                        }
-                      : {
-                          unit: UnitEnum.SECURITY,
-                          symbol: b.symbol!,
-                          tradeCurrency: b.tradeCurrency!,
-                        },
-                  ledgerUnit,
-                  b.date,
-                ),
+                convert(b.value, getUnitInfo(b), ledgerUnitInfo, b.date),
               ),
           ),
         ),
@@ -189,10 +182,13 @@ async function getTransferClearingBalance(
 
 async function getTransferClearingTransactions(
   accountBookId: string,
-  ledgerUnit: Unit,
+  ledgerUnitInfo: UnitInfo,
   date: Date,
 ) {
-  invariant(ledgerUnit.unit === UnitEnum.CURRENCY, "Currency unit expected");
+  invariant(
+    ledgerUnitInfo.unit === UnitEnum.CURRENCY,
+    "Currency unit expected",
+  );
   const transactions = await prisma.transaction.findMany({
     where: {
       accountBookId,
@@ -211,7 +207,7 @@ async function getTransferClearingTransactions(
         ...t.bookings,
         await generateTransactionGainLossBooking(
           accountBookId,
-          ledgerUnit.currency,
+          ledgerUnitInfo.currency,
           t,
         ),
       ],
@@ -219,11 +215,14 @@ async function getTransferClearingTransactions(
   );
 }
 
-export async function getBalance(bookings: Booking[], ledgerUnit: Unit) {
+export async function getBalance(
+  bookings: Booking[],
+  ledgerUnitInfo: UnitInfo,
+) {
   let balance = new Decimal(0);
   for (let i = 0; i < bookings.length; i++) {
     balance = balance.add(
-      await getBookingValueInLedgerUnit(bookings[i], ledgerUnit),
+      await getBookingValueInLedgerUnit(bookings[i], ledgerUnitInfo),
     );
   }
   return balance;
@@ -231,7 +230,7 @@ export async function getBalance(bookings: Booking[], ledgerUnit: Unit) {
 
 export async function getLedgerRows(
   bookings: BookingWithTransaction[],
-  ledgerUnit: Unit,
+  ledgerUnitInfo: UnitInfo,
   openingBalance?: Decimal,
 ) {
   const rows = new Array<LedgerRow>(bookings.length);
@@ -241,7 +240,7 @@ export async function getLedgerRows(
   for (let i = 0; i < bookings.length; i++) {
     const valueInLedgerUnit = await getBookingValueInLedgerUnit(
       bookings[i],
-      ledgerUnit,
+      ledgerUnitInfo,
     );
     balance = balance.add(valueInLedgerUnit);
     rows[i] = {
@@ -254,22 +253,14 @@ export async function getLedgerRows(
   return rows;
 }
 
-async function getBookingValueInLedgerUnit(booking: Booking, ledgerUnit: Unit) {
+async function getBookingValueInLedgerUnit(
+  booking: Booking,
+  ledgerUnitInfo: UnitInfo,
+) {
   return await convert(
     booking.value,
-    booking.unit === UnitEnum.CURRENCY
-      ? { unit: UnitEnum.CURRENCY, currency: booking.currency! }
-      : booking.unit === UnitEnum.CRYPTOCURRENCY
-        ? {
-            unit: UnitEnum.CRYPTOCURRENCY,
-            cryptocurrency: booking.cryptocurrency!,
-          }
-        : {
-            unit: UnitEnum.SECURITY,
-            symbol: booking.symbol!,
-            tradeCurrency: booking.tradeCurrency!,
-          },
-    ledgerUnit,
+    getUnitInfo(booking),
+    ledgerUnitInfo,
     booking.date,
   );
 }

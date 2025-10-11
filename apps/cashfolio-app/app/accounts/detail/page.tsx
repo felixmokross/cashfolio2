@@ -34,16 +34,16 @@ import {
   TrashIcon,
 } from "~/platform/icons/standard";
 import { Badge } from "~/platform/badge";
-import { isSameUnit } from "~/fx";
 import { useAccountBook } from "~/account-books/hooks";
 import { EditAccount, useEditAccount } from "../edit-account";
 import { DeleteAccount, useDeleteAccount } from "../delete-account";
+import { getUnitInfo, getUnitLabel, isSameUnit } from "~/units/functions";
 
 export function Page({
   loaderData: {
     account,
     allAccounts,
-    ledgerUnit,
+    ledgerUnitInfo,
     openingBalance,
     ledgerRows,
     accountGroups,
@@ -62,23 +62,13 @@ export function Page({
 
   const accountBook = useAccountBook();
 
-  // TODO why do we get here no 0 index?
-  console.log(ledgerRows);
   return (
     <>
       <div className="flex justify-between items-center">
         <Heading className="flex items-center gap-4">
           {account.groupPath} / {account.name}
           <div className="flex items-center gap-2">
-            <Badge>
-              {ledgerUnit.unit === "CURRENCY"
-                ? ledgerUnit.currency!
-                : ledgerUnit.unit === "CRYPTOCURRENCY"
-                  ? ledgerUnit.cryptocurrency!
-                  : ledgerUnit.unit === "SECURITY"
-                    ? ledgerUnit.symbol
-                    : null}
-            </Badge>
+            <Badge>{getUnitLabel(ledgerUnitInfo)}</Badge>
             {!account.isActive && (
               <Badge color="accent-negative">Inactive</Badge>
             )}
@@ -174,21 +164,7 @@ export function Page({
               </TableCell>
               {account.type === "EQUITY" && (
                 <TableCell className="text-right">
-                  {isSameUnit(
-                    lr.booking.unit === "CURRENCY"
-                      ? { unit: "CURRENCY", currency: account.currency! }
-                      : account.unit === "CRYPTOCURRENCY"
-                        ? {
-                            unit: "CRYPTOCURRENCY",
-                            cryptocurrency: account.cryptocurrency!,
-                          }
-                        : {
-                            unit: "SECURITY",
-                            symbol: account.symbol!,
-                            tradeCurrency: account.tradeCurrency!,
-                          },
-                    ledgerUnit,
-                  )
+                  {!isSameUnit(getUnitInfo(lr.booking), ledgerUnitInfo)
                     ? `${lr.booking.currency} ${formatMoney(lr.booking.value)}`
                     : null}
                 </TableCell>
