@@ -4,26 +4,16 @@ import { useEffect, useRef } from "react";
 import type {
   AriaButtonProps,
   AriaDatePickerProps,
-  AriaDialogProps,
-  AriaPopoverProps,
   DateValue,
 } from "react-aria";
 import {
   useButton,
-  DismissButton,
-  useDialog,
-  Overlay,
   useDateField,
   useDateSegment,
-  usePopover,
   useLocale,
   useDatePicker,
 } from "react-aria";
-import type {
-  DateFieldState,
-  DateSegment,
-  OverlayTriggerState,
-} from "react-stately";
+import type { DateFieldState, DateSegment } from "react-stately";
 import { useDateFieldState, useDatePickerState } from "react-stately";
 import { createCalendar, parseDate } from "@internationalized/date";
 import { CalendarDaysIcon } from "~/platform/icons/standard";
@@ -71,13 +61,15 @@ export function DateInput({
   const state = useDatePickerState(props);
   const ref = useRef(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { groupProps, fieldProps, buttonProps, dialogProps, calendarProps } =
-    useDatePicker(props, state, ref);
+  const { groupProps, fieldProps, calendarProps } = useDatePicker(
+    props,
+    state,
+    ref,
+  );
 
   return (
-    <>
+    <Headless.Popover className="relative" data-slot="control">
       <span
-        data-slot="control"
         data-disabled={disabled ? "true" : undefined}
         data-invalid={invalid ? "true" : undefined}
         {...groupProps}
@@ -111,18 +103,30 @@ export function DateInput({
             inputRef.current?.form?.requestSubmit();
           }}
         />
-        <DatePickerButton {...buttonProps} isDisabled={disabled}>
+        <DatePickerButton disabled={disabled}>
           <CalendarDaysIcon />
         </DatePickerButton>
       </span>
-      {state.isOpen && (
-        <Popover state={state} triggerRef={ref} placement="bottom start">
-          <Dialog {...dialogProps}>
-            <Calendar {...calendarProps} />
-          </Dialog>
-        </Popover>
-      )}
-    </>
+      <Headless.PopoverPanel
+        anchor="bottom"
+        className={clsx(
+          // Anchor positioning
+          "[--anchor-gap:--spacing(4)] [--anchor-padding:--spacing(4)] sm:data-[anchor~=start]:[--anchor-offset:-4px]",
+          // Base styles,
+          "isolate scroll-py-1 rounded-xl p-1 select-none",
+          // Invisible border that is only visible in `forced-colors` mode for accessibility purposes
+          "outline outline-transparent focus:outline-hidden",
+          // Popover background
+          "bg-white/75 backdrop-blur-xl dark:bg-neutral-800/75",
+          // Shadows
+          "shadow-lg ring-1 ring-neutral-950/10 dark:ring-white/10 dark:ring-inset",
+          // Typography
+          "text-base text-neutral-950 sm:text-sm dark:text-white forced-colors:text-[CanvasText]",
+        )}
+      >
+        <Calendar {...calendarProps} />
+      </Headless.PopoverPanel>
+    </Headless.Popover>
   );
 }
 
@@ -201,64 +205,15 @@ function DateFieldSegment({
   );
 }
 
-interface PopoverProps extends Omit<AriaPopoverProps, "popoverRef"> {
+type DatePickerButtonProps = {
+  disabled?: boolean;
   children: ReactNode;
-  state: OverlayTriggerState;
-}
-
-function Popover({ children, state, offset = 8, ...props }: PopoverProps) {
-  const popoverRef = useRef(null);
-  const { popoverProps, underlayProps } = usePopover(
-    {
-      ...props,
-      offset,
-      popoverRef,
-    },
-    state,
-  );
-
-  return (
-    <Overlay>
-      <div {...underlayProps} />
-      <div {...popoverProps} ref={popoverRef}>
-        <DismissButton onDismiss={state.close} />
-        {children}
-        <DismissButton onDismiss={state.close} />
-      </div>
-    </Overlay>
-  );
-}
-
-interface DialogProps extends AriaDialogProps {
-  title?: React.ReactNode;
-  children: React.ReactNode;
-}
-
-function Dialog({ title, children, ...props }: DialogProps) {
-  const ref = useRef(null);
-  const { dialogProps, titleProps } = useDialog(props, ref);
-
-  return (
-    <div {...dialogProps} ref={ref} className="">
-      {title && <h3 {...titleProps}>{title}</h3>}
-      {children}
-    </div>
-  );
-}
-
-type DatePickerButtonProps = AriaButtonProps<"button"> & {
-  className?: string;
 };
 
-function DatePickerButton(props: DatePickerButtonProps) {
-  const ref = useRef(null);
-  const { buttonProps } = useButton(props, ref);
-  const { children } = props;
-
+function DatePickerButton({ children, disabled }: DatePickerButtonProps) {
   return (
-    <Headless.Button
-      {...buttonProps}
-      ref={ref}
+    <Headless.PopoverButton
+      disabled={disabled}
       className={clsx(
         // Base
         "rounded-sm -mx-1 px-1",
@@ -271,7 +226,7 @@ function DatePickerButton(props: DatePickerButtonProps) {
       )}
     >
       {children}
-    </Headless.Button>
+    </Headless.PopoverButton>
   );
 }
 
@@ -287,21 +242,7 @@ export function Calendar(props: CalendarProps<DateValue>) {
     useCalendar(props, state);
 
   return (
-    <div
-      {...calendarProps}
-      className={clsx(
-        // Base styles,
-        "isolate scroll-py-1 rounded-xl p-1 select-none",
-        // Invisible border that is only visible in `forced-colors` mode for accessibility purposes
-        "outline outline-transparent focus:outline-hidden",
-        // Popover background
-        "bg-white/75 backdrop-blur-xl dark:bg-neutral-800/75",
-        // Shadows
-        "shadow-lg ring-1 ring-neutral-950/10 dark:ring-white/10 dark:ring-inset",
-        // Typography
-        "text-base text-neutral-950 sm:text-sm dark:text-white forced-colors:text-[CanvasText]",
-      )}
-    >
+    <div {...calendarProps}>
       <div className="flex items-center justify-between">
         <CalendarButton {...prevButtonProps}>
           <span className="sr-only">Previous month</span>
@@ -347,17 +288,7 @@ function CalendarGrid({ state }: CalendarGridProps) {
               .getDatesInWeek(weekIndex)
               .map((date, i) =>
                 date ? (
-                  <CalendarCell
-                    key={i}
-                    state={state}
-                    date={date}
-                    className={clsx(
-                      weekIndex === 0 && i === 0 && "rounded-tl-lg",
-                      weekIndex === 0 && i === 6 && "rounded-tr-lg",
-                      weekIndex === 5 && i === 0 && "rounded-bl-lg",
-                      weekIndex === 5 && i === 6 && "rounded-br-lg",
-                    )}
-                  />
+                  <CalendarCell key={i} state={state} date={date} />
                 ) : (
                   <td key={i} />
                 ),
@@ -372,10 +303,9 @@ function CalendarGrid({ state }: CalendarGridProps) {
 type CalendarCellProps = {
   state: CalendarState;
   date: CalendarDate;
-  className?: string;
 };
 
-function CalendarCell({ state, date, className }: CalendarCellProps) {
+function CalendarCell({ state, date }: CalendarCellProps) {
   const ref = useRef(null);
   const {
     cellProps,
