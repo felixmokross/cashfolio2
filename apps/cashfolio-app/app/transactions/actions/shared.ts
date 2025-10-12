@@ -1,5 +1,8 @@
 import { Decimal } from "@prisma/client/runtime/library";
+import { isAfter, subDays } from "date-fns";
 import type { Booking } from "~/.prisma-client/client";
+import { Unit } from "~/.prisma-client/enums";
+import { today } from "~/dates";
 import { redis } from "~/redis.server";
 import { sum } from "~/utils";
 
@@ -11,13 +14,24 @@ export function validate(bookings: BookingFormData[]) {
     const b = bookings[i];
     if (!b.date || isNaN(new Date(b.date).getTime())) {
       errors[`bookings[${i}][date]`] = "Invalid date";
+    } else if (isAfter(b.date, subDays(today(), 1))) {
+      errors[`bookings[${i}][date]`] = "Date cannot be in the future";
     }
+
     if (!b.accountId) {
       errors[`bookings[${i}][accountId]`] = "Account is required";
     }
-    if (!b.currency) {
+
+    if (!b.unit) {
+      errors[`bookings[${i}][unit]`] = "Unit is required";
+    } else if (b.unit === Unit.CURRENCY && !b.currency) {
       errors[`bookings[${i}][currency]`] = "Currency is required";
+    } else if (b.unit === Unit.CRYPTOCURRENCY && !b.cryptocurrency) {
+      errors[`bookings[${i}][cryptocurrency]`] = "Cryptocurrency is required";
+    } else if (b.unit === Unit.SECURITY && !b.symbol) {
+      errors[`bookings[${i}][symbol]`] = "Symbol is required";
     }
+
     if (!b.value || isNaN(Number(b.value)) || new Decimal(b.value).isZero()) {
       hasBookingValueError = true;
       errors[`bookings[${i}][value]`] = "Value must be a non-zero number";
@@ -28,13 +42,29 @@ export function validate(bookings: BookingFormData[]) {
     errors.form = "At least two bookings are required.";
   } else if (
     !hasBookingValueError &&
-    !sum(bookings.map((b) => b.value)).isZero() &&
-    new Set(bookings.map((b) => b.currency)).size === 1
+    isSingleUnitTransaction(bookings) && // we can only check this for single-currency transactions
+    !sum(bookings.map((b) => b.value)).isZero()
   ) {
     errors.form = "The sum of all bookings must be zero.";
   }
 
   return errors;
+}
+
+function isSingleUnitTransaction(bookings: BookingFormData[]) {
+  return (
+    new Set(
+      bookings.map((b) =>
+        b.currency
+          ? `currency:${b.currency}`
+          : b.cryptocurrency
+            ? `crypto:${b.cryptocurrency}`
+            : b.symbol
+              ? `symbol:${b.symbol}`
+              : "",
+      ),
+    ).size === 1
+  );
 }
 
 export function hasErrors(errors: FormErrors) {
@@ -61,7 +91,10 @@ export function parseBookings(formData: FormData) {
     date: String(b.date ?? ""),
     accountId: String(b.accountId ?? ""),
     description: String(b.description ?? ""),
+    unit: String(b.unit ?? ""),
     currency: String(b.currency ?? ""),
+    cryptocurrency: String(b.cryptocurrency ?? ""),
+    symbol: String(b.symbol ?? ""),
     value: String(b.value ?? ""),
   }));
 }

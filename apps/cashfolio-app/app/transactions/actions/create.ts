@@ -33,7 +33,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
           date: new Date(b.date),
           description: b.description,
           accountId: b.accountId,
-          unit: Unit.CURRENCY,
+          unit: Unit.CURRENCY, // TODO
           currency: b.currency,
           cryptocurrency: null, // TODO
           value: new Decimal(b.value),

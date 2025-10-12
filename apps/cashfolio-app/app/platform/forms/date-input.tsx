@@ -33,6 +33,7 @@ import { Divider } from "../divider";
 type DateInputProps = {
   name?: string;
   defaultValue?: string;
+  value?: string;
   className?: string;
   invalid?: boolean;
   disabled?: boolean;
@@ -43,6 +44,7 @@ type DateInputProps = {
 
 export function DateInput({
   name,
+  value,
   defaultValue,
   className,
   invalid,
@@ -52,6 +54,7 @@ export function DateInput({
   autoFocus,
 }: DateInputProps) {
   const props: AriaDatePickerProps<CalendarDate> = {
+    value: value ? parseDate(value) : undefined,
     defaultValue: defaultValue ? parseDate(defaultValue) : undefined,
     isDisabled: disabled,
     onChange,

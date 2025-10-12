@@ -12,11 +12,12 @@ export type FormattedNumberInputProps = NumericFormatProps<
 
 export function FormattedNumberInput({
   name,
+  value,
   defaultValue,
   locale = "en-US",
   ...props
 }: FormattedNumberInputProps) {
-  const [value, setValue] = useState<number | undefined>(
+  const [internalValue, setInternalValue] = useState<number | undefined>(
     defaultValue != null ? Number(defaultValue) : undefined,
   );
 
@@ -30,9 +31,10 @@ export function FormattedNumberInput({
       <NumericFormat
         {...props}
         valueIsNumericString={true}
+        value={value}
         defaultValue={defaultValue}
         onValueChange={(values, sourceInfo) => {
-          setValue(values.floatValue);
+          setInternalValue(values.floatValue);
           props.onValueChange?.(values, sourceInfo);
         }}
         thousandSeparator={thousandSeparator}
@@ -40,7 +42,7 @@ export function FormattedNumberInput({
         customInput={Input}
         inputMode="decimal"
       />
-      <input name={name} value={value != null ? value : ""} type="hidden" />
+      <input name={name} value={value ?? internalValue ?? ""} type="hidden" />
     </>
   );
 }

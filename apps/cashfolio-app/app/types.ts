@@ -2,7 +2,7 @@ import type { Account, AccountGroup, Prisma } from "~/.prisma-client/client";
 
 export type AccountOption = Pick<
   Account,
-  "id" | "name" | "groupId" | "unit" | "currency" | "cryptocurrency"
+  "id" | "name" | "groupId" | "unit" | "currency" | "cryptocurrency" | "symbol"
 > & {
   groupPath: string;
 };
