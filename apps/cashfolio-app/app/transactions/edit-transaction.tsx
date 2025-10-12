@@ -1,4 +1,3 @@
-import { Button } from "~/platform/button";
 import { DialogActions, DialogBody, DialogTitle } from "~/platform/dialog";
 import {
   ErrorMessage,
@@ -12,16 +11,9 @@ import { AccountCombobox } from "~/accounts/account-combobox";
 import { DateInput } from "~/platform/forms/date-input";
 import { FormattedNumberInput } from "~/platform/forms/formatted-number-input";
 import { useState } from "react";
-import { PlusIcon, TrashIcon } from "~/platform/icons/standard";
-import { useFetcher } from "react-router";
-import { createId } from "@paralleldrive/cuid2";
 import type { Serialize } from "~/serialization";
-import type { Booking } from "~/.prisma-client/client";
 import { CurrencyCombobox } from "../components/currency-combobox";
-import { formatISO } from "date-fns";
 import type { TransactionWithBookings } from "~/transactions/types";
-import { CryptocurrencyCombobox } from "~/components/cryptocurrency-combobox";
-import type { action } from "./actions/create";
 import {
   CancelButton,
   FormDialog,
@@ -34,26 +26,8 @@ import { formatISODate } from "~/formatting";
 import { today } from "~/dates";
 import { Checkbox, CheckboxField } from "~/platform/forms/checkbox";
 import { Switch } from "~/platform/forms/switch";
-import { Divider } from "~/platform/divider";
 import * as Headless from "@headlessui/react";
-import { Subheading } from "~/platform/heading";
-import { Select } from "~/platform/forms/select";
-import { Unit } from "~/.prisma-client/enums";
-import { Listbox, ListboxOption } from "~/platform/forms/listbox";
-
-type BookingFormValues = Serialize<
-  Pick<
-    Booking,
-    | "id"
-    | "date"
-    | "description"
-    | "accountId"
-    | "currency"
-    | "cryptocurrency"
-    | "symbol"
-    | "unit"
-  >
-> & { value: string; isAccountLocked: boolean; isUnitLocked: boolean };
+import { SplitTransactionForm } from "./split-transaction-form";
 
 export function useEditTransaction() {
   const [isOpen, setIsOpen] = useState(false);
@@ -175,23 +149,12 @@ function TransactionFormGroup({
           defaultDate={defaultDate}
         />
       ) : (
-        <>
-          <Field>
-            <Label>Description (optional)</Label>
-            <Input
-              type="text"
-              name="description"
-              defaultValue={transaction?.description}
-              invalid={!!fetcher.data?.errors?.description}
-            />
-          </Field>
-          <BookingsTable
-            transaction={transaction}
-            accounts={accounts}
-            lockedAccountId={lockedAccountId}
-            data={fetcher.data}
-          />
-        </>
+        <SplitTransactionForm
+          transaction={transaction}
+          accounts={accounts}
+          lockedAccountId={lockedAccountId}
+          fetcher={fetcher}
+        />
       )}
       <FormErrorMessage />
     </FieldGroup>
@@ -302,310 +265,4 @@ function SimpleForm({
       </div>
     </>
   );
-}
-
-function BookingsTable({
-  transaction,
-  accounts,
-  lockedAccountId,
-  data,
-}: {
-  transaction?: Serialize<TransactionWithBookings>;
-  accounts: AccountOption[];
-  lockedAccountId: string;
-  data: ReturnType<typeof useFetcher<typeof action>>["data"];
-}) {
-  const [bookings, setBookings] = useState<BookingFormValues[]>(
-    transaction
-      ? transaction.bookings.map((b) => ({
-          ...b,
-          isUnitLocked: !!accounts.find((a) => a.id === b.accountId),
-          isAccountLocked: b.accountId === lockedAccountId,
-          date: formatISO(b.date, { representation: "date" }),
-          value: b.value.toString(),
-        }))
-      : addNewBooking(
-          addNewBooking([], {
-            lockedAccount: accounts.find((a) => a.id === lockedAccountId),
-          }),
-        ),
-  );
-  console.log(bookings);
-  return (
-    <>
-      <FieldGroup>
-        {bookings.map((booking, i) => {
-          const selectedAccount = accounts.find(
-            (a) => a.id === booking.accountId,
-          );
-          return (
-            <>
-              <div className="flex gap-4">
-                <div className="w-32 flex items-center justify-center">
-                  <span className="text-neutral-400 text-sm font-medium">
-                    #{i + 1}
-                  </span>
-                </div>
-                <FieldGroup>
-                  <div className="grid grid-cols-24 gap-4">
-                    <Field className="col-span-7">
-                      <DateInput
-                        name={`bookings[${i}][date]`}
-                        value={booking.date}
-                        onChange={(d) => {
-                          setBookings(
-                            bookings.map((b) =>
-                              b.id === booking.id
-                                ? { ...b, date: d ? d.toString() : "" }
-                                : b,
-                            ),
-                          );
-                        }}
-                        invalid={!!data?.errors?.[`bookings[${i}][date]`]}
-                      />
-                    </Field>
-                    <Field className="col-span-17">
-                      <AccountCombobox
-                        placeholder="Account"
-                        disabled={booking.isAccountLocked}
-                        name={`bookings[${i}][accountId]`}
-                        accounts={accounts}
-                        value={booking.accountId}
-                        onChange={(accountId) => {
-                          const newAccount = accounts.find(
-                            (a) => a.id === accountId,
-                          );
-                          setBookings(
-                            bookings.map((b) =>
-                              b.id === booking.id
-                                ? {
-                                    ...b,
-                                    accountId: accountId ?? "",
-                                    unit: newAccount?.unit ?? Unit.CURRENCY,
-                                    currency: newAccount?.currency ?? "",
-                                    cryptocurrency:
-                                      newAccount?.cryptocurrency ?? "",
-                                    symbol: newAccount?.symbol ?? "",
-                                  }
-                                : b,
-                            ),
-                          );
-                        }}
-                        invalid={!!data?.errors?.[`bookings[${i}][accountId]`]}
-                      />
-                      {booking.isAccountLocked && (
-                        <input
-                          type="hidden"
-                          name={`bookings[${i}][accountId]`}
-                          value={booking.accountId}
-                        />
-                      )}
-                    </Field>
-                  </div>
-                  <div className="grid grid-cols-24 gap-4">
-                    <Field className="col-span-6">
-                      <Input
-                        placeholder="Description (optional)"
-                        name={`bookings[${i}][description]`}
-                        type="text"
-                        value={booking.description}
-                        onChange={(e) => {
-                          setBookings(
-                            bookings.map((b) =>
-                              b.id === booking.id
-                                ? { ...b, description: e.target.value }
-                                : b,
-                            ),
-                          );
-                        }}
-                        invalid={
-                          !!data?.errors?.[`bookings[${i}][description]`]
-                        }
-                      />
-                    </Field>
-                    <Field className="col-span-6">
-                      <Listbox
-                        disabled={!!selectedAccount?.unit}
-                        name={`bookings[${i}][unit]`}
-                        value={booking.unit}
-                        onChange={(unit) => {
-                          setBookings(
-                            bookings.map((b) =>
-                              b.id === booking.id
-                                ? {
-                                    ...b,
-                                    unit,
-                                    currency: "",
-                                    cryptocurrency: "",
-                                    symbol: "",
-                                  }
-                                : b,
-                            ),
-                          );
-                        }}
-                      >
-                        <ListboxOption value={Unit.CURRENCY}>
-                          Currency
-                        </ListboxOption>
-                        <ListboxOption value={Unit.CRYPTOCURRENCY}>
-                          Crypto
-                        </ListboxOption>
-                        <ListboxOption value={Unit.SECURITY}>
-                          Security
-                        </ListboxOption>
-                      </Listbox>
-                      {!!selectedAccount?.unit && (
-                        <input
-                          type="hidden"
-                          name={`bookings[${i}][unit]`}
-                          value={selectedAccount.unit}
-                        />
-                      )}
-                    </Field>
-                    <Field className="col-span-7">
-                      {booking.unit === Unit.CURRENCY ? (
-                        <>
-                          <CurrencyCombobox
-                            placeholder="Ccy."
-                            name={`bookings[${i}][currency]`}
-                            value={booking.currency ?? ""}
-                            onChange={(currency) => {
-                              setBookings(
-                                bookings.map((b) =>
-                                  b.id === booking.id ? { ...b, currency } : b,
-                                ),
-                              );
-                            }}
-                            disabled={!!selectedAccount?.currency}
-                          />
-                          {!!selectedAccount?.currency && (
-                            <input
-                              type="hidden"
-                              name={`bookings[${i}][currency]`}
-                              value={booking.currency ?? ""}
-                            />
-                          )}
-                        </>
-                      ) : booking.unit === Unit.CRYPTOCURRENCY ? (
-                        <>
-                          <CryptocurrencyCombobox
-                            placeholder="Cryptoccy."
-                            name={`bookings[${i}][cryptocurrency]`}
-                            value={booking.cryptocurrency ?? ""}
-                            onChange={(cryptocurrency) => {
-                              setBookings(
-                                bookings.map((b) =>
-                                  b.id === booking.id
-                                    ? { ...b, cryptocurrency }
-                                    : b,
-                                ),
-                              );
-                            }}
-                            disabled={!!selectedAccount?.cryptocurrency}
-                          />
-                          {!!selectedAccount?.cryptocurrency && (
-                            <input
-                              type="hidden"
-                              name={`bookings[${i}][cryptocurrency]`}
-                              value={booking.cryptocurrency ?? ""}
-                            />
-                          )}
-                        </>
-                      ) : booking.unit === Unit.SECURITY ? (
-                        <>
-                          <Input
-                            placeholder="Symbol"
-                            name={`bookings[${i}][symbol]`}
-                            value={booking.symbol ?? ""}
-                            onChange={(e) => {
-                              setBookings(
-                                bookings.map((b) =>
-                                  b.id === booking.id
-                                    ? { ...b, symbol: e.currentTarget.value }
-                                    : b,
-                                ),
-                              );
-                            }}
-                            disabled={!!selectedAccount?.symbol}
-                          />
-                          {!!selectedAccount?.symbol && (
-                            <input
-                              type="hidden"
-                              name={`bookings[${i}][symbol]`}
-                              value={booking.symbol ?? ""}
-                            />
-                          )}
-                        </>
-                      ) : null}
-                    </Field>
-                    <Field className="col-span-5">
-                      <FormattedNumberInput
-                        placeholder="Value"
-                        name={`bookings[${i}][value]`}
-                        value={booking.value}
-                        onValueChange={({ value }) => {
-                          setBookings(
-                            bookings.map((b) =>
-                              b.id === booking.id ? { ...b, value } : b,
-                            ),
-                          );
-                        }}
-                        invalid={!!data?.errors?.[`bookings[${i}][value]`]}
-                      />
-                    </Field>
-                  </div>
-                </FieldGroup>
-                <div className="w-32 flex items-center justify-center">
-                  <Button
-                    disabled={bookings.length <= 2 || booking.isAccountLocked}
-                    hierarchy="tertiary"
-                    onClick={() =>
-                      setBookings(bookings.filter((b) => b.id !== booking.id))
-                    }
-                  >
-                    <TrashIcon />
-                  </Button>
-                </div>
-              </div>
-              <Divider />
-            </>
-          );
-        })}
-
-        <div className="flex justify-center">
-          <Button
-            type="button"
-            hierarchy="secondary"
-            onClick={() => setBookings(addNewBooking(bookings))}
-          >
-            <PlusIcon />
-            Add booking
-          </Button>
-        </div>
-      </FieldGroup>
-    </>
-  );
-}
-
-function addNewBooking(
-  bookings: BookingFormValues[],
-  { lockedAccount }: { lockedAccount?: AccountOption } = {},
-) {
-  return [
-    ...bookings,
-    {
-      id: createId(),
-      date:
-        bookings[bookings.length - 1]?.date ??
-        formatISO(new Date(), { representation: "date" }),
-      description: "",
-      accountId: lockedAccount?.id ?? "",
-      isAccountLocked: !!lockedAccount || undefined,
-      unit: lockedAccount?.unit ?? Unit.CURRENCY,
-      currency: lockedAccount?.currency ?? "",
-      cryptocurrency: lockedAccount?.cryptocurrency ?? "",
-      symbol: lockedAccount?.symbol ?? "",
-      value: "",
-    } as BookingFormValues,
-  ];
 }

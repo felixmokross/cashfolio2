@@ -20,6 +20,7 @@ export const Default: Story = {
         cryptocurrency: null,
         unit: "CURRENCY",
         currency: "CHF",
+        symbol: "₣",
       },
       {
         id: "2",
@@ -29,6 +30,7 @@ export const Default: Story = {
         cryptocurrency: null,
         unit: "CURRENCY",
         currency: "CHF",
+        symbol: "₣",
       },
       {
         id: "3",
@@ -38,6 +40,7 @@ export const Default: Story = {
         cryptocurrency: null,
         unit: "CURRENCY",
         currency: "CHF",
+        symbol: "₣",
       },
       {
         id: "4",
@@ -47,6 +50,7 @@ export const Default: Story = {
         cryptocurrency: null,
         unit: "CURRENCY",
         currency: "CHF",
+        symbol: "₣",
       },
     ],
   },
