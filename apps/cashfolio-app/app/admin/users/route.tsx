@@ -12,14 +12,17 @@ import {
 import { prisma } from "~/prisma.server";
 import { serialize } from "~/serialization";
 import { createManagementApi } from "@logto/api/management";
+import { ensureUserHasRole } from "~/users/functions.server";
+import { UserRole } from "~/.prisma-client/enums";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  await ensureAuthenticated(request);
+  await ensureUserHasRole(request, UserRole.ADMIN);
 
   const users = await prisma.user.findMany({
     select: {
       id: true,
       externalId: true,
+      roles: true,
       _count: { select: { accountBookLinks: true } },
     },
   });
@@ -50,6 +53,7 @@ export default function Route() {
             <TableHeader>ID</TableHeader>
             <TableHeader>External ID</TableHeader>
             <TableHeader>Email</TableHeader>
+            <TableHeader>Roles</TableHeader>
             <TableHeader className="text-right">
               No. of Account Books
             </TableHeader>
@@ -61,6 +65,7 @@ export default function Route() {
               <TableCell>{u.id}</TableCell>
               <TableCell>{u.externalId}</TableCell>
               <TableCell>{u.email}</TableCell>
+              <TableCell>{u.roles.join(", ")}</TableCell>
               <TableCell className="text-right">
                 {u._count.accountBookLinks}
               </TableCell>

@@ -2,7 +2,7 @@ import type { LoaderFunctionArgs, Params } from "react-router";
 import invariant from "tiny-invariant";
 import type { User } from "~/.prisma-client/client";
 import { prisma } from "~/prisma.server";
-import { ensureUser } from "~/users/data";
+import { ensureUser } from "~/users/functions.server";
 
 export async function getFirstBookingDate(accountBookId: string) {
   return (

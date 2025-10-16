@@ -1,7 +1,7 @@
 import { type ActionFunctionArgs } from "react-router";
 import invariant from "tiny-invariant";
 import { prisma } from "~/prisma.server";
-import { ensureUser } from "~/users/data";
+import { ensureUser } from "~/users/functions.server";
 
 export async function action({ request }: ActionFunctionArgs) {
   const user = await ensureUser(request);

@@ -1,8 +1,9 @@
 import { redirect, type LoaderFunctionArgs } from "react-router";
-import { ensureAuthenticated } from "~/auth/functions.server";
+import { UserRole } from "~/.prisma-client/enums";
+import { ensureUserHasRole } from "~/users/functions.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  await ensureAuthenticated(request);
+  await ensureUserHasRole(request, UserRole.ADMIN);
 
   throw redirect("./account-books");
 }

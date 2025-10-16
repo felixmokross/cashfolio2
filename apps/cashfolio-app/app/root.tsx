@@ -10,7 +10,7 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { ensureUser } from "./users/data";
+import { ensureUser } from "./users/functions.server";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },

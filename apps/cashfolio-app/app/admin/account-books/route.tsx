@@ -1,4 +1,5 @@
 import { useLoaderData } from "react-router";
+import { UserRole } from "~/.prisma-client/enums";
 import { ensureAuthenticated } from "~/auth/functions.server";
 import { Badge } from "~/platform/badge";
 import { Heading } from "~/platform/heading";
@@ -12,9 +13,10 @@ import {
 } from "~/platform/table";
 import { prisma } from "~/prisma.server";
 import { serialize } from "~/serialization";
+import { ensureUserHasRole } from "~/users/functions.server";
 
 export async function loader({ request }: { request: Request }) {
-  await ensureAuthenticated(request);
+  await ensureUserHasRole(request, UserRole.ADMIN);
 
   const accountBooks = await prisma.accountBook.findMany({
     include: { userLinks: { include: { user: true } } },

@@ -6,7 +6,7 @@ import { getPeriod } from "~/period/functions";
 import { SidebarLayout } from "~/platform/sidebar-layout";
 import { prisma } from "~/prisma.server";
 import { serialize } from "~/serialization";
-import { getOrCreateUser } from "~/users/data";
+import { getOrCreateUser } from "~/users/functions.server";
 import {
   ensureAuthorizedForUserAndAccountBookId,
   getFirstBookingDate,

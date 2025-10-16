@@ -2,7 +2,7 @@ import { data, type ActionFunctionArgs } from "react-router";
 import { getFormValues, hasErrors, validate } from "./shared";
 import { prisma } from "~/prisma.server";
 import { ensureAuthorizedForUserAndAccountBookId } from "../functions.server";
-import { ensureUser } from "~/users/data";
+import { ensureUser } from "~/users/functions.server";
 
 export async function action({ request }: ActionFunctionArgs) {
   const user = await ensureUser(request);

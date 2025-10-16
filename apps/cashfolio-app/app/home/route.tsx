@@ -7,7 +7,7 @@ import { Button } from "~/platform/button";
 import { Field, Label } from "~/platform/forms/fieldset";
 import { Text } from "~/platform/text";
 import { prisma } from "~/prisma.server";
-import { getOrCreateUser } from "~/users/data";
+import { getOrCreateUser } from "~/users/functions.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const userContext = await ensureAuthenticated(request);

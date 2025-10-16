@@ -32,6 +32,10 @@ enum Unit {
   SECURITY
 }
 
+enum UserRole {
+  ADMIN
+}
+
 model User {
   id         String @id @default(cuid())
   externalId String @unique
@@ -39,6 +43,8 @@ model User {
   viewPreferences Json?
 
   accountBookLinks UserAccountBookLink[]
+
+  roles UserRole[] @default([])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
