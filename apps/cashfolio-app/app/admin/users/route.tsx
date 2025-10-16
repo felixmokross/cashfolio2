@@ -1,5 +1,4 @@
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { ensureAuthenticated } from "~/auth/functions.server";
 import { Heading } from "~/platform/heading";
 import {
   Table,

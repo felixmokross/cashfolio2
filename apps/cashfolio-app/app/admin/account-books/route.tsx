@@ -1,6 +1,5 @@
 import { useLoaderData } from "react-router";
 import { UserRole } from "~/.prisma-client/enums";
-import { ensureAuthenticated } from "~/auth/functions.server";
 import { Badge } from "~/platform/badge";
 import { Heading } from "~/platform/heading";
 import {
