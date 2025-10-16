@@ -253,23 +253,24 @@ program
         });
       }
 
-      const transactions = (
+      const transactionBookingsTuples = (
         await sourceDb
           .collection<SourceModel.Transaction>("transactions")
           .find()
           .toArray()
-      ).map(sourceTransactionToTargetTransaction);
+      ).map(sourceTransactionToTargetTransactionBookingsTuples);
 
+      const transactions = transactionBookingsTuples.map((t) => t[0]);
       console.log(`Creating ${transactions.length} transactions…`);
-      for (let i = 0; i < transactions.length; i++) {
-        await targetDbClient.transaction.create({
-          data: transactions[i],
-        });
+      await targetDbClient.transaction.createMany({
+        data: transactions,
+      });
 
-        if ((i + 1) % 1000 === 0) {
-          console.log(`  created ${i + 1} transactions`);
-        }
-      }
+      const bookings = transactionBookingsTuples.flatMap((t) => t[1]);
+      console.log(`Creating ${bookings.length} bookings…`);
+      await targetDbClient.booking.createMany({
+        data: bookings,
+      });
 
       console.log("Done");
 
@@ -369,102 +370,101 @@ program
         };
       }
 
-      function sourceTransactionToTargetTransaction(
+      function sourceTransactionToTargetTransactionBookingsTuples(
         sourceTransaction: SourceModel.Transaction,
-      ): TargetModel.Prisma.TransactionCreateInput {
-        return {
-          description: sourceTransaction.note ?? "",
-          bookings: {
-            create: sourceTransaction.bookings.map((b) => {
-              const isCrypto =
-                b.type === SourceModel.BookingType.CHARGE ||
-                b.type === SourceModel.BookingType.DEPOSIT
-                  ? b.unit.kind === SourceModel.AccountUnitKind.CURRENCY &&
-                    isCryptocurrency(b.unit.currency)
-                  : b.type === SourceModel.BookingType.INCOME ||
-                      b.type === SourceModel.BookingType.EXPENSE
-                    ? isCryptocurrency(b.currency)
-                    : false;
-              return {
-                date: sourceTransaction.date,
-                description: "note" in b && b.note ? b.note : "",
-                value: new TargetModel.Prisma.Decimal(b.amount.toString()).mul(
-                  b.type === SourceModel.BookingType.CHARGE ||
-                    b.type === SourceModel.BookingType.INCOME ||
-                    b.type === SourceModel.BookingType.APPRECIATION
-                    ? -1
-                    : 1,
-                ),
-                account: {
-                  connect: {
-                    id_accountBookId: {
-                      id:
-                        b.type === SourceModel.BookingType.DEPOSIT ||
-                        b.type === SourceModel.BookingType.CHARGE
-                          ? accountsBySourceAccountId[b.accountId.toString()].id
-                          : b.type === SourceModel.BookingType.INCOME
-                            ? accountsBySourceIncomeCategoryId[
-                                b.incomeCategoryId.toString()
-                              ].id
-                            : b.type === SourceModel.BookingType.EXPENSE
-                              ? accountsBySourceExpenseCategoryId[
-                                  b.expenseCategoryId.toString()
-                                ].id
-                              : investmentGainLossAccount.id,
-                      accountBookId,
-                    },
-                  },
-                },
-                unit: isCrypto
-                  ? TargetModel.Unit.CRYPTOCURRENCY
-                  : (b.type === SourceModel.BookingType.CHARGE ||
-                        b.type === SourceModel.BookingType.DEPOSIT) &&
-                      b.unit.kind === SourceModel.AccountUnitKind.STOCK
-                    ? TargetModel.Unit.SECURITY
-                    : TargetModel.Unit.CURRENCY,
-                currency: !isCrypto
-                  ? b.type === SourceModel.BookingType.DEPOSIT ||
-                    b.type === SourceModel.BookingType.CHARGE
-                    ? b.unit.kind === SourceModel.AccountUnitKind.CURRENCY
-                      ? b.unit.currency
-                      : null
-                    : b.type === SourceModel.BookingType.EXPENSE ||
-                        b.type === SourceModel.BookingType.INCOME
-                      ? b.currency
-                      : "CHF"
-                  : null,
-                cryptocurrency: isCrypto
-                  ? b.type === SourceModel.BookingType.DEPOSIT ||
-                    b.type === SourceModel.BookingType.CHARGE
-                    ? b.unit.kind === SourceModel.AccountUnitKind.CURRENCY
-                      ? b.unit.currency
-                      : null
-                    : b.type === SourceModel.BookingType.EXPENSE ||
-                        b.type === SourceModel.BookingType.INCOME
-                      ? b.currency
-                      : null
-                  : null,
-                symbol:
-                  b.type === SourceModel.BookingType.DEPOSIT ||
-                  b.type === SourceModel.BookingType.CHARGE
-                    ? b.unit.kind === SourceModel.AccountUnitKind.STOCK
-                      ? getSymbol(b.unit.stockId.toString())
-                      : null
-                    : null,
-                tradeCurrency:
-                  b.type === SourceModel.BookingType.DEPOSIT ||
-                  b.type === SourceModel.BookingType.CHARGE
-                    ? b.unit.kind === SourceModel.AccountUnitKind.STOCK
-                      ? sourceStocksById[b.unit.stockId.toString()]
-                          .tradingCurrency
-                      : null
-                    : null,
-                accountBook: { connect: { id: accountBookId } },
-              };
-            }),
+      ): [
+        TargetModel.Prisma.TransactionCreateManyInput,
+        TargetModel.Prisma.BookingCreateManyInput[],
+      ] {
+        const transactionId = createId();
+        return [
+          {
+            id: transactionId,
+            description: sourceTransaction.note ?? "",
+            accountBookId,
           },
-          accountBook: { connect: { id: accountBookId } },
-        };
+          sourceTransaction.bookings.map((b) => {
+            const isCrypto =
+              b.type === SourceModel.BookingType.CHARGE ||
+              b.type === SourceModel.BookingType.DEPOSIT
+                ? b.unit.kind === SourceModel.AccountUnitKind.CURRENCY &&
+                  isCryptocurrency(b.unit.currency)
+                : b.type === SourceModel.BookingType.INCOME ||
+                    b.type === SourceModel.BookingType.EXPENSE
+                  ? isCryptocurrency(b.currency)
+                  : false;
+            return {
+              transactionId,
+              date: sourceTransaction.date,
+              description: "note" in b && b.note ? b.note : "",
+              value: new TargetModel.Prisma.Decimal(b.amount.toString()).mul(
+                b.type === SourceModel.BookingType.CHARGE ||
+                  b.type === SourceModel.BookingType.INCOME ||
+                  b.type === SourceModel.BookingType.APPRECIATION
+                  ? -1
+                  : 1,
+              ),
+              accountBookId,
+              accountId:
+                b.type === SourceModel.BookingType.DEPOSIT ||
+                b.type === SourceModel.BookingType.CHARGE
+                  ? accountsBySourceAccountId[b.accountId.toString()].id
+                  : b.type === SourceModel.BookingType.INCOME
+                    ? accountsBySourceIncomeCategoryId[
+                        b.incomeCategoryId.toString()
+                      ].id
+                    : b.type === SourceModel.BookingType.EXPENSE
+                      ? accountsBySourceExpenseCategoryId[
+                          b.expenseCategoryId.toString()
+                        ].id
+                      : investmentGainLossAccount.id,
+              unit: isCrypto
+                ? TargetModel.Unit.CRYPTOCURRENCY
+                : (b.type === SourceModel.BookingType.CHARGE ||
+                      b.type === SourceModel.BookingType.DEPOSIT) &&
+                    b.unit.kind === SourceModel.AccountUnitKind.STOCK
+                  ? TargetModel.Unit.SECURITY
+                  : TargetModel.Unit.CURRENCY,
+              currency: !isCrypto
+                ? b.type === SourceModel.BookingType.DEPOSIT ||
+                  b.type === SourceModel.BookingType.CHARGE
+                  ? b.unit.kind === SourceModel.AccountUnitKind.CURRENCY
+                    ? b.unit.currency
+                    : null
+                  : b.type === SourceModel.BookingType.EXPENSE ||
+                      b.type === SourceModel.BookingType.INCOME
+                    ? b.currency
+                    : "CHF"
+                : null,
+              cryptocurrency: isCrypto
+                ? b.type === SourceModel.BookingType.DEPOSIT ||
+                  b.type === SourceModel.BookingType.CHARGE
+                  ? b.unit.kind === SourceModel.AccountUnitKind.CURRENCY
+                    ? b.unit.currency
+                    : null
+                  : b.type === SourceModel.BookingType.EXPENSE ||
+                      b.type === SourceModel.BookingType.INCOME
+                    ? b.currency
+                    : null
+                : null,
+              symbol:
+                b.type === SourceModel.BookingType.DEPOSIT ||
+                b.type === SourceModel.BookingType.CHARGE
+                  ? b.unit.kind === SourceModel.AccountUnitKind.STOCK
+                    ? getSymbol(b.unit.stockId.toString())
+                    : null
+                  : null,
+              tradeCurrency:
+                b.type === SourceModel.BookingType.DEPOSIT ||
+                b.type === SourceModel.BookingType.CHARGE
+                  ? b.unit.kind === SourceModel.AccountUnitKind.STOCK
+                    ? sourceStocksById[b.unit.stockId.toString()]
+                        .tradingCurrency
+                    : null
+                  : null,
+            };
+          }),
+        ];
       }
 
       function getSymbol(stockId: string) {
