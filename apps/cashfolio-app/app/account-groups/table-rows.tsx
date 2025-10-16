@@ -10,8 +10,9 @@ import {
   WalletIcon,
 } from "~/platform/icons/standard";
 import { useAccountBook } from "~/account-books/hooks";
-import { useFetcher } from "react-router";
+import { useFetcher, useRouteLoaderData } from "react-router";
 import { Badge } from "~/platform/badge";
+import type { loader as rootLoader } from "~/root";
 
 type AccountsNodeTableRowOptions = {
   showInactiveBadge?: boolean;
@@ -64,7 +65,11 @@ export function AccountsNodeTableRow<TData = {}>({
   const fetcher = useFetcher();
   const expandedStateKey = `${viewPrefix}-account-group-${node.id}-expanded`;
 
-  const [isExpanded, setIsExpanded] = useState(false);
+  const rootLoaderData = useRouteLoaderData<typeof rootLoader>("root");
+
+  const [isExpanded, setIsExpanded] = useState(
+    rootLoaderData?.viewPreferences?.[expandedStateKey] === "true",
+  );
   const optimisticIsExpanded =
     fetcher.state !== "idle" && fetcher.formData
       ? fetcher.formData.get("value") === "true"
