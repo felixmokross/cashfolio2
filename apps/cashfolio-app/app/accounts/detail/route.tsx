@@ -44,9 +44,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     account.isActive ? { isActive: true } : undefined,
   );
 
-  const allAccounts = await getAccounts(accountBook, accountGroups, {
-    isActive: true,
-  });
+  const allAccounts = await getAccounts(accountBook, accountGroups);
 
   function getAccountGroupPath(account: Account) {
     const accountGroupPath = accountGroups.find(

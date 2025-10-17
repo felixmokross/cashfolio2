@@ -28,6 +28,9 @@ import { Checkbox, CheckboxField } from "~/platform/forms/checkbox";
 import { Switch } from "~/platform/forms/switch";
 import * as Headless from "@headlessui/react";
 import { SplitTransactionForm } from "./split-transaction-form";
+import { UnitListbox } from "~/units/unit-listbox";
+import { Unit } from "~/.prisma-client/enums";
+import { CryptocurrencyCombobox } from "~/components/cryptocurrency-combobox";
 
 export function useEditTransaction() {
   const [isOpen, setIsOpen] = useState(false);
@@ -103,7 +106,11 @@ export function EditTransaction({
         </div>
         <DialogBody>
           <TransactionFormGroup
-            accounts={accounts}
+            accounts={accounts.filter(
+              (a) =>
+                a.isActive ||
+                transaction?.bookings.map((b) => b.accountId).includes(a.id),
+            )}
             transaction={transaction}
             lockedAccountId={lockedAccountId}
             defaultDate={defaultDate}
@@ -154,6 +161,7 @@ function TransactionFormGroup({
           accounts={accounts}
           lockedAccountId={lockedAccountId}
           fetcher={fetcher}
+          defaultDate={defaultDate}
         />
       )}
       <FormErrorMessage />
@@ -173,8 +181,11 @@ function SimpleForm({
   defaultDate = defaultDate ?? formatISODate(today());
   const [date, setDate] = useState<string>(defaultDate ?? "");
   const [value, setValue] = useState<number>();
-  const currency =
-    accounts.find((a) => a.id === lockedAccountId)!.currency ?? "";
+  const selectedAccount = accounts.find((a) => a.id === lockedAccountId);
+  const unit = selectedAccount?.unit ?? "CURRENCY";
+  const currency = selectedAccount?.currency ?? "";
+  const cryptocurrency = selectedAccount?.cryptocurrency ?? "";
+  const symbol = selectedAccount?.symbol ?? "";
   const { fetcher } = useFormDialogContext();
   return (
     <>
@@ -215,7 +226,7 @@ function SimpleForm({
         </Field>
       </div>
       <div className="flex flex-col gap-8 sm:grid sm:grid-cols-12 sm:gap-4">
-        <Field className="col-span-7">
+        <Field className="col-span-4">
           <Label>Description (optional)</Label>
           <Input
             type="text"
@@ -226,23 +237,62 @@ function SimpleForm({
             <ErrorMessage>{fetcher.data?.errors?.description}</ErrorMessage>
           )}
         </Field>
+        <Field className="col-span-3">
+          <Label>Unit</Label>
+          <UnitListbox disabled={true} value={unit} />
+          <input type="hidden" name={`bookings[0][unit]`} value={unit} />
+          <input type="hidden" name={`bookings[1][unit]`} value={unit} />
+        </Field>
         <Field className="col-span-2">
-          <Label>Currency</Label>
-          <CurrencyCombobox
-            placeholder="Ccy."
-            value={currency ?? ""}
-            disabled={true}
-          />
-          <input
-            type="hidden"
-            name={`bookings[0][currency]`}
-            value={currency ?? ""}
-          />
-          <input
-            type="hidden"
-            name={`bookings[1][currency]`}
-            value={currency ?? ""}
-          />
+          {unit === Unit.CURRENCY ? (
+            <>
+              <Label>Currency</Label>
+              <CurrencyCombobox value={currency ?? ""} disabled={true} />
+              <input
+                type="hidden"
+                name={`bookings[0][currency]`}
+                value={currency ?? ""}
+              />
+              <input
+                type="hidden"
+                name={`bookings[1][currency]`}
+                value={currency ?? ""}
+              />
+            </>
+          ) : unit === Unit.CRYPTOCURRENCY ? (
+            <>
+              <Label>Cryptoccy.</Label>
+              <CryptocurrencyCombobox
+                value={cryptocurrency ?? ""}
+                disabled={true}
+              />
+              <input
+                type="hidden"
+                name={`bookings[0][cryptocurrency]`}
+                value={cryptocurrency ?? ""}
+              />
+              <input
+                type="hidden"
+                name={`bookings[1][cryptocurrency]`}
+                value={cryptocurrency ?? ""}
+              />
+            </>
+          ) : (
+            <>
+              <Label>Symbol</Label>
+              <Input value={symbol ?? ""} disabled={true} />
+              <input
+                type="hidden"
+                name={`bookings[0][symbol]`}
+                value={symbol ?? ""}
+              />
+              <input
+                type="hidden"
+                name={`bookings[1][symbol]`}
+                value={symbol ?? ""}
+              />
+            </>
+          )}
         </Field>
         <Field className="col-span-3">
           <Label>Value</Label>

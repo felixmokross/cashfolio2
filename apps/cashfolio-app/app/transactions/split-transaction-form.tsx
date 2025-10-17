@@ -21,21 +21,23 @@ import type { AccountOption } from "~/types";
 import type { action } from "./actions/create";
 import type { TransactionWithBookings } from "./types";
 import { PlusIcon, TrashIcon } from "~/platform/icons/standard";
-import { Listbox, ListboxOption } from "~/platform/forms/listbox";
 import { Input } from "~/platform/forms/input";
 import { Button } from "~/platform/button";
 import type { Booking } from "~/.prisma-client/client";
+import { UnitListbox } from "~/units/unit-listbox";
 
 export function SplitTransactionForm({
   transaction,
   accounts,
   lockedAccountId,
   fetcher,
+  defaultDate,
 }: {
   transaction?: Serialize<TransactionWithBookings>;
   accounts: AccountOption[];
   lockedAccountId: string;
   fetcher: FetcherWithComponents<FetcherData>;
+  defaultDate?: string;
 }) {
   return (
     <>
@@ -63,11 +65,13 @@ function BookingsTable({
   accounts,
   lockedAccountId,
   data,
+  defaultDate,
 }: {
   transaction?: Serialize<TransactionWithBookings>;
   accounts: AccountOption[];
   lockedAccountId: string;
   data: ReturnType<typeof useFetcher<typeof action>>["data"];
+  defaultDate?: string;
 }) {
   const [bookings, setBookings] = useState<BookingFormValues[]>(
     transaction
@@ -81,6 +85,7 @@ function BookingsTable({
       : addNewBooking(
           addNewBooking([], {
             lockedAccount: accounts.find((a) => a.id === lockedAccountId),
+            defaultDate,
           }),
         ),
   );
@@ -189,7 +194,7 @@ function BookingsTable({
                     </Field>
                     <Field className="col-span-6">
                       <Label>Unit</Label>
-                      <Listbox
+                      <UnitListbox
                         disabled={!!selectedAccount?.unit}
                         name={fieldName("unit")}
                         value={booking.unit}
@@ -201,17 +206,7 @@ function BookingsTable({
                             symbol: "",
                           });
                         }}
-                      >
-                        <ListboxOption value={Unit.CURRENCY}>
-                          Currency
-                        </ListboxOption>
-                        <ListboxOption value={Unit.CRYPTOCURRENCY}>
-                          Crypto
-                        </ListboxOption>
-                        <ListboxOption value={Unit.SECURITY}>
-                          Security
-                        </ListboxOption>
-                      </Listbox>
+                      />
                       {!!selectedAccount?.unit && (
                         <input
                           type="hidden"
@@ -341,15 +336,16 @@ function BookingsTable({
 
 function addNewBooking(
   bookings: BookingFormValues[],
-  { lockedAccount }: { lockedAccount?: AccountOption } = {},
+  {
+    lockedAccount,
+    defaultDate,
+  }: { lockedAccount?: AccountOption; defaultDate?: string } = {},
 ) {
   return [
     ...bookings,
     {
       id: createId(),
-      date:
-        bookings[bookings.length - 1]?.date ??
-        formatISO(new Date(), { representation: "date" }),
+      date: bookings[bookings.length - 1]?.date ?? defaultDate,
       description: "",
       accountId: lockedAccount?.id ?? "",
       isAccountLocked: !!lockedAccount || undefined,
