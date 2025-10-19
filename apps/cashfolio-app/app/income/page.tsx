@@ -22,6 +22,9 @@ export function Page({ loaderData }: { loaderData: LoaderData }) {
             <NavNavbarItem href={`/${accountBook.id}/income/chart`}>
               Chart
             </NavNavbarItem>
+            <NavNavbarItem href={`/${accountBook.id}/income/average`}>
+              Average
+            </NavNavbarItem>
           </NavbarSection>
         </div>
       </div>
