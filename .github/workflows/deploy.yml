@@ -9,7 +9,7 @@ on:
         default: "staging"
         options:
           - staging
-          - production
+          - prod
 
 env:
   NODE_VERSION: 22
@@ -29,5 +29,5 @@ jobs:
     with:
       version_with_sha: ${{ needs.version.outputs.version_with_sha }}
       sha: ${{ needs.version.outputs.sha }}
-      environment: prod
+      environment: ${{ github.event.inputs.environment }}
     secrets: inherit

@@ -106,5 +106,5 @@ jobs:
     with:
       version_with_sha: ${{ needs.version.outputs.version_with_sha }}
       sha: ${{ needs.version.outputs.sha }}
-      environment: prod
+      environment: staging
     secrets: inherit
