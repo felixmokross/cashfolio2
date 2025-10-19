@@ -1,42 +1,32 @@
-import { formatMoney } from "~/formatting";
 import { Heading } from "~/platform/heading";
 import { Text } from "~/platform/text";
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/platform/table";
-import type { LoaderData } from "~/income/route";
-import { IncomeTableRows } from "./table-rows";
 import { useAccountBook } from "~/account-books/hooks";
+import { NavbarSection, NavNavbarItem } from "~/platform/navbar";
+import { Outlet } from "react-router";
+import type { LoaderData } from "./route";
 
-export function Page({ loaderData: { rootNode } }: { loaderData: LoaderData }) {
+export function Page({ loaderData }: { loaderData: LoaderData }) {
   const accountBook = useAccountBook();
   return (
     <>
-      <Heading>Income</Heading>
-      <Text>Reference Currency: {accountBook.referenceCurrency}</Text>
+      <div className="flex justify-between items-start">
+        <div>
+          <Heading>Income / {loaderData.rootNode.name}</Heading>
+          <Text>Reference Currency: {accountBook.referenceCurrency}</Text>
+        </div>
+        <div className="grow-0">
+          <NavbarSection className="-mx-2">
+            <NavNavbarItem href={`/${accountBook.id}/income/table`}>
+              Table
+            </NavNavbarItem>
+            <NavNavbarItem href={`/${accountBook.id}/income/chart`}>
+              Chart
+            </NavNavbarItem>
+          </NavbarSection>
+        </div>
+      </div>
 
-      <Table
-        dense
-        bleed
-        striped
-        className="mt-8 [--gutter:--spacing(6)] lg:[--gutter:--spacing(10)]"
-      >
-        <TableHead>
-          <TableRow>
-            <TableHeader>{rootNode.name}</TableHeader>
-            <TableHeader className="text-right w-32">
-              {formatMoney(rootNode.value)}
-            </TableHeader>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          <IncomeTableRows node={rootNode} />
-        </TableBody>
-      </Table>
+      <Outlet />
     </>
   );
 }

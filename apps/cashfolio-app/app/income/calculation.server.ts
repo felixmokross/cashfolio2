@@ -23,7 +23,6 @@ import type {
   AccountBook,
   AccountGroup,
 } from "~/.prisma-client/client";
-import { buildAccount } from "~/accounts/builders";
 
 export async function getIncomeStatement(
   accountBook: AccountBook,
@@ -52,7 +51,18 @@ export async function getIncomeStatement(
     if (node.nodeType === "accountGroup") {
       const children = node.children
         .map(withIncomeData)
-        .filter((child) => !child.value.isZero());
+        .filter((child) => !child.value.isZero())
+
+        .toSorted((a, b) => b.value.minus(a.value).toNumber())
+        .toSorted(
+          (a, b) =>
+            (a.nodeType === "accountGroup" && a.sortOrder != null
+              ? a.sortOrder
+              : Infinity) -
+            (b.nodeType === "accountGroup" && b.sortOrder != null
+              ? b.sortOrder
+              : Infinity),
+        );
       return { ...node, children, value: sum(children.map((c) => c.value)) };
     }
 
@@ -318,7 +328,7 @@ export async function getIncomeData(
     updatedAt: new Date(),
     accountBookId: accountBook.id,
     isActive: true,
-    sortOrder: 1,
+    sortOrder: Infinity,
   };
 
   const fxHoldingGainLossGroup: AccountGroup = {
@@ -330,7 +340,7 @@ export async function getIncomeData(
     updatedAt: new Date(),
     accountBookId: accountBook.id,
     isActive: true,
-    sortOrder: 1,
+    sortOrder: Infinity,
   };
 
   const cryptoHoldingGainLossGroup: AccountGroup = {
@@ -342,7 +352,7 @@ export async function getIncomeData(
     updatedAt: new Date(),
     accountBookId: accountBook.id,
     isActive: true,
-    sortOrder: 1,
+    sortOrder: Infinity,
   };
 
   const securityHoldingGainLossGroup: AccountGroup = {
@@ -354,7 +364,7 @@ export async function getIncomeData(
     updatedAt: new Date(),
     accountBookId: accountBook.id,
     isActive: true,
-    sortOrder: 1,
+    sortOrder: Infinity,
   };
 
   const nonRefCurrencyAccounts = accounts.filter(

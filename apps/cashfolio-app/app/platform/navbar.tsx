@@ -1,9 +1,10 @@
 import * as Headless from "@headlessui/react";
 import clsx from "clsx";
 import { LayoutGroup, motion } from "motion/react";
-import React, { forwardRef, useId } from "react";
+import React, { forwardRef, useId, type ComponentPropsWithoutRef } from "react";
 import { TouchTarget } from "./button";
 import { Link } from "./link";
+import { useLocation } from "react-router";
 
 export function Navbar({
   className,
@@ -123,4 +124,20 @@ export function NavbarLabel({
   ...props
 }: React.ComponentPropsWithoutRef<"span">) {
   return <span {...props} className={clsx(className, "truncate")} />;
+}
+
+export function NavNavbarItem({
+  href,
+  ...props
+}: ComponentPropsWithoutRef<typeof NavbarItem> & { href: string }) {
+  const location = useLocation();
+  return (
+    <NavbarItem
+      {...props}
+      current={
+        location.pathname === href || location.pathname.startsWith(href + "/")
+      }
+      href={href}
+    />
+  );
 }

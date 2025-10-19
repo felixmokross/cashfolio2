@@ -44,6 +44,9 @@ importers:
       '@react-router/serve':
         specifier: ^7.7.1
         version: 7.8.2(react-router@7.8.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(typescript@5.9.2)
+      ag-charts-react:
+        specifier: ^12.2.0
+        version: 12.2.0(react@19.1.1)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -1747,6 +1750,23 @@ packages:
     resolution: {integrity: sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==}
     engines: {node: '>=0.4.0'}
     hasBin: true
+
+  ag-charts-community@12.2.0:
+    resolution: {integrity: sha512-j5IYDtePqOde5LdnmpcKGSkgqhWRCke4W3uJvIFRFDQrFmI+hrnIRFgoea6+QBmtsKcho2vv5N8FqHOwN/udOw==}
+
+  ag-charts-core@12.2.0:
+    resolution: {integrity: sha512-3hTpW9MGJCyvonfHHOrIeN3VPW7Crses9Os2W/TFJzRqFD0O4Zf0lzIYTQFfPCQRhCLM8Ch211XvoCkX/Goo5g==}
+
+  ag-charts-locale@12.2.0:
+    resolution: {integrity: sha512-xwMTzoNi/SAV6EwApRuBXOc3K+Thi/ijsKIkIhaGPmc3VPkCVCWW/TcAontiZ3dXUgxsL3jXBNyarH7f+XzWkQ==}
+
+  ag-charts-react@12.2.0:
+    resolution: {integrity: sha512-uc6XE2tLbQ5LZugCdQyyrw5+I2EUDQMqOwMS3j0NzRJAXfj0DrZEg9zTkgwDrn24t28al7rdeWtVespXP+EmpA==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+
+  ag-charts-types@12.2.0:
+    resolution: {integrity: sha512-d2qQrQirt9wP36YW5HPuOvXsiajyiFnr1CTsoCbs02bavPDz7Lk2jHp64+waM4YKgXb3GN7gafbBI9Qgk33BmQ==}
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -5528,6 +5548,25 @@ snapshots:
       negotiator: 0.6.3
 
   acorn@8.15.0: {}
+
+  ag-charts-community@12.2.0:
+    dependencies:
+      ag-charts-core: 12.2.0
+      ag-charts-locale: 12.2.0
+      ag-charts-types: 12.2.0
+
+  ag-charts-core@12.2.0:
+    dependencies:
+      ag-charts-types: 12.2.0
+
+  ag-charts-locale@12.2.0: {}
+
+  ag-charts-react@12.2.0(react@19.1.1):
+    dependencies:
+      ag-charts-community: 12.2.0
+      react: 19.1.1
+
+  ag-charts-types@12.2.0: {}
 
   ansi-regex@5.0.1: {}
 

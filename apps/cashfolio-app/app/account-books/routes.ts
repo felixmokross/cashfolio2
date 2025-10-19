@@ -3,6 +3,7 @@ import { routes as accountRoutes } from "../accounts/routes";
 import { routes as accountGroupRoutes } from "../account-groups/routes";
 import { routes as transactionRoutes } from "../transactions/routes";
 import { routes as periodRoutes } from "../period/routes";
+import { routes as incomeRoutes } from "../income/routes";
 
 export const routes = [
   route("account-books/create", "account-books/actions/create.ts"),
@@ -13,8 +14,8 @@ export const routes = [
     index("account-books/home/route.ts"),
     route("settings", "account-books/settings/route.tsx"),
     route("balances", "balances/route.tsx"),
-    route("income", "income/route.tsx"),
 
+    ...incomeRoutes,
     ...accountRoutes,
     ...accountGroupRoutes,
     ...transactionRoutes,

@@ -6,6 +6,8 @@ import { getAccountGroups } from "~/account-groups/data";
 import { prisma } from "~/prisma.server";
 import { getPeriodDateRange } from "~/period/functions";
 import { ensureAuthorized } from "~/account-books/functions.server";
+import type { AccountsNode } from "~/account-groups/accounts-tree";
+import type { IncomeAccountsNode } from "./types";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);
@@ -29,16 +31,49 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     getAccountGroups(link.accountBookId),
   ]);
 
-  return serialize({
-    rootNode: await getIncomeStatement(
-      accountBook,
-      accounts,
-      accountGroups,
-      from,
-      to,
-    ),
-  });
+  const incomeStatementTree = await getIncomeStatement(
+    accountBook,
+    accounts,
+    accountGroups,
+    from,
+    to,
+  );
+
+  let rootNode: IncomeAccountsNode;
+  if (params.nodeId) {
+    const subtreeRootNode = findSubtreeRootNode(
+      incomeStatementTree,
+      params.nodeId,
+    );
+    if (!subtreeRootNode) {
+      throw new Response("Not Found", { status: 404 });
+    }
+    rootNode = subtreeRootNode;
+  } else {
+    rootNode = incomeStatementTree;
+  }
+
+  return serialize({ rootNode });
 }
+
+function findSubtreeRootNode<T extends AccountsNode>(
+  node: T,
+  nodeId: string,
+): T | undefined {
+  if (node.id === nodeId) {
+    return node;
+  }
+
+  if (node.nodeType === "accountGroup") {
+    for (const child of node.children) {
+      const result = findSubtreeRootNode(child as T, nodeId);
+      if (result) {
+        return result;
+      }
+    }
+  }
+}
+
 export type LoaderData = ReturnType<typeof useLoaderData<typeof loader>>;
 
 export default function Route() {
