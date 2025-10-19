@@ -6,6 +6,7 @@ import { useAccountBook } from "~/account-books/hooks";
 import { formatMoney } from "~/formatting";
 import { Subheading } from "~/platform/heading";
 import { AccountType, EquityAccountSubtype } from "~/.prisma-client/enums";
+import { getTheme } from "~/theme";
 
 export default function Route() {
   const loaderData = useRouteLoaderData<IncomeLoaderData>("income/route");
@@ -25,6 +26,20 @@ export default function Route() {
       <AgCharts
         className="h-[calc(100vh_-_15rem)] mt-12"
         options={{
+          background: {
+            visible: false,
+          },
+          theme: {
+            params: {
+              fontFamily:
+                '"Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",  "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+              fontSize: 14,
+              textColor:
+                getTheme() === "dark"
+                  ? "oklch(98.5% 0 0)"
+                  : "oklch(14.1% 0.005 285.823)",
+            },
+          },
           series: [
             {
               type: "bar",
@@ -35,8 +50,12 @@ export default function Route() {
                 return {
                   fill:
                     isExpensesGroup || params.yValue < 0
-                      ? "oklch(50.5% 0.213 27.518)"
-                      : "oklch(52.7% 0.154 150.069)",
+                      ? getTheme() === "dark"
+                        ? "oklch(57.7% 0.245 27.325)"
+                        : "oklch(50.5% 0.213 27.518)"
+                      : getTheme() === "dark"
+                        ? "oklch(62.7% 0.194 149.214)"
+                        : "oklch(52.7% 0.154 150.069)",
                 };
               },
               listeners: {
