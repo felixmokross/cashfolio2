@@ -11,6 +11,7 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import { ensureUser } from "./users/functions.server";
+import { getPageTitle } from "./meta";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -58,6 +59,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export const meta: Route.MetaFunction = () => [
+  { title: getPageTitle() },
   { name: "apple-mobile-web-app-title", content: "Cashfolio" },
 ];
 

@@ -13,6 +13,12 @@ import { serialize } from "~/serialization";
 import { createManagementApi } from "@logto/api/management";
 import { ensureUserHasRole } from "~/users/functions.server";
 import { UserRole } from "~/.prisma-client/enums";
+import { getAdminPageTitle } from "~/meta";
+import type { Route } from "./+types/route";
+
+export const meta: Route.MetaFunction = () => [
+  { title: getAdminPageTitle("Users") },
+];
 
 export async function loader({ request }: LoaderFunctionArgs) {
   await ensureUserHasRole(request, UserRole.ADMIN);

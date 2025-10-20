@@ -3,7 +3,7 @@ import {
   type AccountsNode,
 } from "~/account-groups/accounts-tree";
 import type { BalancesAccountsNode } from "./types";
-import { sum } from "~/utils";
+import { sum } from "~/utils.server";
 import { convert } from "~/fx.server";
 import { getBalanceCached } from "~/accounts/detail/calculation.server";
 import { Unit } from "~/.prisma-client/enums";

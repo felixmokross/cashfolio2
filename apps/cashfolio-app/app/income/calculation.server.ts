@@ -8,7 +8,7 @@ import {
 import type { AccountWithBookings } from "~/accounts/types";
 import { formatISODate } from "~/formatting";
 import type { TransactionWithBookings } from "~/transactions/types";
-import { sum } from "~/utils";
+import { sum } from "~/utils.server";
 import type { IncomeAccountsNode, IncomeData } from "./types";
 import { convert, getExchangeRate } from "~/fx.server";
 import {

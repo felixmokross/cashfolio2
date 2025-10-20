@@ -1,5 +1,6 @@
 import { useLoaderData } from "react-router";
 import { UserRole } from "~/.prisma-client/enums";
+import { getAdminPageTitle } from "~/meta";
 import { Badge } from "~/platform/badge";
 import { Heading } from "~/platform/heading";
 import {
@@ -13,6 +14,11 @@ import {
 import { prisma } from "~/prisma.server";
 import { serialize } from "~/serialization";
 import { ensureUserHasRole } from "~/users/functions.server";
+import type { Route } from "./+types/route";
+
+export const meta: Route.MetaFunction = () => [
+  { title: getAdminPageTitle("Account Books") },
+];
 
 export async function loader({ request }: { request: Request }) {
   await ensureUserHasRole(request, UserRole.ADMIN);
