@@ -3,6 +3,7 @@ import {
   hasErrors,
   parseBookings,
   purgeCachedBalances,
+  purgeCachedMonthlyIncome,
   validate,
 } from "./shared";
 import { data, type ActionFunctionArgs } from "react-router";
@@ -21,9 +22,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const description = form.get("description");
   invariant(typeof description === "string");
 
-  const bookings = parseBookings(form);
+  const bookingFormValues = parseBookings(form);
 
-  const errors = validate(bookings);
+  const errors = validate(bookingFormValues);
   if (hasErrors(errors)) {
     return data({ success: false, errors }, { status: 400 });
   }
@@ -52,7 +53,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       description,
       bookings: {
         deleteMany: {},
-        create: bookings.map((b) => ({
+        create: bookingFormValues.map((b) => ({
           date: new Date(b.date),
           description: b.description,
           accountId: b.accountId,
@@ -65,11 +66,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
     },
   });
 
-  await purgeCachedBalances(
+  const bookingsBeforeAndAfterUpdate = bookingFormValues
+    .map((b) => ({ date: new Date(b.date), accountId: b.accountId }))
+    .concat(transactionBeforeUpdate.bookings);
+
+  await purgeCachedBalances(link.accountBookId, bookingsBeforeAndAfterUpdate);
+
+  await purgeCachedMonthlyIncome(
     link.accountBookId,
-    bookings
-      .map((b) => ({ date: new Date(b.date), accountId: b.accountId }))
-      .concat(transactionBeforeUpdate.bookings),
+    bookingsBeforeAndAfterUpdate,
   );
 
   return data({ success: true });

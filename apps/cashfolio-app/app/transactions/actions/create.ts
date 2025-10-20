@@ -3,6 +3,7 @@ import {
   hasErrors,
   parseBookings,
   purgeCachedBalances,
+  purgeCachedMonthlyIncome,
   validate,
 } from "./shared";
 import { data, type ActionFunctionArgs } from "react-router";
@@ -18,9 +19,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const description = form.get("description");
   invariant(typeof description === "string");
 
-  const bookings = parseBookings(form);
+  const bookingFormValues = parseBookings(form);
 
-  const errors = validate(bookings);
+  const errors = validate(bookingFormValues);
   if (hasErrors(errors)) {
     return data({ success: false, errors }, { status: 400 });
   }
@@ -29,7 +30,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     data: {
       description,
       bookings: {
-        create: bookings.map((b) => ({
+        create: bookingFormValues.map((b) => ({
           date: new Date(b.date),
           description: b.description,
           accountId: b.accountId,
@@ -43,9 +44,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
     },
   });
 
-  await purgeCachedBalances(
-    link.accountBookId,
-    bookings.map((b) => ({ date: new Date(b.date), accountId: b.accountId })),
-  );
+  const bookings = bookingFormValues.map((b) => ({
+    date: new Date(b.date),
+    accountId: b.accountId,
+  }));
+
+  await purgeCachedBalances(link.accountBookId, bookings);
+
+  await purgeCachedMonthlyIncome(link.accountBookId, bookings);
+
   return data({ success: true, errors: undefined });
 }

@@ -1,4 +1,10 @@
-import { differenceInDays, formatISO, max, subDays } from "date-fns";
+import {
+  differenceInDays,
+  formatISO,
+  isSameMonth,
+  max,
+  subDays,
+} from "date-fns";
 import type { AccountWithBookings } from "~/accounts/types";
 import { formatISODate } from "~/formatting";
 import type { TransactionWithBookings } from "~/transactions/types";
@@ -23,6 +29,13 @@ import type {
   AccountBook,
   AccountGroup,
 } from "~/.prisma-client/client";
+import { redis } from "~/redis.server";
+import {
+  getAccountUnitInfo,
+  getCurrencyUnitInfo,
+  getUnitInfo,
+} from "~/units/functions";
+import invariant from "tiny-invariant";
 
 export async function getIncomeStatement(
   accountBook: AccountBook,
@@ -83,22 +96,12 @@ export async function generateHoldingBookingsForAccount(
 ): Promise<BookingWithTransaction[]> {
   const initialDate = subDays(fromDate, 1);
 
-  const fxAccountUnit =
-    fxAccount.unit === Unit.CURRENCY
-      ? {
-          unit: Unit.CURRENCY,
-          currency: fxAccount.currency!,
-        }
-      : fxAccount.unit === Unit.CRYPTOCURRENCY
-        ? {
-            unit: Unit.CRYPTOCURRENCY,
-            cryptocurrency: fxAccount.cryptocurrency!,
-          }
-        : {
-            unit: Unit.SECURITY,
-            symbol: fxAccount.symbol!,
-            tradeCurrency: fxAccount.tradeCurrency!,
-          };
+  const fxAccountUnit = getAccountUnitInfo(fxAccount);
+  invariant(fxAccountUnit, "FX account must have a unit defined");
+
+  const referenceCurrencyUnit = getCurrencyUnitInfo(
+    accountBook.referenceCurrency,
+  );
 
   let balance = await getBalanceCached(
     accountBook.id,
@@ -114,7 +117,7 @@ export async function generateHoldingBookingsForAccount(
 
   let fxRate = await getExchangeRate(
     fxAccountUnit,
-    { unit: Unit.CURRENCY, currency: accountBook.referenceCurrency },
+    referenceCurrencyUnit,
     initialDate,
   );
 
@@ -126,7 +129,7 @@ export async function generateHoldingBookingsForAccount(
     const date = fxAccount.bookings[i]?.date ?? toDate;
     const newFxRate = await getExchangeRate(
       fxAccountUnit,
-      { unit: Unit.CURRENCY, currency: accountBook.referenceCurrency },
+      referenceCurrencyUnit,
       date,
     );
     const fxRateDiff = newFxRate.minus(fxRate);
@@ -176,19 +179,8 @@ export async function completeTransaction(
     const b = transaction.bookings[i];
     values[i] = await convert(
       b.value,
-      b.unit === Unit.CURRENCY
-        ? { unit: Unit.CURRENCY, currency: b.currency! }
-        : b.unit === Unit.CRYPTOCURRENCY
-          ? {
-              unit: Unit.CRYPTOCURRENCY,
-              cryptocurrency: b.cryptocurrency!,
-            }
-          : {
-              unit: Unit.SECURITY,
-              symbol: b.symbol!,
-              tradeCurrency: b.tradeCurrency!,
-            },
-      { unit: Unit.CURRENCY, currency: referenceCurrency },
+      getUnitInfo(b),
+      getCurrencyUnitInfo(referenceCurrency),
       b.date,
     );
   }
@@ -455,29 +447,37 @@ export async function getIncomeData(
   for (let i = 0; i < allEquityAccounts.length; i++) {
     const a = allEquityAccounts[i];
 
+    const cacheKey = `account-book:${accountBook.id}:account:${a.id}:income:monthly`;
+    if (canCacheAccountAndPeriod(a.id, fromDate, toDate)) {
+      const [cacheEntry] = (await redis.exists(cacheKey))
+        ? await redis.ts.RANGE(cacheKey, fromDate, fromDate, { COUNT: 1 })
+        : [];
+      if (cacheEntry) {
+        valueByAccountIdEntries[i] = [
+          a.id,
+          new Decimal(cacheEntry.value),
+        ] as const;
+        continue;
+      }
+    }
+
     const values = new Array<Decimal>(a.bookings.length);
     for (let j = 0; j < a.bookings.length; j++) {
       const b = a.bookings[j];
       values[j] = await convert(
         b.value,
-        b.unit === Unit.CURRENCY
-          ? { unit: Unit.CURRENCY, currency: b.currency! }
-          : b.unit === Unit.CRYPTOCURRENCY
-            ? {
-                unit: Unit.CRYPTOCURRENCY,
-                cryptocurrency: b.cryptocurrency!,
-              }
-            : {
-                unit: Unit.SECURITY,
-                symbol: b.symbol!,
-                tradeCurrency: b.tradeCurrency!,
-              },
-        { unit: Unit.CURRENCY, currency: accountBook.referenceCurrency },
+        getUnitInfo(b),
+        getCurrencyUnitInfo(accountBook.referenceCurrency),
         b.date,
       );
     }
 
-    valueByAccountIdEntries[i] = [a.id, sum(values).negated()] as const;
+    const value = sum(values).negated();
+    valueByAccountIdEntries[i] = [a.id, value] as const;
+
+    if (canCacheAccountAndPeriod(a.id, fromDate, toDate)) {
+      await redis.ts.add(cacheKey, fromDate, value.toNumber());
+    }
   }
 
   return {
@@ -491,4 +491,30 @@ export async function getIncomeData(
     ],
     valueByAccountId: new Map<string, Decimal>(valueByAccountIdEntries),
   };
+}
+
+function canCacheAccountAndPeriod(
+  accountId: string,
+  fromDate: Date,
+  toDate: Date,
+) {
+  return (
+    // transaction and holding G/L accounts are not cached / would require more complex cache purging
+    !isTransactionGainLossAccount(accountId) &&
+    !isHoldingGainLossAccount(accountId) &&
+    isMonthPeriod(fromDate, toDate)
+  );
+}
+
+function isMonthPeriod(fromDate: Date, toDate: Date) {
+  // Only checking fromDate – toDate might not be at month end if it is the MTD period
+  return isSameMonth(fromDate, toDate) && fromDate.getDate() === 1;
+}
+
+function isTransactionGainLossAccount(accountId: string) {
+  return accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID;
+}
+
+function isHoldingGainLossAccount(accountId: string) {
+  return accountId.startsWith("holding-gain-loss-");
 }
