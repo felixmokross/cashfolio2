@@ -30,6 +30,12 @@ import type {
   AccountGroup,
 } from "~/.prisma-client/client";
 import { redis } from "~/redis.server";
+import {
+  getAccountUnitInfo,
+  getCurrencyUnitInfo,
+  getUnitInfo,
+} from "~/units/functions";
+import invariant from "tiny-invariant";
 
 export async function getIncomeStatement(
   accountBook: AccountBook,
@@ -90,22 +96,12 @@ export async function generateHoldingBookingsForAccount(
 ): Promise<BookingWithTransaction[]> {
   const initialDate = subDays(fromDate, 1);
 
-  const fxAccountUnit =
-    fxAccount.unit === Unit.CURRENCY
-      ? {
-          unit: Unit.CURRENCY,
-          currency: fxAccount.currency!,
-        }
-      : fxAccount.unit === Unit.CRYPTOCURRENCY
-        ? {
-            unit: Unit.CRYPTOCURRENCY,
-            cryptocurrency: fxAccount.cryptocurrency!,
-          }
-        : {
-            unit: Unit.SECURITY,
-            symbol: fxAccount.symbol!,
-            tradeCurrency: fxAccount.tradeCurrency!,
-          };
+  const fxAccountUnit = getAccountUnitInfo(fxAccount);
+  invariant(fxAccountUnit, "FX account must have a unit defined");
+
+  const referenceCurrencyUnit = getCurrencyUnitInfo(
+    accountBook.referenceCurrency,
+  );
 
   let balance = await getBalanceCached(
     accountBook.id,
@@ -121,7 +117,7 @@ export async function generateHoldingBookingsForAccount(
 
   let fxRate = await getExchangeRate(
     fxAccountUnit,
-    { unit: Unit.CURRENCY, currency: accountBook.referenceCurrency },
+    referenceCurrencyUnit,
     initialDate,
   );
 
@@ -133,7 +129,7 @@ export async function generateHoldingBookingsForAccount(
     const date = fxAccount.bookings[i]?.date ?? toDate;
     const newFxRate = await getExchangeRate(
       fxAccountUnit,
-      { unit: Unit.CURRENCY, currency: accountBook.referenceCurrency },
+      referenceCurrencyUnit,
       date,
     );
     const fxRateDiff = newFxRate.minus(fxRate);
@@ -183,19 +179,8 @@ export async function completeTransaction(
     const b = transaction.bookings[i];
     values[i] = await convert(
       b.value,
-      b.unit === Unit.CURRENCY
-        ? { unit: Unit.CURRENCY, currency: b.currency! }
-        : b.unit === Unit.CRYPTOCURRENCY
-          ? {
-              unit: Unit.CRYPTOCURRENCY,
-              cryptocurrency: b.cryptocurrency!,
-            }
-          : {
-              unit: Unit.SECURITY,
-              symbol: b.symbol!,
-              tradeCurrency: b.tradeCurrency!,
-            },
-      { unit: Unit.CURRENCY, currency: referenceCurrency },
+      getUnitInfo(b),
+      getCurrencyUnitInfo(referenceCurrency),
       b.date,
     );
   }
@@ -481,19 +466,8 @@ export async function getIncomeData(
       const b = a.bookings[j];
       values[j] = await convert(
         b.value,
-        b.unit === Unit.CURRENCY
-          ? { unit: Unit.CURRENCY, currency: b.currency! }
-          : b.unit === Unit.CRYPTOCURRENCY
-            ? {
-                unit: Unit.CRYPTOCURRENCY,
-                cryptocurrency: b.cryptocurrency!,
-              }
-            : {
-                unit: Unit.SECURITY,
-                symbol: b.symbol!,
-                tradeCurrency: b.tradeCurrency!,
-              },
-        { unit: Unit.CURRENCY, currency: accountBook.referenceCurrency },
+        getUnitInfo(b),
+        getCurrencyUnitInfo(accountBook.referenceCurrency),
         b.date,
       );
     }
