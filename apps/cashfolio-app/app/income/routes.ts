@@ -5,6 +5,5 @@ export const routes = [
     index("income/index/route.tsx"),
     route("table", "income/table/route.tsx"),
     route("chart/:nodeId?", "income/chart/route.tsx"),
-    route("average/:nodeId?", "income/average/route.tsx"),
   ]),
 ];
