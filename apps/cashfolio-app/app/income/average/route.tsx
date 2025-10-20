@@ -1,14 +1,8 @@
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { ensureAuthorized } from "~/account-books/functions.server";
 import { getPeriodDateRange } from "~/period/functions";
-import {
-  isSameDay,
-  lastDayOfMonth,
-  startOfMonth,
-  subDays,
-  subMonths,
-} from "date-fns";
-import { today } from "~/dates";
+import { isSameDay, lastDayOfMonth, subDays, subMonths } from "date-fns";
+import { startOfMonthUtc, today } from "~/dates";
 import { serialize } from "~/serialization";
 import { formatMoney } from "~/formatting";
 import { prisma } from "~/prisma.server";
@@ -29,7 +23,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     : period.to;
 
   const numberOfMonths = 24;
-  const averageFrom = startOfMonth(subMonths(averageTo, numberOfMonths - 1));
+  const averageFrom = startOfMonthUtc(subMonths(averageTo, numberOfMonths - 1));
 
   const [accountBook, accounts, accountGroups] = await Promise.all([
     prisma.accountBook.findUniqueOrThrow({

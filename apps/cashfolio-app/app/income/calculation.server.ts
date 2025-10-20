@@ -1,4 +1,10 @@
-import { differenceInDays, formatISO, max, subDays } from "date-fns";
+import {
+  differenceInDays,
+  formatISO,
+  isSameMonth,
+  max,
+  subDays,
+} from "date-fns";
 import type { AccountWithBookings } from "~/accounts/types";
 import { formatISODate } from "~/formatting";
 import type { TransactionWithBookings } from "~/transactions/types";
@@ -23,6 +29,7 @@ import type {
   AccountBook,
   AccountGroup,
 } from "~/.prisma-client/client";
+import { redis } from "~/redis.server";
 
 export async function getIncomeStatement(
   accountBook: AccountBook,
@@ -455,6 +462,20 @@ export async function getIncomeData(
   for (let i = 0; i < allEquityAccounts.length; i++) {
     const a = allEquityAccounts[i];
 
+    const cacheKey = `account-book:${accountBook.id}:account:${a.id}:income:monthly`;
+    if (isSameMonth(fromDate, toDate) && fromDate.getDate() === 1) {
+      const [cacheEntry] = (await redis.exists(cacheKey))
+        ? await redis.ts.RANGE(cacheKey, fromDate, fromDate, { COUNT: 1 })
+        : [];
+      if (cacheEntry) {
+        valueByAccountIdEntries[i] = [
+          a.id,
+          new Decimal(cacheEntry.value),
+        ] as const;
+        continue;
+      }
+    }
+
     const values = new Array<Decimal>(a.bookings.length);
     for (let j = 0; j < a.bookings.length; j++) {
       const b = a.bookings[j];
@@ -477,7 +498,12 @@ export async function getIncomeData(
       );
     }
 
-    valueByAccountIdEntries[i] = [a.id, sum(values).negated()] as const;
+    const value = sum(values).negated();
+    valueByAccountIdEntries[i] = [a.id, value] as const;
+
+    if (isSameMonth(fromDate, toDate) && fromDate.getDate() === 1) {
+      await redis.ts.add(cacheKey, fromDate, value.toNumber());
+    }
   }
 
   return {
