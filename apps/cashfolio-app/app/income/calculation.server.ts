@@ -463,7 +463,7 @@ export async function getIncomeData(
     const a = allEquityAccounts[i];
 
     const cacheKey = `account-book:${accountBook.id}:account:${a.id}:income:monthly`;
-    if (isSameMonth(fromDate, toDate) && fromDate.getDate() === 1) {
+    if (canCacheAccountAndPeriod(a.id, fromDate, toDate)) {
       const [cacheEntry] = (await redis.exists(cacheKey))
         ? await redis.ts.RANGE(cacheKey, fromDate, fromDate, { COUNT: 1 })
         : [];
@@ -501,7 +501,7 @@ export async function getIncomeData(
     const value = sum(values).negated();
     valueByAccountIdEntries[i] = [a.id, value] as const;
 
-    if (isSameMonth(fromDate, toDate) && fromDate.getDate() === 1) {
+    if (canCacheAccountAndPeriod(a.id, fromDate, toDate)) {
       await redis.ts.add(cacheKey, fromDate, value.toNumber());
     }
   }
@@ -517,4 +517,30 @@ export async function getIncomeData(
     ],
     valueByAccountId: new Map<string, Decimal>(valueByAccountIdEntries),
   };
+}
+
+function canCacheAccountAndPeriod(
+  accountId: string,
+  fromDate: Date,
+  toDate: Date,
+) {
+  return (
+    // transaction and holding G/L accounts are not cached / would require more complex cache purging
+    !isTransactionGainLossAccount(accountId) &&
+    !isHoldingGainLossAccount(accountId) &&
+    isMonthPeriod(fromDate, toDate)
+  );
+}
+
+function isMonthPeriod(fromDate: Date, toDate: Date) {
+  // Only checking fromDate – toDate might not be at month end if it is the MTD period
+  return isSameMonth(fromDate, toDate) && fromDate.getDate() === 1;
+}
+
+function isTransactionGainLossAccount(accountId: string) {
+  return accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID;
+}
+
+function isHoldingGainLossAccount(accountId: string) {
+  return accountId.startsWith("holding-gain-loss-");
 }
