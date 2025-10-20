@@ -14,7 +14,7 @@ import {
 import { Decimal } from "@prisma/client/runtime/library";
 import type { AccountBook, Booking } from "~/.prisma-client/client";
 import { Unit as UnitEnum } from "~/.prisma-client/enums";
-import { sum } from "~/utils";
+import { sum } from "~/utils.server";
 import { TRANSFER_CLEARING_ACCOUNT_ID } from "../constants";
 import invariant from "tiny-invariant";
 import type { UnitInfo } from "~/units/types";

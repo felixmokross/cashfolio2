@@ -8,6 +8,12 @@ import { getPeriodDateRange } from "~/period/functions";
 import { ensureAuthorized } from "~/account-books/functions.server";
 import type { AccountsNode } from "~/account-groups/accounts-tree";
 import type { IncomeAccountsNode } from "./types";
+import type { Route } from "./+types/route";
+import { getPageTitle } from "~/meta";
+
+export const meta: Route.MetaFunction = ({ loaderData }) => [
+  { title: getPageTitle(`Income / ${loaderData.rootNode.name}`) },
+];
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);

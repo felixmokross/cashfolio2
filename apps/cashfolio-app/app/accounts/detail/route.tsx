@@ -16,6 +16,12 @@ import { AccountType, EquityAccountSubtype } from "~/.prisma-client/enums";
 import { prisma } from "~/prisma.server";
 import { ensureAuthorized } from "~/account-books/functions.server";
 import { getAccountUnitInfo, getCurrencyUnitInfo } from "~/units/functions";
+import type { Route } from "./+types/route";
+import { getPageTitle } from "~/meta";
+
+export const meta: Route.MetaFunction = ({ loaderData }) => [
+  { title: getPageTitle(loaderData.account.name) },
+];
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);

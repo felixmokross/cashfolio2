@@ -6,6 +6,12 @@ import { Page } from "./page";
 import { ensureAuthorized } from "~/account-books/functions.server";
 import { getAccounts } from "../functions.server";
 import { prisma } from "~/prisma.server";
+import type { Route } from "./+types/route";
+import { getPageTitle } from "~/meta";
+
+export const meta: Route.MetaFunction = () => [
+  { title: getPageTitle("Accounts") },
+];
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);

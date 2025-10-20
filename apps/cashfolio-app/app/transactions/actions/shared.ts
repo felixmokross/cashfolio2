@@ -4,7 +4,7 @@ import type { Booking } from "~/.prisma-client/client";
 import { Unit } from "~/.prisma-client/enums";
 import { startOfMonthUtc, today } from "~/dates";
 import { redis } from "~/redis.server";
-import { sum } from "~/utils";
+import { sum } from "~/utils.server";
 
 export function validate(bookings: BookingFormData[]) {
   const errors: FormErrors = {};

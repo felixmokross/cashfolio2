@@ -1,5 +1,5 @@
 import { prisma } from "~/prisma.server";
-import { getAccountGroupPath } from "~/utils";
+import { getAccountGroupPath } from "~/utils.server";
 
 type GetAccountGroupsOptions = { isActive?: boolean };
 

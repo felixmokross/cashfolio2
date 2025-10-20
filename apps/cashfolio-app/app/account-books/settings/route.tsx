@@ -7,6 +7,12 @@ import { CurrencyCombobox } from "~/components/currency-combobox";
 import { Button } from "~/platform/button";
 import { useFetcher } from "react-router";
 import { DeleteAccountBook, useDeleteAccountBook } from "./delete-account-book";
+import type { Route } from "./+types/route";
+import { getPageTitle } from "~/meta";
+
+export const meta: Route.MetaFunction = () => [
+  { title: getPageTitle("Settings") },
+];
 
 export default function Route() {
   const accountBook = useAccountBook();
