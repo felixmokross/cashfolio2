@@ -1,6 +1,6 @@
 import { data, type ActionFunctionArgs } from "react-router";
 import { prisma } from "~/prisma.server";
-import { purgeCachedBalances } from "./shared";
+import { purgeCachedBalances, purgeCachedMonthlyIncome } from "./shared";
 import { ensureAuthorized } from "~/account-books/functions.server";
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -40,6 +40,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   });
 
   await purgeCachedBalances(link.accountBookId, transaction.bookings);
+  await purgeCachedMonthlyIncome(link.accountBookId, transaction.bookings);
 
   return data({ success: true });
 }
