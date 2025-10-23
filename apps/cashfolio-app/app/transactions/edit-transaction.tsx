@@ -36,6 +36,7 @@ import { UnitListbox } from "~/units/unit-listbox";
 import { Unit } from "~/.prisma-client/enums";
 import { CryptocurrencyCombobox } from "~/components/cryptocurrency-combobox";
 import { formatISO } from "date-fns";
+import invariant from "tiny-invariant";
 
 export function useEditTransaction() {
   const [isOpen, setIsOpen] = useState(false);
@@ -230,6 +231,9 @@ function SimpleForm({
 }) {
   const { fetcher } = useFormDialogContext();
 
+  const lockedAccount = accounts.find((a) => a.id === lockedAccountId);
+  invariant(lockedAccount, "Locked account not found");
+
   function updateBooking(
     bookingId: string,
     updatedFields: Partial<BookingFormValues>,
@@ -271,19 +275,30 @@ function SimpleForm({
             accounts={accounts}
             name="bookings[1][accountId]"
             value={bookings[1].accountId}
-            onChange={(value) =>
+            onChange={(value) => {
+              const selectedAccount = accounts.find((a) => a.id === value);
               updateBooking(bookings[1].id, {
                 accountId: value ?? undefined,
-                unit: accounts.find((a) => a.id === value)?.unit ?? undefined,
-                currency:
-                  accounts.find((a) => a.id === value)?.currency ?? undefined,
-                cryptocurrency:
-                  accounts.find((a) => a.id === value)?.cryptocurrency ??
-                  undefined,
-                symbol:
-                  accounts.find((a) => a.id === value)?.symbol ?? undefined,
-              })
-            }
+                unit: selectedAccount
+                  ? (selectedAccount.unit ?? lockedAccount.unit ?? undefined)
+                  : undefined,
+                currency: selectedAccount
+                  ? (selectedAccount.currency ??
+                    lockedAccount.currency ??
+                    undefined)
+                  : undefined,
+                cryptocurrency: selectedAccount
+                  ? (selectedAccount.cryptocurrency ??
+                    lockedAccount.cryptocurrency ??
+                    undefined)
+                  : undefined,
+                symbol: selectedAccount
+                  ? (selectedAccount.symbol ??
+                    lockedAccount.symbol ??
+                    undefined)
+                  : undefined,
+              });
+            }}
             invalid={!!fetcher.data?.errors?.[`bookings[1][accountId]`]}
           />
           {fetcher.data?.errors?.[`bookings[1][accountId]`] && (
@@ -382,9 +397,13 @@ function SimpleForm({
           <Label>Value</Label>
           <FormattedNumberInput
             value={bookings[1].value}
-            onValueChange={({ floatValue }) =>
-              updateBooking(bookings[1].id, { value: floatValue?.toString() })
-            }
+            onValueChange={({ floatValue }) => {
+              updateBooking(bookings[0].id, {
+                value:
+                  floatValue != null ? (-floatValue).toString() : undefined,
+              });
+              updateBooking(bookings[1].id, { value: floatValue?.toString() });
+            }}
             name="bookings[1][value]"
             invalid={!!fetcher.data?.errors?.[`bookings[1][value]`]}
           />
@@ -396,7 +415,7 @@ function SimpleForm({
           <input
             type="hidden"
             name="bookings[0][value]"
-            value={bookings[0].value ? -bookings[0].value : undefined}
+            value={bookings[0].value}
           />
         </Field>
       </div>
