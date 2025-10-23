@@ -90,3 +90,40 @@ jobs:
           --image registry.fly.io/${{ vars.FLY_CASHFOLIO_APP_STAGING_APP }}:v${{ inputs.version_with_sha }} \
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  cashfolio-redis-deploy:
+    name: "cashfolio-redis: Deploy"
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}-cashfolio-redis
+      url: https://${{ vars.CANONICAL_HOSTNAME }}/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+        with:
+          version: ${{ env.FLYCTL_VERSION }}
+      - name: Prepare configuration file
+        run: |
+          envsubst \
+              < infra/cashfolio-redis/fly.template.toml \
+              > infra/cashfolio-redis/fly.generated.toml \
+
+          echo "Generated configuration file:"
+          cat infra/cashfolio-redis/fly.generated.toml
+        env:
+          FLY_APP: ${{ vars.FLY_APP }}
+          FLY_PRIMARY_REGION: ${{ vars.FLY_PRIMARY_REGION }}
+          FLY_MIN_MACHINES_RUNNING: ${{ vars.FLY_MIN_MACHINES_RUNNING }}
+          FLY_MEMORY: ${{ vars.FLY_MEMORY }}
+          FLY_CPU_KIND: ${{ vars.FLY_CPU_KIND }}
+          FLY_CPUS: ${{ vars.FLY_CPUS }}
+      - name: Deploy cashfolio-redis
+        run: |
+          flyctl deploy \
+          --config infra/cashfolio-redis/fly.generated.toml \
+          --ha=false \
+          --image redis/redis-stack:latest \
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
