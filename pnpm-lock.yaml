@@ -138,6 +138,9 @@ importers:
       dotenv:
         specifier: ^17.2.2
         version: 17.2.2
+      redis:
+        specifier: ^5.8.2
+        version: 5.8.2
       tsx:
         specifier: ^4.20.3
         version: 4.20.5
