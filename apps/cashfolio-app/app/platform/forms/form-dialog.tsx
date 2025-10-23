@@ -77,8 +77,6 @@ export function FormDialog({
   );
 }
 
-type CancelButtonProps = Omit<TertiaryButtonProps, "hierarchy" | "children">;
-
 type TertiaryButtonProps = ComponentProps<typeof Button> & {
   hierarchy: "tertiary";
 };

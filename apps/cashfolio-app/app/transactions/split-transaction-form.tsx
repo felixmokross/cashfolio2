@@ -1,6 +1,5 @@
 import { createId } from "@paralleldrive/cuid2";
-import { formatISO } from "date-fns";
-import { useState } from "react";
+import { type Dispatch } from "react";
 import type { FetcherWithComponents, useFetcher } from "react-router";
 import { Unit } from "~/.prisma-client/enums";
 import { AccountCombobox } from "~/accounts/account-combobox";
@@ -29,15 +28,15 @@ import { UnitListbox } from "~/units/unit-listbox";
 export function SplitTransactionForm({
   transaction,
   accounts,
-  lockedAccountId,
   fetcher,
-  defaultDate,
+  bookings,
+  setBookings,
 }: {
   transaction?: Serialize<TransactionWithBookings>;
   accounts: AccountOption[];
-  lockedAccountId: string;
   fetcher: FetcherWithComponents<FetcherData>;
-  defaultDate?: string;
+  bookings: BookingFormValues[];
+  setBookings: Dispatch<React.SetStateAction<BookingFormValues[]>>;
 }) {
   return (
     <>
@@ -51,9 +50,9 @@ export function SplitTransactionForm({
         />
       </Field>
       <BookingsTable
-        transaction={transaction}
+        bookings={bookings}
+        setBookings={setBookings}
         accounts={accounts}
-        lockedAccountId={lockedAccountId}
         data={fetcher.data}
       />
     </>
@@ -61,34 +60,16 @@ export function SplitTransactionForm({
 }
 
 function BookingsTable({
-  transaction,
   accounts,
-  lockedAccountId,
   data,
-  defaultDate,
+  bookings,
+  setBookings,
 }: {
-  transaction?: Serialize<TransactionWithBookings>;
   accounts: AccountOption[];
-  lockedAccountId: string;
   data: ReturnType<typeof useFetcher<typeof action>>["data"];
-  defaultDate?: string;
+  bookings: BookingFormValues[];
+  setBookings: Dispatch<React.SetStateAction<BookingFormValues[]>>;
 }) {
-  const [bookings, setBookings] = useState<BookingFormValues[]>(
-    transaction
-      ? transaction.bookings.map((b) => ({
-          ...b,
-          isUnitLocked: !!accounts.find((a) => a.id === b.accountId),
-          isAccountLocked: b.accountId === lockedAccountId,
-          date: formatISO(b.date, { representation: "date" }),
-          value: b.value.toString(),
-        }))
-      : addNewBooking(
-          addNewBooking([], {
-            lockedAccount: accounts.find((a) => a.id === lockedAccountId),
-            defaultDate,
-          }),
-        ),
-  );
   return (
     <>
       <FieldGroup>
@@ -334,7 +315,7 @@ function BookingsTable({
   );
 }
 
-function addNewBooking(
+export function addNewBooking(
   bookings: BookingFormValues[],
   {
     lockedAccount,
@@ -358,7 +339,7 @@ function addNewBooking(
   ];
 }
 
-type BookingFormValues = Serialize<
+export type BookingFormValues = Serialize<
   Pick<
     Booking,
     | "id"
