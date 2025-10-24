@@ -7,12 +7,15 @@ if [ -z "$REDIS_ADMIN_PASS" ] || [ -z "$REDIS_APP_PASS" ]; then
   exit 1
 fi
 
-echo "🔐 Generating Redis ACL file at $ACL_FILE..."
-cat > /data/users.acl <<EOF
+ACL_FILE="/data/users.acl"
+
+echo "🔐 Generating Redis ACL file at $ACL_FILE…"
+cat <<EOF > "$ACL_FILE"
 user default off
 user admin on >$REDIS_ADMIN_PASS ~* +@all
 user cashfolio-app on >$REDIS_APP_PASS ~* +@read +@write +@set +@keyspace -@dangerous
 EOF
+echo "✅ ACL file written."
 
-echo "🚀 Starting: $@"
-exec "$@"
+echo "🚀 Starting Redis Stack (Redis + Insight)…"
+exec redis-stack /etc/redis/redis.conf
