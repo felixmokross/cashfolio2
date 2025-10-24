@@ -38,4 +38,6 @@ jobs:
       version_with_sha: ${{ needs.version.outputs.version_with_sha }}
       sha: ${{ needs.version.outputs.sha }}
       environment: ${{ github.event.inputs.environment }}
+      deploy-cashfolio-app: ${{ github.event.inputs.deploy-cashfolio-app }}
+      deploy-cashfolio-redis: ${{ github.event.inputs.deploy-cashfolio-redis }}
     secrets: inherit
