@@ -1,6 +1,6 @@
 FROM redis/redis-stack:latest
 
-COPY redis.conf /etc/redis/redis.conf
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY infra/cashfolio-redis/redis.conf /etc/redis/redis.conf
+COPY infra/cashfolio-redis/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
