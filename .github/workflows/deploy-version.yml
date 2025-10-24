@@ -105,6 +105,6 @@ jobs:
           flyctl deploy \
           --config infra/cashfolio-redis/fly.generated.toml \
           --ha=false \
-          --image redis/redis-stack:latest \
+          --image registry.fly.io/${{ vars.FLY_CASHFOLIO_REDIS_STAGING_APP }}:v${{ inputs.version_with_sha }} \
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
