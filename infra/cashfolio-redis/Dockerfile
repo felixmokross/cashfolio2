@@ -5,4 +5,4 @@ COPY infra/cashfolio-redis/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
-CMD ["redis-stack-server", "/etc/redis/redis.conf"]
+CMD ["redis-stack", "/etc/redis/redis.conf"]

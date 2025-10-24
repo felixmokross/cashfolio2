@@ -11,6 +11,16 @@ on:
         required: false
         default: false
         type: boolean
+      deploy-cashfolio-app:
+        description: "Deploy cashfolio-app after build"
+        required: false
+        default: true
+        type: boolean
+      deploy-cashfolio-redis:
+        description: "Deploy cashfolio-redis after build"
+        required: false
+        default: true
+        type: boolean
 
 env:
   NODE_VERSION: 22
@@ -23,7 +33,7 @@ jobs:
     name: "Generate version"
     uses: felixmokross/webplatform/.github/workflows/export.version.yml@main
     with:
-      release: ${{ github.event.inputs.release }}
+      release: ${{ inputs.release }}
 
   cashfolio-app-build-push:
     name: "cashfolio-app: Build and Push"
@@ -140,4 +150,6 @@ jobs:
       version_with_sha: ${{ needs.version.outputs.version_with_sha }}
       sha: ${{ needs.version.outputs.sha }}
       environment: staging
+      deploy-cashfolio-app: ${{ inputs.deploy-cashfolio-app }}
+      deploy-cashfolio-redis: ${{ inputs.deploy-cashfolio-redis }}
     secrets: inherit
