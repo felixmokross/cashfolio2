@@ -19,7 +19,7 @@ on:
         default: true
       deploy-cashfolio-redis:
         type: boolean
-        default: false
+        default: true
 
 env:
   NODE_VERSION: 22
