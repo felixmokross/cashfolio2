@@ -13,9 +13,9 @@ echo "🔐 Generating Redis ACL file at $ACL_FILE…"
 cat <<EOF > "$ACL_FILE"
 user default off
 user admin on >$REDIS_ADMIN_PASS ~* +@all
-user cashfolio-app on >$REDIS_APP_PASS ~* +@read +@write +@set +@keyspace -@dangerous
+user cashfolio-app on >$REDIS_APP_PASS ~* +@read +@write +@set +@keyspace @timeseries -@dangerous
 EOF
 echo "✅ ACL file written."
 
-echo "🚀 Starting Redis Stack (Redis + Insight)…"
-exec redis-stack /etc/redis/redis.conf
+echo "🚀 Starting Redis…"
+exec redis-server /etc/redis/redis.conf
