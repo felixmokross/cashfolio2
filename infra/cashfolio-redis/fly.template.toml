@@ -18,3 +18,7 @@ primary_region = '$FLY_PRIMARY_REGION'
   memory = $FLY_MEMORY
   cpu_kind = '$FLY_CPU_KIND'
   cpus = $FLY_CPUS
+
+[mounts]
+  source = "data"
+  destination = "/data"
