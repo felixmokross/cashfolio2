@@ -10,6 +10,14 @@ on:
         options:
           - staging
           - prod
+      deploy-cashfolio-app:
+        type: boolean
+        description: "Deploy cashfolio-app"
+        default: true
+      deploy-cashfolio-redis:
+        type: boolean
+        description: "Deploy cashfolio-redis"
+        default: false
 
 env:
   NODE_VERSION: 22
