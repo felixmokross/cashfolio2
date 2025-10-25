@@ -163,6 +163,7 @@ jobs:
       - cashfolio-app-unit-tests
       - cashfolio-app-build-push
       - cashfolio-redis-build-push
+      - cli-typecheck
     uses: ./.github/workflows/deploy-version.yml
     with:
       version_with_sha: ${{ needs.version.outputs.version_with_sha }}
