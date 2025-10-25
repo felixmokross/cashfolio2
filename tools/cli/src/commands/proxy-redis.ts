@@ -16,7 +16,9 @@ program
 
     const [localPort, appName] = getRedisSetup(environment);
 
-    await exec(`fly proxy ${localPort}:6379 --app ${appName}`);
+    await exec(
+      `fly proxy ${localPort}:6379 ${appName}.flycast --app ${appName}`,
+    );
   });
 
 function getRedisSetup(environment: string) {
