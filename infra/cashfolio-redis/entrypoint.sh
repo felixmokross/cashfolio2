@@ -22,4 +22,4 @@ EOF
 echo "✅ ACL file written."
 
 echo "🚀 Starting Redis…"
-SKIP_FIX_PERMS=1 /usr/local/bin/docker-entrypoint.sh redis-server /etc/redis/redis.conf
+/usr/local/bin/docker-entrypoint.sh redis-server /etc/redis/redis.conf
