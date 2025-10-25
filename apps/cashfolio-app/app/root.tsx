@@ -12,6 +12,7 @@ import type { Route } from "./+types/root";
 import "./app.css";
 import { ensureUser } from "./users/functions.server";
 import { getPageTitle } from "./meta";
+import { LoadingBar } from "./platform/loading-bar";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -83,6 +84,7 @@ if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
         </script>
       </head>
       <body>
+        <LoadingBar />
         {children}
         <ScrollRestoration />
         <Scripts />
