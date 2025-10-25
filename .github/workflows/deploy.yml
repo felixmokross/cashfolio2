@@ -8,6 +8,7 @@ on:
         required: true
         default: "staging"
         options:
+          - preview
           - staging
           - prod
       deploy-cashfolio-app:

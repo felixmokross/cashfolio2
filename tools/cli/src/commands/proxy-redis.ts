@@ -3,7 +3,10 @@ import { exec } from "../shared";
 
 program
   .command("proxy-redis")
-  .argument("<environment>", "The environment to proxy to, 'prod' or 'staging'")
+  .argument(
+    "<environment>",
+    "The environment to proxy to, 'prod', 'staging', or 'preview'",
+  )
   .action(async (environment) => {
     console.log(`Proxying to Redis on environment '${environment}'`);
 
@@ -11,18 +14,22 @@ program
       process.exit(0);
     });
 
-    await exec(`fly proxy 6383:6379 --app ${getRedisAppName(environment)}`);
+    const [localPort, appName] = getRedisSetup(environment);
+
+    await exec(`fly proxy ${localPort}:6379 --app ${appName}`);
   });
 
-function getRedisAppName(environment: string) {
+function getRedisSetup(environment: string) {
   switch (environment) {
     case "prod":
-      return "cashfolio-redis";
+      return [6383, "cashfolio-redis"];
     case "staging":
-      return "cashfolio-redis-staging";
+      return [6382, "cashfolio-redis-staging"];
+    case "preview":
+      return [6381, "cashfolio-redis-preview"];
     default:
       throw new Error(
-        `Unknown environment '${environment}'. Use 'prod' or 'staging'.`,
+        `Unknown environment '${environment}'. Use 'prod', 'staging', or 'preview'.`,
       );
   }
 }
