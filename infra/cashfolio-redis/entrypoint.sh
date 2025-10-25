@@ -18,8 +18,9 @@ user default off
 user admin on #$REDIS_ADMIN_PASS_HASH ~* +@all
 user cashfolio-app on #$REDIS_APP_PASS_HASH ~* +@read +@write -@dangerous
 EOF
+
+chown -R redis:redis "$ACL_FILE"
 echo "✅ ACL file written."
 
 echo "🚀 Starting Redis…"
-
-/usr/local/bin/docker-entrypoint.sh redis-server /etc/redis/redis.conf
+SKIP_FIX_PERMS=1 /usr/local/bin/docker-entrypoint.sh redis-server /etc/redis/redis.conf
