@@ -22,4 +22,4 @@ EOF
 echo "✅ ACL file written."
 
 echo "🚀 Starting Redis as redis…"
-gosu redis /usr/local/bin/docker-entrypoint.sh redis-server /etc/redis/redis.conf
+exec setpriv --reuid redis --regid redis --init-groups /usr/local/bin/docker-entrypoint.sh redis-server /etc/redis/redis.conf
