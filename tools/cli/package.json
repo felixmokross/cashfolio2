@@ -4,13 +4,15 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "tsx src/index.ts"
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc"
   },
   "devDependencies": {
     "@types/node": "^20",
     "commander": "^13.1.0",
     "dotenv": "^17.2.2",
     "redis": "^5.8.2",
-    "tsx": "^4.20.3"
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
   }
 }

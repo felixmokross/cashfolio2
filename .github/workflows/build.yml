@@ -127,6 +127,19 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
+  cli-typecheck:
+    name: "cli: Typecheck"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup
+        uses: felixmokross/webplatform/.github/actions/setup@main
+      - name: Install dependencies
+        run: pnpm --filter cli install
+      - name: Run typecheck in cli
+        run: pnpm --filter cli typecheck
+
   deploy-preview:
     name: Deploy to preview
     if: github.event_name == 'pull_request'
@@ -150,6 +163,7 @@ jobs:
       - cashfolio-app-unit-tests
       - cashfolio-app-build-push
       - cashfolio-redis-build-push
+      - cli-typecheck
     uses: ./.github/workflows/deploy-version.yml
     with:
       version_with_sha: ${{ needs.version.outputs.version_with_sha }}
