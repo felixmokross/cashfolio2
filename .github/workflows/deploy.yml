@@ -10,6 +10,14 @@ on:
         options:
           - staging
           - prod
+      deploy-cashfolio-app:
+        type: boolean
+        description: "Deploy cashfolio-app"
+        default: true
+      deploy-cashfolio-redis:
+        type: boolean
+        description: "Deploy cashfolio-redis"
+        default: true
 
 env:
   NODE_VERSION: 22
@@ -29,5 +37,7 @@ jobs:
     with:
       version_with_sha: ${{ needs.version.outputs.version_with_sha }}
       sha: ${{ needs.version.outputs.sha }}
-      environment: ${{ github.event.inputs.environment }}
+      environment: ${{ inputs.environment }}
+      deploy-cashfolio-app: ${{ inputs.deploy-cashfolio-app }}
+      deploy-cashfolio-redis: ${{ inputs.deploy-cashfolio-redis }}
     secrets: inherit

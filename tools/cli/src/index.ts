@@ -33,4 +33,10 @@ program.command("restore-local").action(async () => {
   console.log("Done");
 });
 
+program.command("proxy-redis-staging").action(async () => {
+  console.log("Proxying to cashfolio-redis-staging…");
+
+  await exec(`fly proxy 6382:6379 --app cashfolio-redis-staging`);
+});
+
 program.parse();
