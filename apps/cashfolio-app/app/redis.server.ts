@@ -4,7 +4,7 @@ const redisUrl = process.env.REDIS_URL;
 if (!redisUrl) throw new Error("REDIS_URL is not defined");
 
 if (!globalThis.redis) {
-  globalThis.redis = createClient({ url: redisUrl });
+  globalThis.redis = createClient({ url: redisUrl, socket: { family: 6 } });
   globalThis.redis.connect();
 }
 
