@@ -21,5 +21,10 @@ EOF
 
 echo "✅ ACL file written."
 
+echo "🔧 Setting ownership of /data to redis user…"
+chown -R redis:redis /data
+ls -la /data
+
 echo "🚀 Starting Redis as redis…"
+
 exec setpriv --reuid redis --regid redis --init-groups /usr/local/bin/docker-entrypoint.sh redis-server /etc/redis/redis.conf
