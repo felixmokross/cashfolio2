@@ -21,5 +21,5 @@ EOF
 
 echo "✅ ACL file written."
 
-echo "🚀 Starting Redis…"
-/usr/local/bin/docker-entrypoint.sh redis-server /etc/redis/redis.conf
+echo "🚀 Starting Redis as redis…"
+gosu redis /usr/local/bin/docker-entrypoint.sh redis-server /etc/redis/redis.conf
