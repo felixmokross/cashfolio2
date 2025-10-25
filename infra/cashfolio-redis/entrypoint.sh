@@ -19,7 +19,6 @@ user admin on #$REDIS_ADMIN_PASS_HASH ~* +@all
 user cashfolio-app on #$REDIS_APP_PASS_HASH ~* +@read +@write -@dangerous
 EOF
 
-chown -R redis:redis "$ACL_FILE"
 echo "✅ ACL file written."
 
 echo "🚀 Starting Redis…"
