@@ -129,13 +129,20 @@ function TransactionFormGroup({
   const { fetcher } = useFormDialogContext();
   const [bookings, setBookings] = useState<BookingFormValues[]>(
     transaction
-      ? transaction.bookings.map((b) => ({
-          ...b,
-          isUnitLocked: !!accounts.find((a) => a.id === b.accountId),
-          isAccountLocked: b.accountId === lockedAccountId,
-          date: formatISO(b.date, { representation: "date" }),
-          value: b.value.toString(),
-        }))
+      ? transaction.bookings
+          .toSorted(
+            // Ensure locked account booking is first – this is crucial for simple mode
+            (a, b) =>
+              (a.accountId === lockedAccountId ? 0 : 1) -
+              (b.accountId === lockedAccountId ? 0 : 1),
+          )
+          .map((b) => ({
+            ...b,
+            isUnitLocked: !!accounts.find((a) => a.id === b.accountId),
+            isAccountLocked: b.accountId === lockedAccountId,
+            date: formatISO(b.date, { representation: "date" }),
+            value: b.value.toString(),
+          }))
       : addNewBooking(
           addNewBooking([], {
             lockedAccount: accounts.find((a) => a.id === lockedAccountId),
