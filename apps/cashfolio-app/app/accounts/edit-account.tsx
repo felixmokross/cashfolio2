@@ -1,4 +1,4 @@
-import type { AccountType, Account, Unit } from "~/.prisma-client/client";
+import type { Account } from "~/.prisma-client/client";
 import { useEffect, useState } from "react";
 import {
   DialogActions,
@@ -27,6 +27,11 @@ import {
 } from "~/platform/forms/form-dialog";
 import { useAccountBook } from "~/account-books/hooks";
 import { Switch, SwitchField } from "~/platform/forms/switch";
+import {
+  AccountType,
+  EquityAccountSubtype,
+  Unit,
+} from "~/.prisma-client/enums";
 
 export function useEditAccount() {
   const [isOpen, setIsOpen] = useState(false);
@@ -59,8 +64,10 @@ export function EditAccount({
   account?: Serialize<Account>;
   accountGroups: Serialize<AccountGroupOption>[];
 }) {
-  const [selectedUnit, setSelectedUnit] = useState<Unit>("CURRENCY");
-  const [selectedType, setSelectedType] = useState<AccountType>("ASSET");
+  const [selectedUnit, setSelectedUnit] = useState<Unit>(Unit.CURRENCY);
+  const [selectedType, setSelectedType] = useState<AccountType>(
+    AccountType.ASSET,
+  );
   useEffect(() => {
     setSelectedUnit(account?.unit ?? "CURRENCY");
     setSelectedType(account?.type ?? "ASSET");
@@ -98,41 +105,44 @@ export function EditAccount({
                 <Label>Type</Label>
                 <RadioGroup
                   name="type"
-                  defaultValue={account?.type || "ASSET"}
+                  defaultValue={account?.type || AccountType.ASSET}
                   onChange={(value) => setSelectedType(value as AccountType)}
                 >
                   <RadioField>
-                    <Radio value="ASSET" />
+                    <Radio value={AccountType.ASSET} />
                     <Label>Asset</Label>
                   </RadioField>
                   <RadioField>
-                    <Radio value="LIABILITY" />
+                    <Radio value={AccountType.LIABILITY} />
                     <Label>Liability</Label>
                   </RadioField>
                   <RadioField>
-                    <Radio value="EQUITY" />
+                    <Radio value={AccountType.EQUITY} />
                     <Label>Equity</Label>
                   </RadioField>
                 </RadioGroup>
               </Field>
             </div>
-            {selectedType === "EQUITY" && (
+            {selectedType === AccountType.EQUITY && (
               <Field>
                 <Label>Subtype</Label>
                 <RadioGroup
                   name="equityAccountSubtype"
-                  defaultValue={account?.equityAccountSubtype || "GAIN_LOSS"}
+                  defaultValue={
+                    account?.equityAccountSubtype ||
+                    EquityAccountSubtype.GAIN_LOSS
+                  }
                 >
                   <RadioField>
-                    <Radio value="GAIN_LOSS" />
+                    <Radio value={EquityAccountSubtype.GAIN_LOSS} />
                     <Label>Gain/Loss</Label>
                   </RadioField>
                   <RadioField>
-                    <Radio value="INCOME" />
+                    <Radio value={EquityAccountSubtype.INCOME} />
                     <Label>Income</Label>
                   </RadioField>
                   <RadioField>
-                    <Radio value="EXPENSE" />
+                    <Radio value={EquityAccountSubtype.EXPENSE} />
                     <Label>Expense</Label>
                   </RadioField>
                 </RadioGroup>
@@ -148,64 +158,69 @@ export function EditAccount({
                 )}
               />
             </Field>
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
-              <Field>
-                <Label>Unit</Label>
-                <RadioGroup
-                  name="unit"
-                  defaultValue={account?.unit || "CURRENCY"}
-                  onChange={(v) => setSelectedUnit(v as Unit)}
-                >
-                  <RadioField>
-                    <Radio value="CURRENCY" />
+            {selectedType !== AccountType.EQUITY && (
+              <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-4">
+                <Field>
+                  <Label>Unit</Label>
+                  <RadioGroup
+                    name="unit"
+                    defaultValue={account?.unit || Unit.CURRENCY}
+                    onChange={(v) => setSelectedUnit(v as Unit)}
+                  >
+                    <RadioField>
+                      <Radio value={Unit.CURRENCY} />
+                      <Label>Currency</Label>
+                    </RadioField>
+                    <RadioField>
+                      <Radio value={Unit.CRYPTOCURRENCY} />
+                      <Label>Cryptocurrency</Label>
+                    </RadioField>
+                    <RadioField>
+                      <Radio value={Unit.SECURITY} />
+                      <Label>Security</Label>
+                    </RadioField>
+                  </RadioGroup>
+                </Field>
+                {selectedUnit === Unit.CURRENCY && (
+                  <Field>
                     <Label>Currency</Label>
-                  </RadioField>
-                  <RadioField>
-                    <Radio value="CRYPTOCURRENCY" />
-                    <Label>Cryptocurrency</Label>
-                  </RadioField>
-                  <RadioField>
-                    <Radio value="SECURITY" />
-                    <Label>Security</Label>
-                  </RadioField>
-                </RadioGroup>
-              </Field>
-              {selectedUnit === "CURRENCY" && (
-                <Field>
-                  <Label>Currency</Label>
-                  <CurrencyCombobox
-                    name="currency"
-                    defaultValue={
-                      account?.currency || accountBook.referenceCurrency
-                    }
-                  />
-                </Field>
-              )}
-              {selectedUnit === "CRYPTOCURRENCY" && (
-                <Field>
-                  <Label>Cryptocurrency</Label>
-                  <CryptocurrencyCombobox
-                    name="cryptocurrency"
-                    defaultValue={account?.cryptocurrency || ""}
-                  />
-                </Field>
-              )}
-              {selectedUnit === "SECURITY" && (
-                <FieldGroup>
-                  <Field>
-                    <Label>Symbol</Label>
-                    <Input name="symbol" defaultValue={account?.symbol || ""} />
-                  </Field>
-                  <Field>
-                    <Label>Trade Ccy.</Label>
                     <CurrencyCombobox
-                      name="tradeCurrency"
-                      defaultValue={account?.tradeCurrency || ""}
+                      name="currency"
+                      defaultValue={
+                        account?.currency || accountBook.referenceCurrency
+                      }
                     />
                   </Field>
-                </FieldGroup>
-              )}
-            </div>
+                )}
+                {selectedUnit === Unit.CRYPTOCURRENCY && (
+                  <Field>
+                    <Label>Cryptocurrency</Label>
+                    <CryptocurrencyCombobox
+                      name="cryptocurrency"
+                      defaultValue={account?.cryptocurrency || ""}
+                    />
+                  </Field>
+                )}
+                {selectedUnit === Unit.SECURITY && (
+                  <FieldGroup>
+                    <Field>
+                      <Label>Symbol</Label>
+                      <Input
+                        name="symbol"
+                        defaultValue={account?.symbol || ""}
+                      />
+                    </Field>
+                    <Field>
+                      <Label>Trade Ccy.</Label>
+                      <CurrencyCombobox
+                        name="tradeCurrency"
+                        defaultValue={account?.tradeCurrency || ""}
+                      />
+                    </Field>
+                  </FieldGroup>
+                )}
+              </div>
+            )}
             <SwitchField>
               <Label>Is Active</Label>
               <Description>

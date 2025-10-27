@@ -5,6 +5,7 @@ import { AccountsNodeChildrenTableRows } from "~/account-groups/table-rows";
 import { TableCell } from "~/platform/table";
 import type { Serialize } from "~/serialization";
 import { Badge } from "~/platform/badge";
+import { AccountType, Unit } from "~/.prisma-client/enums";
 
 export function AccountsTableRows({
   node,
@@ -26,20 +27,17 @@ export function AccountsTableRows({
       {(node) => (
         <>
           <TableCell className="w-40 space-x-2">
-            {node.nodeType === "account" && (
-              <>
-                {node.unit === "CURRENCY" ? (
-                  <Badge>{node.currency}</Badge>
-                ) : node.unit === "CRYPTOCURRENCY" ? (
-                  <Badge>{node.cryptocurrency}</Badge>
-                ) : (
-                  <>
-                    <Badge>{node.symbol}</Badge>
-                    <Badge>{node.tradeCurrency}</Badge>
-                  </>
-                )}
-              </>
-            )}
+            {node.nodeType === "account" &&
+              (node.unit === Unit.CURRENCY ? (
+                <Badge>{node.currency}</Badge>
+              ) : node.unit === Unit.CRYPTOCURRENCY ? (
+                <Badge>{node.cryptocurrency}</Badge>
+              ) : node.unit === Unit.SECURITY ? (
+                <>
+                  <Badge>{node.symbol}</Badge>
+                  <Badge>{node.tradeCurrency}</Badge>
+                </>
+              ) : null)}
           </TableCell>
           <TableCell>
             {node.nodeType === "accountGroup" && (
