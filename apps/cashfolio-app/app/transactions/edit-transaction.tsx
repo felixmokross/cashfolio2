@@ -127,6 +127,9 @@ function TransactionFormGroup({
   setCreateAnother: Dispatch<React.SetStateAction<boolean>>;
 }) {
   const { fetcher } = useFormDialogContext();
+  const [description, setDescription] = useState(
+    transaction?.description ?? "",
+  );
   const [bookings, setBookings] = useState<BookingFormValues[]>(
     transaction
       ? transaction.bookings
@@ -196,13 +199,16 @@ function TransactionFormGroup({
               accounts={accounts}
               lockedAccountId={lockedAccountId}
               bookings={bookings}
+              description={description}
+              setDescription={setDescription}
               setBookings={setBookings}
             />
           ) : (
             <SplitTransactionForm
-              transaction={transaction}
               accounts={accounts}
               fetcher={fetcher}
+              description={description}
+              setDescription={setDescription}
               bookings={bookings}
               setBookings={setBookings}
             />
@@ -230,9 +236,13 @@ function SimpleForm({
   lockedAccountId,
   bookings,
   setBookings,
+  description,
+  setDescription,
 }: {
   accounts: AccountOption[];
   lockedAccountId: string;
+  description: string;
+  setDescription: Dispatch<React.SetStateAction<string>>;
   bookings: BookingFormValues[];
   setBookings: Dispatch<React.SetStateAction<BookingFormValues[]>>;
 }) {
@@ -327,6 +337,8 @@ function SimpleForm({
             type="text"
             name="description"
             invalid={!!fetcher.data?.errors?.description}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
           />
           {fetcher.data?.errors?.description && (
             <ErrorMessage>{fetcher.data?.errors?.description}</ErrorMessage>
