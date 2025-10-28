@@ -26,15 +26,17 @@ import type { Booking } from "~/.prisma-client/client";
 import { UnitListbox } from "~/units/unit-listbox";
 
 export function SplitTransactionForm({
-  transaction,
   accounts,
   fetcher,
   bookings,
   setBookings,
+  description,
+  setDescription,
 }: {
-  transaction?: Serialize<TransactionWithBookings>;
   accounts: AccountOption[];
   fetcher: FetcherWithComponents<FetcherData>;
+  description: string;
+  setDescription: Dispatch<React.SetStateAction<string>>;
   bookings: BookingFormValues[];
   setBookings: Dispatch<React.SetStateAction<BookingFormValues[]>>;
 }) {
@@ -45,8 +47,9 @@ export function SplitTransactionForm({
         <Input
           type="text"
           name="description"
-          defaultValue={transaction?.description}
           invalid={!!fetcher.data?.errors?.description}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
         />
       </Field>
       <BookingsTable
