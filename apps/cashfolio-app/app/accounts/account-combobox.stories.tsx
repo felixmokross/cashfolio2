@@ -21,6 +21,7 @@ export const Default: Story = {
         unit: "CURRENCY",
         currency: "CHF",
         symbol: "₣",
+        tradeCurrency: "USD",
         isActive: true,
       },
       {
@@ -32,6 +33,7 @@ export const Default: Story = {
         unit: "CURRENCY",
         currency: "CHF",
         symbol: "₣",
+        tradeCurrency: "USD",
         isActive: true,
       },
       {
@@ -43,6 +45,7 @@ export const Default: Story = {
         unit: "CURRENCY",
         currency: "CHF",
         symbol: "₣",
+        tradeCurrency: "USD",
         isActive: false,
       },
       {
@@ -54,6 +57,7 @@ export const Default: Story = {
         unit: "CURRENCY",
         currency: "CHF",
         symbol: "₣",
+        tradeCurrency: "USD",
         isActive: true,
       },
     ],

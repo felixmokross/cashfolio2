@@ -9,6 +9,7 @@ export type AccountOption = Pick<
   | "currency"
   | "cryptocurrency"
   | "symbol"
+  | "tradeCurrency"
   | "isActive"
 > & {
   groupPath: string;

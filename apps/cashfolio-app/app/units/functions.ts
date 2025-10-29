@@ -15,7 +15,12 @@ type WithUnit = {
   tradeCurrency?: string | null;
 };
 
-export function getAccountUnitInfo(account: Account): UnitInfo | undefined {
+export function getAccountUnitInfo(
+  account: Pick<
+    Account,
+    "unit" | "currency" | "cryptocurrency" | "symbol" | "tradeCurrency"
+  >,
+): UnitInfo | undefined {
   if (!account.unit) return undefined;
   return getUnitInfo({ ...account, unit: account.unit! });
 }

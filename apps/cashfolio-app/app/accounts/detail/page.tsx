@@ -28,6 +28,7 @@ import {
   DropdownMenu,
 } from "~/platform/dropdown";
 import {
+  ArrowRightStartOnRectangleIcon,
   EllipsisVerticalIcon,
   PencilSquareIcon,
   PlusCircleIcon,
@@ -38,6 +39,7 @@ import { useAccountBook } from "~/account-books/hooks";
 import { EditAccount, useEditAccount } from "../edit-account";
 import { DeleteAccount, useDeleteAccount } from "../delete-account";
 import { getUnitInfo, getUnitLabel, isSameUnit } from "~/units/functions";
+import { Rebook, useRebook } from "~/transactions/rebook";
 
 export function Page({
   loaderData: {
@@ -59,6 +61,9 @@ export function Page({
 
   const { deleteTransactionProps, onDeleteTransaction } =
     useDeleteTransaction();
+
+  const { rebookProps: moveBookingProps, onRebook: onMoveBooking } =
+    useRebook();
 
   const accountBook = useAccountBook();
 
@@ -116,6 +121,11 @@ export function Page({
         }
       />
       <DeleteTransaction {...deleteTransactionProps} />
+      <Rebook
+        {...moveBookingProps}
+        accounts={allAccounts}
+        currentAccount={account}
+      />
 
       <Table
         fixedLayout
@@ -190,6 +200,11 @@ export function Page({
                       <PencilSquareIcon />
                       Edit
                     </DropdownItem>
+                    <DropdownItem onClick={() => onMoveBooking(lr.booking)}>
+                      <ArrowRightStartOnRectangleIcon />
+                      Rebook
+                    </DropdownItem>
+                    <DropdownDivider />
                     <DropdownItem
                       onClick={() =>
                         onDeleteTransaction(lr.booking.transactionId)
