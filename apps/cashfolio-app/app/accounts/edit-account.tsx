@@ -89,10 +89,6 @@ export function EditAccount({
       <DialogTitle>
         {account ? `Edit ${account.name}` : "New Account"}
       </DialogTitle>
-      <DialogDescription>
-        The refund will be reflected in the customer’s bank account 2 to 3
-        business days after processing.
-      </DialogDescription>
       <DialogBody>
         <Fieldset>
           <FieldGroup>
@@ -122,6 +118,9 @@ export function EditAccount({
                   </RadioField>
                 </RadioGroup>
               </Field>
+              {!!account && (
+                <input type="hidden" name="type" value={account.type} />
+              )}
             </div>
             {selectedType === AccountType.EQUITY && (
               <Field>
