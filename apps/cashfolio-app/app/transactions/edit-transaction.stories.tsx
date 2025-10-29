@@ -23,6 +23,7 @@ export const Default: Story = {
         currency: "USD",
         cryptocurrency: null,
         symbol: "₣",
+        tradeCurrency: "USD",
         isActive: true,
       },
       {
@@ -34,6 +35,7 @@ export const Default: Story = {
         currency: "USD",
         cryptocurrency: null,
         symbol: "₣",
+        tradeCurrency: "USD",
         isActive: true,
       },
       {
@@ -45,6 +47,7 @@ export const Default: Story = {
         currency: "USD",
         cryptocurrency: null,
         symbol: "₣",
+        tradeCurrency: "USD",
         isActive: true,
       },
       {
@@ -56,6 +59,7 @@ export const Default: Story = {
         currency: "USD",
         cryptocurrency: null,
         symbol: "₣",
+        tradeCurrency: "USD",
         isActive: true,
       },
       {
@@ -67,6 +71,7 @@ export const Default: Story = {
         currency: null,
         cryptocurrency: "BTC",
         symbol: "₣",
+        tradeCurrency: "USD",
         isActive: true,
       },
     ],
