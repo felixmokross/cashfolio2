@@ -5,16 +5,38 @@ import { Text } from "~/platform/text";
 import { useAccountBook } from "../hooks";
 import { CurrencyCombobox } from "~/components/currency-combobox";
 import { Button } from "~/platform/button";
-import { useFetcher } from "react-router";
+import {
+  useFetcher,
+  useLoaderData,
+  type LoaderFunctionArgs,
+} from "react-router";
 import { DeleteAccountBook, useDeleteAccountBook } from "./delete-account-book";
 import type { Route } from "./+types/route";
 import { getPageTitle } from "~/meta";
+import { AccountGroupCombobox } from "~/account-groups/account-group-combobox";
+import { ensureAuthorized } from "../functions.server";
+import { serialize } from "~/serialization";
+import { getAccountGroupsWithPath } from "~/account-groups/data";
+import { Field, FieldGroup, Label } from "~/platform/forms/fieldset";
+import { AccountType } from "~/.prisma-client/enums";
 
 export const meta: Route.MetaFunction = () => [
   { title: getPageTitle("Settings") },
 ];
 
+export async function loader({ request, params }: LoaderFunctionArgs) {
+  const link = await ensureAuthorized(request, params);
+  return serialize({
+    accountGroups: (
+      await getAccountGroupsWithPath(link.accountBookId, {
+        isActive: true,
+      })
+    ).filter((g) => g.type === AccountType.EQUITY),
+  });
+}
+
 export default function Route() {
+  const { accountGroups } = useLoaderData<typeof loader>();
   const accountBook = useAccountBook();
   const fetcher = useFetcher();
   const { deleteAccountBookProps, onDeleteAccountBook } =
@@ -55,6 +77,55 @@ export default function Route() {
                 name="referenceCurrency"
                 defaultValue={accountBook.referenceCurrency}
               />
+            </div>
+          </section>
+
+          <Divider className="my-10" soft />
+
+          <section className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Subheading>Account Groups for Holding Gain/Loss</Subheading>
+              <Text>
+                Customize under which account groups the holding gains and
+                losses of your securities, cryptocurrencies, and foreign
+                exchange are tracked.
+              </Text>
+            </div>
+            <div>
+              <FieldGroup>
+                <Field>
+                  <Label>Securities</Label>
+                  <AccountGroupCombobox
+                    name="securityHoldingGainLossAccountGroupId"
+                    accountGroups={accountGroups}
+                    defaultValue={
+                      accountBook.securityHoldingGainLossAccountGroupId ??
+                      undefined
+                    }
+                  />
+                </Field>
+                <Field>
+                  <Label>Cryptocurrencies</Label>
+                  <AccountGroupCombobox
+                    name="cryptoHoldingGainLossAccountGroupId"
+                    accountGroups={accountGroups}
+                    defaultValue={
+                      accountBook.cryptoHoldingGainLossAccountGroupId ??
+                      undefined
+                    }
+                  />
+                </Field>
+                <Field>
+                  <Label>Foreign Exchange</Label>
+                  <AccountGroupCombobox
+                    name="fxHoldingGainLossAccountGroupId"
+                    accountGroups={accountGroups}
+                    defaultValue={
+                      accountBook.fxHoldingGainLossAccountGroupId ?? undefined
+                    }
+                  />
+                </Field>
+              </FieldGroup>
             </div>
           </section>
 

@@ -385,7 +385,9 @@ export async function getIncomeData(
               id: `fx-${a.currency}-accounts`,
               name: `${a.currency}`,
               type: AccountType.EQUITY,
-              parentGroupId: fxHoldingGainLossGroup.id,
+              parentGroupId:
+                accountBook.fxHoldingGainLossAccountGroupId ??
+                fxHoldingGainLossGroup.id,
               createdAt: new Date(),
               updatedAt: new Date(),
               accountBookId: accountBook.id,
@@ -397,7 +399,9 @@ export async function getIncomeData(
                 id: `crypto-${a.cryptocurrency}-accounts`,
                 name: `${a.cryptocurrency}`,
                 type: AccountType.EQUITY,
-                parentGroupId: cryptoHoldingGainLossGroup.id,
+                parentGroupId:
+                  accountBook.cryptoHoldingGainLossAccountGroupId ??
+                  cryptoHoldingGainLossGroup.id,
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 accountBookId: accountBook.id,
@@ -408,7 +412,9 @@ export async function getIncomeData(
                 id: `security-${a.symbol}-accounts`,
                 name: `${a.symbol}`,
                 type: AccountType.EQUITY,
-                parentGroupId: securityHoldingGainLossGroup.id,
+                parentGroupId:
+                  accountBook.securityHoldingGainLossAccountGroupId ??
+                  securityHoldingGainLossGroup.id,
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 accountBookId: accountBook.id,

@@ -20,6 +20,12 @@ export async function action({ request }: ActionFunctionArgs) {
     data: {
       name: values.name,
       referenceCurrency: values.referenceCurrency,
+      securityHoldingGainLossAccountGroupId:
+        values.securityHoldingGainLossAccountGroupId ?? null,
+      cryptoHoldingGainLossAccountGroupId:
+        values.cryptoHoldingGainLossAccountGroupId ?? null,
+      fxHoldingGainLossAccountGroupId:
+        values.fxHoldingGainLossAccountGroupId ?? null,
     },
   });
 

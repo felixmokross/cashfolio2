@@ -4,6 +4,15 @@ export async function getFormValues(request: Request): Promise<FormValues> {
     id: form.get("id")?.toString(),
     name: form.get("name")?.toString(),
     referenceCurrency: form.get("referenceCurrency")?.toString() || "",
+    securityHoldingGainLossAccountGroupId: form
+      .get("securityHoldingGainLossAccountGroupId")
+      ?.toString(),
+    cryptoHoldingGainLossAccountGroupId: form
+      .get("cryptoHoldingGainLossAccountGroupId")
+      ?.toString(),
+    fxHoldingGainLossAccountGroupId: form
+      .get("fxHoldingGainLossAccountGroupId")
+      ?.toString(),
   };
 }
 
@@ -11,6 +20,9 @@ export type FormValues = {
   id?: string;
   name?: string;
   referenceCurrency: string;
+  securityHoldingGainLossAccountGroupId?: string;
+  cryptoHoldingGainLossAccountGroupId?: string;
+  fxHoldingGainLossAccountGroupId?: string;
 };
 
 export type FormErrors = { form?: string } & Partial<
