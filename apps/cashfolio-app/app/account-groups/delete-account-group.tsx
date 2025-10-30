@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAccountBook } from "~/account-books/hooks";
 import { Alert, AlertActions, AlertTitle } from "~/platform/alert";
 import {
   CancelButton,
@@ -33,13 +34,14 @@ export function DeleteAccountGroup({
   onClose: () => void;
   accountGroupId?: string;
 }) {
+  const accountBook = useAccountBook();
   return (
     <FormDialog
       dialogComponent={Alert}
       open={isOpen}
       onClose={onClose}
       size="md"
-      action="/account-groups/delete"
+      action={`/${accountBook.id}/account-groups/delete`}
     >
       <input type="hidden" name="accountGroupId" value={accountGroupId} />
       <AlertTitle>
