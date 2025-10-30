@@ -6,7 +6,7 @@ program.command("restore-local").action(async () => {
   console.log("Restoring local database from backup…");
 
   await exec(
-    `pg_restore --clean --no-owner --no-privileges -d "${process.env.RESTORE_DB_URL}" ./backup.dump`,
+    `pg_restore --create --clean --no-owner --no-privileges -d "${process.env.RESTORE_DB_URL}" ./backup.dump`,
   );
 
   console.log("Purging local Redis…");
