@@ -18,6 +18,7 @@ import { ensureAuthorized } from "~/account-books/functions.server";
 import { getAccountUnitInfo, getCurrencyUnitInfo } from "~/units/functions";
 import type { Route } from "./+types/route";
 import { getPageTitle } from "~/meta";
+import { defaultShouldRevalidate } from "~/revalidation";
 
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   { title: getPageTitle(loaderData.account.name) },
@@ -116,6 +117,8 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     accountGroups,
   });
 }
+
+export const shouldRevalidate = defaultShouldRevalidate;
 
 export type LoaderData = ReturnType<typeof useLoaderData<typeof loader>>;
 

@@ -11,6 +11,7 @@ import {
   ensureAuthorizedForUserAndAccountBookId,
   getFirstBookingDate,
 } from "./functions.server";
+import { defaultShouldRevalidate } from "~/revalidation";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const userContext = await ensureAuthenticated(request);
@@ -38,6 +39,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     firstBookingDate: await getFirstBookingDate(accountBook.id),
   });
 }
+
+export const shouldRevalidate = defaultShouldRevalidate;
 
 export default function Route() {
   return (

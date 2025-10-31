@@ -15,6 +15,7 @@ import { ensureUserHasRole } from "~/users/functions.server";
 import { UserRole } from "~/.prisma-client/enums";
 import { getAdminPageTitle } from "~/meta";
 import type { Route } from "./+types/route";
+import { defaultShouldRevalidate } from "~/revalidation";
 
 export const meta: Route.MetaFunction = () => [
   { title: getAdminPageTitle("Users") },
@@ -46,6 +47,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
     })),
   });
 }
+
+export const shouldRevalidate = defaultShouldRevalidate;
 
 export default function Route() {
   const { users } = useLoaderData<typeof loader>();

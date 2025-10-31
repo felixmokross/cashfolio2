@@ -6,6 +6,7 @@ import { getPeriodDateRange } from "~/period/functions";
 import { ensureAuthorized } from "~/account-books/functions.server";
 import type { Route } from "./+types/route";
 import { getPageTitle } from "~/meta";
+import { defaultShouldRevalidate } from "~/revalidation";
 
 export const meta: Route.MetaFunction = () => [
   { title: getPageTitle("Balances") },
@@ -20,6 +21,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     balanceSheet: await getBalanceSheet(link.accountBookId, date),
   });
 }
+
+export const shouldRevalidate = defaultShouldRevalidate;
+
 export type LoaderData = Awaited<ReturnType<typeof loader>>;
 
 export default function Route() {

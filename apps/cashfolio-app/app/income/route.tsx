@@ -10,6 +10,7 @@ import type { AccountsNode } from "~/account-groups/accounts-tree";
 import type { IncomeAccountsNode } from "./types";
 import type { Route } from "./+types/route";
 import { getPageTitle } from "~/meta";
+import { defaultShouldRevalidate } from "~/revalidation";
 
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   { title: getPageTitle(`Income / ${loaderData.rootNode.name}`) },
@@ -61,6 +62,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   return serialize({ rootNode });
 }
+
+export const shouldRevalidate = defaultShouldRevalidate;
 
 function findSubtreeRootNode<T extends AccountsNode>(
   node: T,

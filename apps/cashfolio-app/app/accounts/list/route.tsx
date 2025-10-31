@@ -8,6 +8,7 @@ import { getAccounts } from "../functions.server";
 import { prisma } from "~/prisma.server";
 import type { Route } from "./+types/route";
 import { getPageTitle } from "~/meta";
+import { defaultShouldRevalidate } from "~/revalidation";
 
 export const meta: Route.MetaFunction = () => [
   { title: getPageTitle("Accounts") },
@@ -31,6 +32,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const tree = getAccountsTree(accounts, accountGroups);
   return serialize({ tree, accounts, accountGroups });
 }
+
+export const shouldRevalidate = defaultShouldRevalidate;
 
 export type LoaderData = Serialize<Awaited<ReturnType<typeof loader>>>;
 
