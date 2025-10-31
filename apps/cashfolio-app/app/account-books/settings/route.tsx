@@ -19,6 +19,7 @@ import { serialize } from "~/serialization";
 import { getAccountGroupsWithPath } from "~/account-groups/data";
 import { Field, FieldGroup, Label } from "~/platform/forms/fieldset";
 import { AccountType } from "~/.prisma-client/enums";
+import { defaultShouldRevalidate } from "~/revalidation";
 
 export const meta: Route.MetaFunction = () => [
   { title: getPageTitle("Settings") },
@@ -34,6 +35,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     ).filter((g) => g.type === AccountType.EQUITY),
   });
 }
+
+export const shouldRevalidate = defaultShouldRevalidate;
 
 export default function Route() {
   const { accountGroups } = useLoaderData<typeof loader>();

@@ -15,6 +15,7 @@ import { prisma } from "~/prisma.server";
 import { serialize } from "~/serialization";
 import { ensureUserHasRole } from "~/users/functions.server";
 import type { Route } from "./+types/route";
+import { defaultShouldRevalidate } from "~/revalidation";
 
 export const meta: Route.MetaFunction = () => [
   { title: getAdminPageTitle("Account Books") },
@@ -28,6 +29,8 @@ export async function loader({ request }: { request: Request }) {
   });
   return serialize({ accountBooks });
 }
+
+export const shouldRevalidate = defaultShouldRevalidate;
 
 export default function Route() {
   const { accountBooks } = useLoaderData<typeof loader>();

@@ -22,5 +22,11 @@ export async function action({ request }: ActionFunctionArgs) {
     },
   });
 
-  return { success: true };
+  return {
+    success: true,
+
+    // View-preferences are updated optimistically on the client-side,
+    // so no revalidation is needed.
+    skipRevalidation: true,
+  };
 }

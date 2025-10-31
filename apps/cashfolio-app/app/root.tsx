@@ -13,6 +13,7 @@ import "./app.css";
 import { ensureUser } from "./users/functions.server";
 import { getPageTitle } from "./meta";
 import { LoadingBar } from "./platform/loading-bar";
+import { defaultShouldRevalidate } from "./revalidation";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -58,6 +59,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
     viewPreferences: user.viewPreferences as Record<string, string>,
   };
 }
+
+export const shouldRevalidate = defaultShouldRevalidate;
 
 export const meta: Route.MetaFunction = () => [
   { title: getPageTitle() },
