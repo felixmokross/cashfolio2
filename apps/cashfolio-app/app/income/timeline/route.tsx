@@ -1,8 +1,4 @@
-import {
-  useLoaderData,
-  useNavigate,
-  type LoaderFunctionArgs,
-} from "react-router";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { ensureAuthorized } from "~/account-books/functions.server";
 import { defaultShouldRevalidate } from "~/revalidation";
 import { serialize } from "~/serialization";
@@ -16,11 +12,8 @@ import {
 import { AgCharts } from "ag-charts-react";
 import { getTheme } from "~/theme";
 import { formatMoney } from "~/formatting";
-import { parseISO } from "date-fns";
+import { format, getQuarter, parseISO } from "date-fns";
 import { decrementPeriod } from "~/period/functions";
-import { useAccountBook } from "~/account-books/hooks";
-import { Field, Label } from "~/platform/forms/fieldset";
-import { Select } from "~/platform/forms/select";
 import type { IncomeAccountsNode } from "../types";
 import { findSubtreeRootNode, isExpensesNode } from "../functions";
 import { sum } from "~/utils.server";
@@ -112,9 +105,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export const shouldRevalidate = defaultShouldRevalidate;
 
 export default function Route() {
-  const { timeline, average } = useLoaderData<typeof loader>();
-  const navigate = useNavigate();
-  const accountBook = useAccountBook();
+  const { timeline, average, period } = useLoaderData<typeof loader>();
 
   const isExpensesGroup = timeline[0].node && isExpensesNode(timeline[0].node);
   const negativeFillColor =
@@ -134,6 +125,15 @@ export default function Route() {
     getTheme() === "dark"
       ? "oklch(96.7% 0.001 286.375)"
       : "oklch(14.1% 0.005 285.823)";
+
+  const tooltipOptions =
+    period.granularity === "quarter"
+      ? {
+          renderer: (params: any) => ({
+            heading: format(params.datum.date, "QQQ yyyy"),
+          }),
+        }
+      : undefined;
   return (
     <AgCharts
       className="h-[calc(100vh_-_14rem)] mt-12"
@@ -161,6 +161,7 @@ export default function Route() {
             xKey: "date",
             yKey: "value",
             yName: "Period",
+            tooltip: tooltipOptions,
             itemStyler: (params) => {
               return {
                 fill:
@@ -178,8 +179,12 @@ export default function Route() {
             marker: { enabled: false },
             stroke: neutralStrokeColor,
             lineDash: [6, 4],
+            tooltip: tooltipOptions,
           },
         ],
+        tooltip: {
+          mode: "single",
+        },
         formatter: {
           y: (params) => formatMoney(params.value as number),
         },
@@ -187,6 +192,12 @@ export default function Route() {
           {
             type: "unit-time",
             position: "bottom",
+            label:
+              period.granularity === "quarter"
+                ? {
+                    formatter: (params) => `Q${getQuarter(params.value)}`,
+                  }
+                : undefined,
           },
           {
             type: "number",
