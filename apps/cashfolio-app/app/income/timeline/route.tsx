@@ -88,7 +88,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           incomeStatement,
           params.nodeId,
         );
-        rootNode = subtreeRootNode;
+        rootNode = subtreeRootNode as IncomeAccountsNode;
       } else {
         rootNode = incomeStatement;
       }
@@ -126,101 +126,82 @@ export default function Route() {
       ? "oklch(62.7% 0.194 149.214)"
       : "oklch(52.7% 0.154 150.069)";
 
-  const neutralFillColor = "oklch(55.2% 0.016 285.938)";
-  const neutralStrokeColor = "oklch(21% 0.006 285.885)";
+  const neutralFillColor =
+    getTheme() === "dark"
+      ? "oklch(87.1% 0.006 286.286)"
+      : "oklch(55.2% 0.016 285.938)";
+  const neutralStrokeColor =
+    getTheme() === "dark" ? "oklch(96.7% 0.001 286.375)" : "oklch(98.5% 0 0)";
   return (
-    <div className="space-y-8 mt-8">
-      <div className="flex items-center justify-center">
-        <Field disabled={timeline[0].node!.nodeType !== "accountGroup"}>
-          <Label>Show Chart For</Label>
-          <Select
-            onChange={(e) => {
-              navigate(
-                `/${accountBook.id}/income/timeline/${e.currentTarget.value}`,
-              );
-            }}
-          >
-            <option></option>
-            {timeline[0].node!.nodeType === "accountGroup"
-              ? timeline[0].node!.children.map((node) => (
-                  <option key={node.id} value={node.id}>
-                    {node.name}
-                  </option>
-                ))
-              : null}
-          </Select>
-        </Field>
-      </div>
-      <AgCharts
-        className="h-[calc(100vh_-_19rem)] mt-12"
-        options={{
-          background: {
-            visible: false,
+    <AgCharts
+      className="h-[calc(100vh_-_14rem)] mt-12"
+      options={{
+        background: {
+          visible: false,
+        },
+        theme: {
+          params: {
+            fontFamily:
+              '"Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",  "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+            fontSize: 14,
+            textColor:
+              getTheme() === "dark"
+                ? "oklch(98.5% 0 0)"
+                : "oklch(14.1% 0.005 285.823)",
           },
-          theme: {
-            params: {
-              fontFamily:
-                '"Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",  "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
-              fontSize: 14,
-              textColor:
-                getTheme() === "dark"
-                  ? "oklch(98.5% 0 0)"
-                  : "oklch(14.1% 0.005 285.823)",
-            },
-            palette: {
-              fills: [neutralFillColor],
+          palette: {
+            fills: [neutralFillColor],
+          },
+        },
+        series: [
+          {
+            type: "bar",
+            xKey: "date",
+            yKey: "value",
+            yName: "Period",
+            itemStyler: (params) => {
+              return {
+                fill:
+                  isExpensesGroup || params.yValue < 0
+                    ? negativeFillColor
+                    : positiveFillColor,
+              };
             },
           },
-          series: [
-            {
-              type: "bar",
-              xKey: "date",
-              yKey: "value",
-              yName: "Period",
-              itemStyler: (params) => {
-                return {
-                  fill:
-                    isExpensesGroup || params.yValue < 0
-                      ? negativeFillColor
-                      : positiveFillColor,
-                };
-              },
-            },
-            {
-              type: "line",
-              xKey: "date",
-              yKey: "average",
-              yName: "Average",
-              marker: { enabled: false },
-              stroke: neutralStrokeColor,
-              lineDash: [6, 4],
-            },
-          ],
-          formatter: {
-            y: (params) => formatMoney(params.value as number),
+          {
+            type: "line",
+            xKey: "date",
+            yKey: "average",
+            yName: "Average",
+            marker: { enabled: false },
+            stroke: neutralStrokeColor,
+            lineDash: [6, 4],
           },
-          axes: [
-            {
-              type: "unit-time",
-              position: "bottom",
-            },
-            {
-              type: "number",
-              position: "left",
-            },
-          ],
-          data: timeline
-            .map((i) => ({
-              date: parseISO(i.periodDateRange.from),
-              value: i.node?.value ?? 0,
-            }))
-            .map(({ date, value }) => ({
-              date,
-              value: isExpensesGroup ? -value : value,
-              average: isExpensesGroup ? -average : average,
-            })),
-        }}
-      />
-    </div>
+        ],
+        formatter: {
+          y: (params) => formatMoney(params.value as number),
+        },
+        axes: [
+          {
+            type: "unit-time",
+            position: "bottom",
+          },
+          {
+            type: "number",
+            position: "left",
+          },
+        ],
+        data: timeline
+          .map((i) => ({
+            date: parseISO(i.periodDateRange.from),
+            value: i.node?.value ?? 0,
+          }))
+          .map(({ date, value }) => ({
+            date,
+            value: isExpensesGroup ? -value : value,
+            average: isExpensesGroup ? -average : average,
+          })),
+      }}
+    />
   );
 }

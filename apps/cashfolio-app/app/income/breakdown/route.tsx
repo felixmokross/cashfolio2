@@ -11,7 +11,7 @@ import { getPageTitle } from "~/meta";
 import { defaultShouldRevalidate } from "~/revalidation";
 import { findSubtreeRootNode } from "../functions";
 import type { Route } from "./+types/route";
-import type { AccountGroupNode } from "~/account-groups/accounts-tree";
+import type { AccountGroupNode } from "~/types";
 
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   { title: getPageTitle(`Income / ${loaderData.rootNode.name}`) },
@@ -48,7 +48,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   );
 
   let rootNode: IncomeAccountsNode;
-  let siblings: IncomeAccountsNode[];
   if (params.nodeId) {
     const subtreeRootNode = findSubtreeRootNode(
       incomeStatementTree,
@@ -57,21 +56,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     if (!subtreeRootNode) {
       throw new Response("Not Found", { status: 404 });
     }
-    rootNode = subtreeRootNode;
-    siblings = (
-      findSubtreeRootNode(
-        incomeStatementTree,
-        subtreeRootNode.nodeType === "account"
-          ? subtreeRootNode.groupId
-          : subtreeRootNode.parentGroupId!,
-      ) as (IncomeAccountsNode & AccountGroupNode) | undefined
-    )?.children.filter((s) => s.nodeType === "accountGroup") ?? [rootNode];
+    rootNode = subtreeRootNode as IncomeAccountsNode & AccountGroupNode;
   } else {
     rootNode = incomeStatementTree;
-    siblings = [rootNode];
   }
 
-  return serialize({ rootNode, siblings });
+  return serialize({ rootNode });
 }
 
 export const shouldRevalidate = defaultShouldRevalidate;
@@ -79,6 +69,5 @@ export const shouldRevalidate = defaultShouldRevalidate;
 export type LoaderData = ReturnType<typeof useLoaderData<typeof loader>>;
 
 export default function Route() {
-  const loaderData = useLoaderData<LoaderData>();
-  return <Page loaderData={loaderData} />;
+  return <Page />;
 }

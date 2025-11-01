@@ -7,8 +7,6 @@ import { formatMoney } from "~/formatting";
 import { Subheading } from "~/platform/heading";
 import { getTheme } from "~/theme";
 import { isExpensesNode } from "~/income/functions";
-import { Button } from "~/platform/button";
-import { Select } from "~/platform/forms/select";
 
 export default function Route() {
   const loaderData = useRouteLoaderData<IncomeLoaderData>(
@@ -28,31 +26,6 @@ export default function Route() {
     : loaderData!.rootNode.children;
   return (
     <>
-      <div className="mt-8 flex items-center gap-4">
-        {loaderData!.rootNode.parentGroupId && (
-          <Button
-            hierarchy="secondary"
-            href={`../chart/${loaderData!.rootNode.parentGroupId}`}
-          >
-            Back
-          </Button>
-        )}
-        <Select
-          value={loaderData!.rootNode.id}
-          disabled={loaderData!.siblings.length <= 1}
-          onChange={(e) => {
-            navigate(
-              `/${accountBook.id}/income/breakdown/chart/${e.target.value}`,
-            );
-          }}
-        >
-          {loaderData?.siblings.map((sibling) => (
-            <option key={sibling.id} value={sibling.id}>
-              {sibling.name}
-            </option>
-          ))}
-        </Select>
-      </div>
       <AgCharts
         className="h-[calc(100vh_-_18rem)] mt-2"
         options={{
@@ -83,7 +56,7 @@ export default function Route() {
 
                 if (node.nodeType === "accountGroup") {
                   navigate(
-                    `/${accountBook.id}/income/breakdown/chart/${node.id}`,
+                    `/${accountBook.id}/income/${node.id}/breakdown/chart`,
                   );
                 } else {
                   navigate(`/${accountBook.id}/accounts/${node.id}`);

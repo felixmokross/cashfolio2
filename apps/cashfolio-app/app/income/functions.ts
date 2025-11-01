@@ -6,7 +6,7 @@ import { AccountType, EquityAccountSubtype } from "~/.prisma-client/enums";
 export function findSubtreeRootNode<T extends AccountsNode>(
   node: T,
   nodeId: string,
-): T | undefined {
+): AccountsNode | undefined {
   if (node.id === nodeId) {
     return node;
   }
