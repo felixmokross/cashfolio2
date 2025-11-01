@@ -131,7 +131,9 @@ export default function Route() {
       ? "oklch(87.1% 0.006 286.286)"
       : "oklch(55.2% 0.016 285.938)";
   const neutralStrokeColor =
-    getTheme() === "dark" ? "oklch(96.7% 0.001 286.375)" : "oklch(98.5% 0 0)";
+    getTheme() === "dark"
+      ? "oklch(96.7% 0.001 286.375)"
+      : "oklch(14.1% 0.005 285.823)";
   return (
     <AgCharts
       className="h-[calc(100vh_-_14rem)] mt-12"
