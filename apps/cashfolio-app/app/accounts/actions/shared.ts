@@ -9,6 +9,7 @@ export async function getFormValues(request: Request) {
     id: form.get("id")?.toString(),
     name: form.get("name")?.toString() ?? "",
     type: form.get("type")?.toString() ?? "",
+    equityAccountSubtype: form.get("equityAccountSubtype")?.toString() ?? "",
     groupId: form.get("groupId")?.toString() ?? "",
     openingBalance: form.get("openingBalance")?.toString(),
     unit: form.get("unit")?.toString(),
@@ -95,6 +96,7 @@ export type FormValues = {
   id?: string;
   name: string;
   type: string;
+  equityAccountSubtype?: string;
   groupId: string;
   openingBalance?: string;
   unit?: string;
