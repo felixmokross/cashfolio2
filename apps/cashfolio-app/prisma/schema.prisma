@@ -92,7 +92,7 @@ model AccountGroup {
   name      String
   type      AccountType
   isActive  Boolean     @default(true)
-  sortOrder Int         @default(0)
+  sortOrder Int?
 
   parentGroup   AccountGroup? @relation("parent-child", fields: [parentGroupId, accountBookId], references: [id, accountBookId], onDelete: Restrict)
   parentGroupId String?

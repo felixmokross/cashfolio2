@@ -1,7 +1,11 @@
 import { data, type ActionFunctionArgs } from "react-router";
 import { prisma } from "~/prisma.server";
 import { getFormValues, hasErrors, validate } from "./shared";
-import { Unit, type AccountType } from "~/.prisma-client/enums";
+import {
+  AccountType,
+  EquityAccountSubtype,
+  Unit,
+} from "~/.prisma-client/enums";
 import { ensureAuthorized } from "~/account-books/functions.server";
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -19,6 +23,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
       name: values.name,
       groupId: values.groupId,
       type: values.type as AccountType,
+      equityAccountSubtype:
+        values.type === AccountType.EQUITY
+          ? (values.equityAccountSubtype as EquityAccountSubtype)
+          : null,
       unit: values.unit as Unit,
       currency: values.unit === Unit.CURRENCY ? values.currency : null,
       cryptocurrency:

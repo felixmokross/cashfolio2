@@ -21,7 +21,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       name: values.name,
       parentGroupId: values.parentGroupId || null,
       isActive: values.isActive,
-      sortOrder: values.sortOrder,
+      sortOrder: values.sortOrder ?? null,
     },
   });
 

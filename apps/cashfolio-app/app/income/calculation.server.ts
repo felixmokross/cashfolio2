@@ -392,7 +392,7 @@ export async function getIncomeData(
               updatedAt: new Date(),
               accountBookId: accountBook.id,
               isActive: true,
-              sortOrder: 1,
+              sortOrder: null,
             }
           : a.unit === Unit.CRYPTOCURRENCY
             ? {
@@ -406,7 +406,7 @@ export async function getIncomeData(
                 updatedAt: new Date(),
                 accountBookId: accountBook.id,
                 isActive: true,
-                sortOrder: 1,
+                sortOrder: null,
               }
             : {
                 id: `security-${a.symbol}-accounts`,
@@ -419,7 +419,7 @@ export async function getIncomeData(
                 updatedAt: new Date(),
                 accountBookId: accountBook.id,
                 isActive: true,
-                sortOrder: 1,
+                sortOrder: null,
               };
     }
 
