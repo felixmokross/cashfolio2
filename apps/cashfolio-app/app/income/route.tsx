@@ -79,7 +79,7 @@ export default function Route() {
   const accountBook = useAccountBook();
   const navigate = useNavigate();
   const { node, parentNode, siblings } = useLoaderData<typeof loader>();
-  const match = useMatch("/:accountBookId/income/:nodeId/*");
+  const match = useMatch("/:accountBookId/income/:nodeId/:view/*");
   return (
     <>
       <div className="flex justify-between items-center gap-8">
@@ -91,7 +91,7 @@ export default function Route() {
           {parentNode && (
             <Button
               hierarchy="secondary"
-              href={`/${accountBook.id}/income/${parentNode.id}/${match?.params["*"]}`}
+              href={`/${accountBook.id}/income/${parentNode.id}/${match?.params.view}/${match?.params["*"]}`}
             >
               <ChevronUpIcon />
               Up
@@ -102,7 +102,7 @@ export default function Route() {
             disabled={siblings.length <= 1}
             onChange={(e) => {
               navigate(
-                `/${accountBook.id}/income/${e.target.value}/${match?.params["*"]}`,
+                `/${accountBook.id}/income/${e.target.value}/${match?.params.view}/${match?.params["*"]}`,
               );
             }}
           >
@@ -116,9 +116,21 @@ export default function Route() {
             <Select
               value=""
               onChange={(e) => {
-                navigate(
-                  `/${accountBook.id}/income/${e.target.value}/${match?.params["*"]}`,
+                const childNode = node.children.find(
+                  (child) => child.id === e.target.value,
                 );
+                invariant(childNode, "Child node must be found");
+
+                if (
+                  match?.params.view === "timeline" ||
+                  childNode.nodeType === "accountGroup"
+                ) {
+                  navigate(
+                    `/${accountBook.id}/income/${e.target.value}/${match?.params.view}/${match?.params["*"]}`,
+                  );
+                } else {
+                  navigate(`/${accountBook.id}/accounts/${e.target.value}`);
+                }
               }}
             >
               <option value="" disabled>
@@ -135,6 +147,7 @@ export default function Route() {
         <div className="grow-0">
           <NavbarSection className="-mx-2">
             <NavNavbarItem
+              data-disabled={node.nodeType === "account" ? true : undefined}
               href={`/${accountBook.id}/income/${node.id}/breakdown`}
             >
               Breakdown

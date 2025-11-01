@@ -82,6 +82,8 @@ export const NavbarItem = forwardRef(function NavbarItem(
     "data-hover:bg-neutral-950/5 data-hover:*:data-[slot=icon]:fill-neutral-950",
     // Active
     "data-active:bg-neutral-950/5 data-active:*:data-[slot=icon]:fill-neutral-950",
+    // Disabled
+    "data-disabled:pointer-events-none data-disabled:opacity-50",
     // Dark mode
     "dark:text-white dark:*:data-[slot=icon]:fill-neutral-400",
     "dark:data-hover:bg-white/5 dark:data-hover:*:data-[slot=icon]:fill-white",
