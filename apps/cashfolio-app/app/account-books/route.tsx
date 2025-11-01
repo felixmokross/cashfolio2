@@ -2,7 +2,7 @@ import { Outlet, type LoaderFunctionArgs } from "react-router";
 import invariant from "tiny-invariant";
 import { ensureAuthenticated } from "~/auth/functions.server";
 import { Navbar } from "~/components/navbar";
-import { getPeriod } from "~/period/functions";
+import { getPeriod } from "~/period/functions.server";
 import { SidebarLayout } from "~/platform/sidebar-layout";
 import { prisma } from "~/prisma.server";
 import { serialize } from "~/serialization";

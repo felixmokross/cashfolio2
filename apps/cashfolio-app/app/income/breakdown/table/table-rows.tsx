@@ -2,7 +2,7 @@ import type { Serialize } from "~/serialization";
 import { TableCell } from "~/platform/table";
 import { formatMoney } from "~/formatting";
 import { AccountsNodeChildrenTableRows } from "~/account-groups/table-rows";
-import type { IncomeAccountsNode } from "../types";
+import type { IncomeAccountsNode } from "~/income/types";
 
 export function IncomeTableRows({
   node,

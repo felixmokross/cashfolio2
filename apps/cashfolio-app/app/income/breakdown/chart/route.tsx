@@ -5,20 +5,13 @@ import { AgCharts } from "ag-charts-react";
 import { useAccountBook } from "~/account-books/hooks";
 import { formatMoney } from "~/formatting";
 import { Subheading } from "~/platform/heading";
-import { AccountType, EquityAccountSubtype } from "~/.prisma-client/enums";
 import { getTheme } from "~/theme";
-import type { IncomeAccountsNode } from "../types";
-import type { Serialize } from "~/serialization";
-
-function isExpensesNode(node: Serialize<IncomeAccountsNode>): boolean {
-  return node.nodeType === "accountGroup"
-    ? node.children.every(isExpensesNode)
-    : node.type === AccountType.EQUITY &&
-        node.equityAccountSubtype === EquityAccountSubtype.EXPENSE;
-}
+import { isExpensesNode } from "~/income/functions";
 
 export default function Route() {
-  const loaderData = useRouteLoaderData<IncomeLoaderData>("income/route");
+  const loaderData = useRouteLoaderData<IncomeLoaderData>(
+    "income/breakdown/route",
+  );
   invariant("children" in loaderData!.rootNode, "Root node must have children");
   const navigate = useNavigate();
   const accountBook = useAccountBook();
@@ -34,7 +27,7 @@ export default function Route() {
   return (
     <>
       <AgCharts
-        className="h-[calc(100vh_-_15rem)] mt-12"
+        className="h-[calc(100vh_-_18rem)] mt-2"
         options={{
           background: {
             visible: false,
@@ -62,7 +55,9 @@ export default function Route() {
                 invariant(node, "Node must be found");
 
                 if (node.nodeType === "accountGroup") {
-                  navigate(`/${accountBook.id}/income/chart/${node.id}`);
+                  navigate(
+                    `/${accountBook.id}/income/${node.id}/breakdown/chart`,
+                  );
                 } else {
                   navigate(`/${accountBook.id}/accounts/${node.id}`);
                 }

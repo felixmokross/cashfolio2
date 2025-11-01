@@ -60,6 +60,8 @@ export async function getIncomeStatement(
     throw new Error("No equity account group found");
   }
 
+  const netIncomeNode = { ...equityRootNode, name: "Net Income" };
+
   function withIncomeData(node: AccountsNode): IncomeAccountsNode {
     if (node.nodeType === "accountGroup") {
       const children = node.children
@@ -85,7 +87,7 @@ export async function getIncomeStatement(
     };
   }
 
-  return withIncomeData(equityRootNode);
+  return withIncomeData(netIncomeNode);
 }
 
 export async function generateHoldingBookingsForAccount(

@@ -24,12 +24,9 @@ import {
   ArrowRightStartOnRectangleIcon,
   ChevronUpIcon,
   Cog8ToothIcon,
-  LightBulbIcon,
-  ShieldCheckIcon,
-  UserIcon,
 } from "~/platform/icons/standard";
 import {
-  ArrowTrendingUpIcon,
+  ChartBarIcon,
   ScaleIcon,
   WalletIcon,
 } from "~/platform/icons/navigation";
@@ -68,7 +65,7 @@ export function Navbar() {
             <SidebarLabel>Balances</SidebarLabel>
           </NavSidebarItem>
           <NavSidebarItem href={`/${accountBook.id}/income`}>
-            <ArrowTrendingUpIcon />
+            <ChartBarIcon />
             <SidebarLabel>Income</SidebarLabel>
           </NavSidebarItem>
           <NavSidebarItem href={`/${accountBook.id}/accounts`}>

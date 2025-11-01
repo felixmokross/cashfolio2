@@ -1,91 +1,166 @@
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { Page } from "~/income/page";
-import { getIncomeStatement } from "~/income/calculation.server";
-import { serialize } from "~/serialization";
-import { getAccountGroups } from "~/account-groups/data";
-import { prisma } from "~/prisma.server";
-import { getPeriodDateRange } from "~/period/functions";
+import {
+  Outlet,
+  redirect,
+  useLoaderData,
+  useMatch,
+  useNavigate,
+  type LoaderFunctionArgs,
+} from "react-router";
+import { AccountType } from "~/.prisma-client/enums";
 import { ensureAuthorized } from "~/account-books/functions.server";
-import type { AccountsNode } from "~/account-groups/accounts-tree";
-import type { IncomeAccountsNode } from "./types";
-import type { Route } from "./+types/route";
-import { getPageTitle } from "~/meta";
+import { useAccountBook } from "~/account-books/hooks";
+import {
+  getAccountsTree,
+  type AccountGroupNode,
+} from "~/account-groups/accounts-tree";
+import { getAccountGroups } from "~/account-groups/data";
+import { getAccounts } from "~/accounts/functions.server";
+import { Button } from "~/platform/button";
+import { Select } from "~/platform/forms/select";
+import { Heading } from "~/platform/heading";
+import { ChevronUpIcon } from "~/platform/icons/standard";
+import { NavbarSection, NavNavbarItem } from "~/platform/navbar";
+import { Text } from "~/platform/text";
+import { prisma } from "~/prisma.server";
 import { defaultShouldRevalidate } from "~/revalidation";
-
-export const meta: Route.MetaFunction = ({ loaderData }) => [
-  { title: getPageTitle(`Income / ${loaderData.rootNode.name}`) },
-];
+import { serialize } from "~/serialization";
+import { findSubtreeRootNode } from "./functions";
+import invariant from "tiny-invariant";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);
+  if (!params.nodeId) {
+    const equityRootNode = await prisma.accountGroup.findFirstOrThrow({
+      where: {
+        accountBookId: link.accountBookId,
+        type: AccountType.EQUITY,
+        parentGroupId: null,
+      },
+    });
+    throw redirect(`./${equityRootNode.id}`);
+  }
 
-  const { from, to } = await getPeriodDateRange(request, link.accountBookId);
-
-  const [accountBook, accounts, accountGroups] = await Promise.all([
+  const [accountBook, accountGroups] = await Promise.all([
     prisma.accountBook.findUniqueOrThrow({
       where: { id: link.accountBookId },
-    }),
-    prisma.account.findMany({
-      where: { accountBookId: link.accountBookId },
-      orderBy: { name: "asc" },
-      include: {
-        bookings: {
-          orderBy: { date: "asc" },
-          where: { date: { gte: from, lte: to } },
-        },
-      },
     }),
     getAccountGroups(link.accountBookId),
   ]);
 
-  const incomeStatementTree = await getIncomeStatement(
-    accountBook,
-    accounts,
-    accountGroups,
-    from,
-    to,
-  );
+  const accounts = await getAccounts(accountBook, accountGroups);
+  const equityRootNode = getAccountsTree(accounts, accountGroups).EQUITY;
+  invariant(equityRootNode, "Equity root node not found");
 
-  let rootNode: IncomeAccountsNode;
-  if (params.nodeId) {
-    const subtreeRootNode = findSubtreeRootNode(
-      incomeStatementTree,
-      params.nodeId,
-    );
-    if (!subtreeRootNode) {
-      throw new Response("Not Found", { status: 404 });
-    }
-    rootNode = subtreeRootNode;
-  } else {
-    rootNode = incomeStatementTree;
+  const netIncomeNode = { ...equityRootNode, name: "Net Income" };
+  const node = findSubtreeRootNode(netIncomeNode, params.nodeId);
+  if (!node) {
+    throw new Response("Not Found", { status: 404 });
   }
+  const parentAccountGroupId =
+    node.nodeType === "accountGroup" ? node.parentGroupId : node.groupId;
 
-  return serialize({ rootNode });
+  const parentNode = parentAccountGroupId
+    ? (findSubtreeRootNode(
+        netIncomeNode,
+        parentAccountGroupId,
+      ) as AccountGroupNode)
+    : undefined;
+
+  return serialize({
+    node,
+    parentNode,
+    siblings: parentNode?.children ?? [node],
+  });
 }
 
 export const shouldRevalidate = defaultShouldRevalidate;
 
-function findSubtreeRootNode<T extends AccountsNode>(
-  node: T,
-  nodeId: string,
-): T | undefined {
-  if (node.id === nodeId) {
-    return node;
-  }
-
-  if (node.nodeType === "accountGroup") {
-    for (const child of node.children) {
-      const result = findSubtreeRootNode(child as T, nodeId);
-      if (result) {
-        return result;
-      }
-    }
-  }
-}
-
-export type LoaderData = ReturnType<typeof useLoaderData<typeof loader>>;
-
 export default function Route() {
-  const loaderData = useLoaderData<LoaderData>();
-  return <Page loaderData={loaderData} />;
+  const accountBook = useAccountBook();
+  const navigate = useNavigate();
+  const { node, parentNode, siblings } = useLoaderData<typeof loader>();
+  const match = useMatch("/:accountBookId/income/:nodeId/:view/*");
+  return (
+    <>
+      <div className="flex justify-between items-center gap-8">
+        <div className="shrink-0">
+          <Heading>Income</Heading>
+          <Text>Reference Currency: {accountBook.referenceCurrency}</Text>
+        </div>
+        <div className="flex items-center gap-4 max-w-xl">
+          {parentNode && (
+            <Button
+              hierarchy="secondary"
+              href={`/${accountBook.id}/income/${parentNode.id}/${match?.params.view}/${match?.params["*"]}`}
+            >
+              <ChevronUpIcon />
+              Up
+            </Button>
+          )}
+          <Select
+            value={node.id}
+            disabled={siblings.length <= 1}
+            onChange={(e) => {
+              navigate(
+                `/${accountBook.id}/income/${e.target.value}/${match?.params.view}/${match?.params["*"]}`,
+              );
+            }}
+          >
+            {siblings.map((sibling) => (
+              <option key={sibling.id} value={sibling.id}>
+                {sibling.name}
+              </option>
+            ))}
+          </Select>
+          {node.nodeType === "accountGroup" && (
+            <Select
+              value=""
+              onChange={(e) => {
+                const childNode = node.children.find(
+                  (child) => child.id === e.target.value,
+                );
+                invariant(childNode, "Child node must be found");
+
+                if (
+                  match?.params.view === "timeline" ||
+                  childNode.nodeType === "accountGroup"
+                ) {
+                  navigate(
+                    `/${accountBook.id}/income/${e.target.value}/${match?.params.view}/${match?.params["*"]}`,
+                  );
+                } else {
+                  navigate(`/${accountBook.id}/accounts/${e.target.value}`);
+                }
+              }}
+            >
+              <option value="" disabled>
+                [Drill down…]
+              </option>
+              {node.children.map((child) => (
+                <option key={child.id} value={child.id}>
+                  {child.name}
+                </option>
+              ))}
+            </Select>
+          )}
+        </div>
+        <div className="grow-0">
+          <NavbarSection className="-mx-2">
+            <NavNavbarItem
+              data-disabled={node.nodeType === "account" ? true : undefined}
+              href={`/${accountBook.id}/income/${node.id}/breakdown`}
+            >
+              Breakdown
+            </NavNavbarItem>
+            <NavNavbarItem
+              href={`/${accountBook.id}/income/${node.id}/timeline`}
+            >
+              Timeline
+            </NavNavbarItem>
+          </NavbarSection>
+        </div>
+      </div>
+      <Outlet />
+    </>
+  );
 }

@@ -11,7 +11,9 @@ import { useRouteLoaderData } from "react-router";
 import type { LoaderData as IncomeLoaderData } from "../route";
 
 export default function Route() {
-  const loaderData = useRouteLoaderData<IncomeLoaderData>("income/route");
+  const loaderData = useRouteLoaderData<IncomeLoaderData>(
+    "income/breakdown/route",
+  );
   return (
     <Table
       dense
