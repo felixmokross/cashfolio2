@@ -10,7 +10,7 @@ import {
   getBookings,
 } from "./calculation.server";
 import { subDays } from "date-fns";
-import { getPeriodDateRange } from "~/period/functions";
+import { getPeriodDateRange } from "~/period/functions.server";
 import type { Account } from "~/.prisma-client/client";
 import { AccountType, EquityAccountSubtype } from "~/.prisma-client/enums";
 import { prisma } from "~/prisma.server";

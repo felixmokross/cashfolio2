@@ -2,7 +2,7 @@ import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { Page } from "~/balances/page";
 import { serialize } from "~/serialization";
 import { getBalanceSheet } from "./functions.server";
-import { getPeriodDateRange } from "~/period/functions";
+import { getPeriodDateRange } from "~/period/functions.server";
 import { ensureAuthorized } from "~/account-books/functions.server";
 import type { Route } from "./+types/route";
 import { getPageTitle } from "~/meta";

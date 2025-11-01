@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs, Params } from "react-router";
+import type { Params } from "react-router";
 import invariant from "tiny-invariant";
 import type { User } from "~/.prisma-client/client";
 import { prisma } from "~/prisma.server";

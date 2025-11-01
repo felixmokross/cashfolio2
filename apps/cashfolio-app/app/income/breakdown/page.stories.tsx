@@ -12,6 +12,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     loaderData: {
+      siblings: [],
       rootNode: {
         id: "equity-root",
         name: "Income",

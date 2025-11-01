@@ -5,20 +5,15 @@ import { AgCharts } from "ag-charts-react";
 import { useAccountBook } from "~/account-books/hooks";
 import { formatMoney } from "~/formatting";
 import { Subheading } from "~/platform/heading";
-import { AccountType, EquityAccountSubtype } from "~/.prisma-client/enums";
 import { getTheme } from "~/theme";
-import type { IncomeAccountsNode } from "../types";
-import type { Serialize } from "~/serialization";
-
-function isExpensesNode(node: Serialize<IncomeAccountsNode>): boolean {
-  return node.nodeType === "accountGroup"
-    ? node.children.every(isExpensesNode)
-    : node.type === AccountType.EQUITY &&
-        node.equityAccountSubtype === EquityAccountSubtype.EXPENSE;
-}
+import { isExpensesNode } from "~/income/functions";
+import { Button } from "~/platform/button";
+import { Select } from "~/platform/forms/select";
 
 export default function Route() {
-  const loaderData = useRouteLoaderData<IncomeLoaderData>("income/route");
+  const loaderData = useRouteLoaderData<IncomeLoaderData>(
+    "income/breakdown/route",
+  );
   invariant("children" in loaderData!.rootNode, "Root node must have children");
   const navigate = useNavigate();
   const accountBook = useAccountBook();
@@ -33,8 +28,33 @@ export default function Route() {
     : loaderData!.rootNode.children;
   return (
     <>
+      <div className="mt-8 flex items-center gap-4">
+        {loaderData!.rootNode.parentGroupId && (
+          <Button
+            hierarchy="secondary"
+            href={`../chart/${loaderData!.rootNode.parentGroupId}`}
+          >
+            Back
+          </Button>
+        )}
+        <Select
+          value={loaderData!.rootNode.id}
+          disabled={loaderData!.siblings.length <= 1}
+          onChange={(e) => {
+            navigate(
+              `/${accountBook.id}/income/breakdown/chart/${e.target.value}`,
+            );
+          }}
+        >
+          {loaderData?.siblings.map((sibling) => (
+            <option key={sibling.id} value={sibling.id}>
+              {sibling.name}
+            </option>
+          ))}
+        </Select>
+      </div>
       <AgCharts
-        className="h-[calc(100vh_-_15rem)] mt-12"
+        className="h-[calc(100vh_-_18rem)] mt-2"
         options={{
           background: {
             visible: false,
@@ -62,7 +82,9 @@ export default function Route() {
                 invariant(node, "Node must be found");
 
                 if (node.nodeType === "accountGroup") {
-                  navigate(`/${accountBook.id}/income/chart/${node.id}`);
+                  navigate(
+                    `/${accountBook.id}/income/breakdown/chart/${node.id}`,
+                  );
                 } else {
                   navigate(`/${accountBook.id}/accounts/${node.id}`);
                 }
