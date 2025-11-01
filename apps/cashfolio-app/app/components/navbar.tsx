@@ -66,7 +66,7 @@ export function Navbar() {
           </NavSidebarItem>
           <NavSidebarItem href={`/${accountBook.id}/income`}>
             <ChartBarIcon />
-            <SidebarLabel>Profit/Loss</SidebarLabel>
+            <SidebarLabel>Income</SidebarLabel>
           </NavSidebarItem>
           <NavSidebarItem href={`/${accountBook.id}/accounts`}>
             <WalletIcon />

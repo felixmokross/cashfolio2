@@ -10,7 +10,7 @@ export default function Route() {
     <>
       <div className="flex justify-between items-start">
         <div>
-          <Heading>Profit/Loss</Heading>
+          <Heading>Income</Heading>
           <Text>Reference Currency: {accountBook.referenceCurrency}</Text>
         </div>
         <div className="grow-0">
