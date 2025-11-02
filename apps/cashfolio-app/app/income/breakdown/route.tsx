@@ -7,15 +7,10 @@ import { prisma } from "~/prisma.server";
 import { getPeriodDateRange } from "~/period/functions.server";
 import { ensureAuthorized } from "~/account-books/functions.server";
 import type { IncomeAccountsNode } from "../types";
-import { getPageTitle } from "~/meta";
 import { defaultShouldRevalidate } from "~/revalidation";
 import { findSubtreeRootNode } from "../functions";
 import type { Route } from "./+types/route";
 import type { AccountGroupNode } from "~/types";
-
-export const meta: Route.MetaFunction = ({ loaderData }) => [
-  { title: getPageTitle(`Income / ${loaderData.rootNode.name}`) },
-];
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);

@@ -26,6 +26,12 @@ import { defaultShouldRevalidate } from "~/revalidation";
 import { serialize } from "~/serialization";
 import { findSubtreeRootNode } from "./functions";
 import invariant from "tiny-invariant";
+import type { Route } from "./+types/route";
+import { getPageTitle } from "~/meta";
+
+export const meta: Route.MetaFunction = ({ loaderData }) => [
+  { title: getPageTitle(`Income / ${loaderData.node.name}`) },
+];
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);
