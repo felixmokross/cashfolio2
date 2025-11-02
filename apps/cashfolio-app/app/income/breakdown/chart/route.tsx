@@ -5,8 +5,8 @@ import { AgCharts } from "ag-charts-react";
 import { useAccountBook } from "~/account-books/hooks";
 import { formatMoney } from "~/formatting";
 import { Subheading } from "~/platform/heading";
-import { getTheme } from "~/theme";
 import { isExpensesNode } from "~/income/functions";
+import { defaultChartOptions } from "~/platform/charts";
 
 export default function Route() {
   const loaderData = useRouteLoaderData<IncomeLoaderData>(
@@ -29,20 +29,7 @@ export default function Route() {
       <AgCharts
         className="h-[calc(100vh_-_18rem)] mt-2"
         options={{
-          background: {
-            visible: false,
-          },
-          theme: {
-            params: {
-              fontFamily:
-                '"Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",  "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
-              fontSize: 14,
-              textColor:
-                getTheme() === "dark"
-                  ? "oklch(98.5% 0 0)"
-                  : "oklch(14.1% 0.005 285.823)",
-            },
-          },
+          ...defaultChartOptions,
           series: nodes.map((n) => ({
             type: "bar",
             direction: "horizontal",
@@ -79,9 +66,7 @@ export default function Route() {
               label: { enabled: false },
             },
           ],
-          legend: {
-            position: "right",
-          },
+          legend: { position: "right" },
           data: [
             {
               period: "Current Period",

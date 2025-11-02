@@ -17,6 +17,7 @@ import { decrementPeriod } from "~/period/functions";
 import type { IncomeAccountsNode } from "../types";
 import { findSubtreeRootNode, isExpensesNode } from "../functions";
 import { sum } from "~/utils.server";
+import { defaultChartOptions, defaultChartTheme } from "~/platform/charts";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);
@@ -138,19 +139,9 @@ export default function Route() {
     <AgCharts
       className="h-[calc(100vh_-_14rem)] mt-12"
       options={{
-        background: {
-          visible: false,
-        },
+        ...defaultChartOptions,
         theme: {
-          params: {
-            fontFamily:
-              '"Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",  "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
-            fontSize: 14,
-            textColor:
-              getTheme() === "dark"
-                ? "oklch(98.5% 0 0)"
-                : "oklch(14.1% 0.005 285.823)",
-          },
+          ...defaultChartTheme,
           palette: {
             fills: [neutralFillColor],
           },
