@@ -97,7 +97,7 @@ export default function Route() {
         range={loaderData.range}
       />
       <AgCharts
-        className="h-[calc(100vh_-_13rem)] mt-4"
+        className="h-[calc(100vh_-_16rem)] mt-4"
         options={
           {
             ...defaultChartOptions,
