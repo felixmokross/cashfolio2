@@ -155,11 +155,37 @@ export default function Route() {
             <NavNavbarItem
               data-disabled={node.nodeType === "account" ? true : undefined}
               href={`/${accountBook.id}/income/${node.id}/breakdown`}
+              onClick={() => {
+                const viewPreferencesForm = new FormData();
+                viewPreferencesForm.append(
+                  "key",
+                  `account-book-${accountBook.id}-view`,
+                );
+                viewPreferencesForm.append("value", "breakdown");
+
+                fetch(`/view-preferences/set`, {
+                  method: "POST",
+                  body: viewPreferencesForm,
+                });
+              }}
             >
               Breakdown
             </NavNavbarItem>
             <NavNavbarItem
               href={`/${accountBook.id}/income/${node.id}/timeline`}
+              onClick={() => {
+                const viewPreferencesForm = new FormData();
+                viewPreferencesForm.append(
+                  "key",
+                  `account-book-${accountBook.id}-view`,
+                );
+                viewPreferencesForm.append("value", "timeline");
+
+                fetch(`/view-preferences/set`, {
+                  method: "POST",
+                  body: viewPreferencesForm,
+                });
+              }}
             >
               Timeline
             </NavNavbarItem>

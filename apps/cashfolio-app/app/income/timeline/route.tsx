@@ -1,4 +1,4 @@
-import { redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { ensureAuthorized } from "~/account-books/functions.server";
 import { defaultShouldRevalidate } from "~/revalidation";
 import { serialize } from "~/serialization";
@@ -20,12 +20,15 @@ import {
   parseRange,
   TimelineSelector,
 } from "~/period/timeline";
-import { getNumberOfPeriods } from "~/period/timeline.server";
+import {
+  getNumberOfPeriods,
+  redirectToLastUsedTimelineRange,
+} from "~/period/timeline.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);
 
-  if (!params.range) return redirect("../timeline/12m");
+  if (!params.range) throw await redirectToLastUsedTimelineRange(link);
 
   const range = parseRange(params.range);
   const period = getInitialTimelinePeriod(range);

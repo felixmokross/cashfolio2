@@ -41,10 +41,40 @@ export default function Route() {
         </div>
         <div className="grow-0">
           <NavbarSection className="-mx-2">
-            <NavNavbarItem href={`/${accountBook.id}/balances/breakdown`}>
+            <NavNavbarItem
+              href={`/${accountBook.id}/balances/breakdown`}
+              onClick={() => {
+                const viewPreferencesForm = new FormData();
+                viewPreferencesForm.append(
+                  "key",
+                  `account-book-${accountBook.id}-view`,
+                );
+                viewPreferencesForm.append("value", "breakdown");
+
+                fetch(`/view-preferences/set`, {
+                  method: "POST",
+                  body: viewPreferencesForm,
+                });
+              }}
+            >
               Breakdown
             </NavNavbarItem>
-            <NavNavbarItem href={`/${accountBook.id}/balances/timeline`}>
+            <NavNavbarItem
+              href={`/${accountBook.id}/balances/timeline`}
+              onClick={() => {
+                const viewPreferencesForm = new FormData();
+                viewPreferencesForm.append(
+                  "key",
+                  `account-book-${accountBook.id}-view`,
+                );
+                viewPreferencesForm.append("value", "timeline");
+
+                fetch(`/view-preferences/set`, {
+                  method: "POST",
+                  body: viewPreferencesForm,
+                });
+              }}
+            >
               Timeline
             </NavNavbarItem>
           </NavbarSection>

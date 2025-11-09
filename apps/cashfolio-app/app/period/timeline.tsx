@@ -2,9 +2,10 @@ import clsx from "clsx";
 import type { Granularity, Period, TimelineRange } from "./types";
 import { Field } from "~/platform/forms/fieldset";
 import { Select } from "~/platform/forms/select";
-import { useNavigate } from "react-router";
+import { useFetcher, useNavigate } from "react-router";
 import { getMonth, getQuarter, getYear } from "date-fns";
 import { today } from "~/dates";
+import { useAccountBook } from "~/account-books/hooks";
 
 const LIMITED_RANGE_REGEX = /^(\d+)([ymq])$/;
 const MAX_RANGE_REGEX = /^max-(year|month|quarter)$/;
@@ -73,7 +74,9 @@ export function TimelineSelector({
   period: Period;
   range: string;
 }) {
+  const fetcher = useFetcher();
   const navigate = useNavigate();
+  const accountBook = useAccountBook();
   return (
     <div className={clsx("flex items-center justify-center gap-2", className)}>
       <Field>
@@ -87,6 +90,18 @@ export function TimelineSelector({
                   ? "4q"
                   : "12m";
             navigate(`../timeline/${newRange}`);
+
+            const viewPreferencesForm = new FormData();
+            viewPreferencesForm.append(
+              "key",
+              `account-book-${accountBook.id}-timeline-range`,
+            );
+            viewPreferencesForm.append("value", newRange);
+
+            fetch(`/view-preferences/set`, {
+              method: "POST",
+              body: viewPreferencesForm,
+            });
           }}
         >
           <option value="year">Years</option>
@@ -98,7 +113,20 @@ export function TimelineSelector({
         <Select
           value={range}
           onChange={(e) => {
-            navigate(`../timeline/${e.target.value}`);
+            const newRange = e.target.value;
+            navigate(`../timeline/${newRange}`);
+
+            const viewPreferencesForm = new FormData();
+            viewPreferencesForm.append(
+              "key",
+              `account-book-${accountBook.id}-timeline-range`,
+            );
+            viewPreferencesForm.append("value", newRange);
+
+            fetch(`/view-preferences/set`, {
+              method: "POST",
+              body: viewPreferencesForm,
+            });
           }}
         >
           {period.granularity === "year" ? (
