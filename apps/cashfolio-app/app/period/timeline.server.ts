@@ -6,25 +6,21 @@ import {
   differenceInYears,
 } from "date-fns";
 import { today } from "~/dates";
-import type { UserAccountBookLink } from "~/.prisma-client/client";
+import type { User, UserAccountBookLink } from "~/.prisma-client/client";
 import { redirect } from "react-router";
+import { timelineRangeKey } from "~/view-preferences/functions";
+import { getViewPreference } from "~/view-preferences/functions.server";
 
 type NumberOfPeriodsOptions = {
   includeOpeningPeriod?: boolean;
 };
 
 export async function redirectToLastUsedTimelineRange(
+  user: User,
   link: UserAccountBookLink,
 ) {
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: link.userId },
-  });
-
-  const viewPreferences = user.viewPreferences as Record<string, string>;
-
   const lastUsedTimelineRange =
-    viewPreferences[`account-book-${link.accountBookId}-timeline-range`] ??
-    "12m";
+    getViewPreference(user, timelineRangeKey(link.accountBookId)) ?? "12m";
 
   return redirect(`../timeline/${lastUsedTimelineRange}`);
 }

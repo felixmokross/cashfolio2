@@ -1,18 +1,21 @@
 import { redirect, type LoaderFunctionArgs } from "react-router";
-import { ensureAuthorized } from "~/account-books/functions.server";
-import { prisma } from "~/prisma.server";
+import invariant from "tiny-invariant";
+import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functions.server";
+import { ensureUser } from "~/users/functions.server";
+import { viewKey } from "~/view-preferences/functions";
+import { getViewPreference } from "~/view-preferences/functions.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const link = await ensureAuthorized(request, params);
+  const user = await ensureUser(request);
 
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: link.userId },
-  });
-
-  const viewPreferences = user.viewPreferences as Record<string, string>;
+  invariant(params.accountBookId, "accountBookId not found");
+  const link = await ensureAuthorizedForUserAndAccountBookId(
+    user,
+    params.accountBookId,
+  );
 
   const lastUsedView =
-    viewPreferences[`account-book-${link.accountBookId}-view`] ?? "breakdown";
+    getViewPreference(user, viewKey(link.accountBookId)) ?? "breakdown";
 
   return redirect(lastUsedView);
 }

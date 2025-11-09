@@ -6,6 +6,10 @@ import { useFetcher, useNavigate } from "react-router";
 import { getMonth, getQuarter, getYear } from "date-fns";
 import { today } from "~/dates";
 import { useAccountBook } from "~/account-books/hooks";
+import {
+  saveViewPreference,
+  timelineRangeKey,
+} from "~/view-preferences/functions";
 
 const LIMITED_RANGE_REGEX = /^(\d+)([ymq])$/;
 const MAX_RANGE_REGEX = /^max-(year|month|quarter)$/;
@@ -91,17 +95,7 @@ export function TimelineSelector({
                   : "12m";
             navigate(`../timeline/${newRange}`);
 
-            const viewPreferencesForm = new FormData();
-            viewPreferencesForm.append(
-              "key",
-              `account-book-${accountBook.id}-timeline-range`,
-            );
-            viewPreferencesForm.append("value", newRange);
-
-            fetch(`/view-preferences/set`, {
-              method: "POST",
-              body: viewPreferencesForm,
-            });
+            saveViewPreference(timelineRangeKey(accountBook.id), newRange);
           }}
         >
           <option value="year">Years</option>
@@ -116,17 +110,7 @@ export function TimelineSelector({
             const newRange = e.target.value;
             navigate(`../timeline/${newRange}`);
 
-            const viewPreferencesForm = new FormData();
-            viewPreferencesForm.append(
-              "key",
-              `account-book-${accountBook.id}-timeline-range`,
-            );
-            viewPreferencesForm.append("value", newRange);
-
-            fetch(`/view-preferences/set`, {
-              method: "POST",
-              body: viewPreferencesForm,
-            });
+            saveViewPreference(timelineRangeKey(accountBook.id), newRange);
           }}
         >
           {period.granularity === "year" ? (

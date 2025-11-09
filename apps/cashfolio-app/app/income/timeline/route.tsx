@@ -1,5 +1,5 @@
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { ensureAuthorized } from "~/account-books/functions.server";
+import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functions.server";
 import { defaultShouldRevalidate } from "~/revalidation";
 import { serialize } from "~/serialization";
 import { getIncomeStatement } from "../calculation.server";
@@ -24,11 +24,19 @@ import {
   getNumberOfPeriods,
   redirectToLastUsedTimelineRange,
 } from "~/period/timeline.server";
+import { ensureUser } from "~/users/functions.server";
+import invariant from "tiny-invariant";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const link = await ensureAuthorized(request, params);
+  const user = await ensureUser(request);
 
-  if (!params.range) throw await redirectToLastUsedTimelineRange(link);
+  invariant(params.accountBookId, "accountBookId not found");
+  const link = await ensureAuthorizedForUserAndAccountBookId(
+    user,
+    params.accountBookId,
+  );
+
+  if (!params.range) throw await redirectToLastUsedTimelineRange(user, link);
 
   const range = parseRange(params.range);
   const period = getInitialTimelinePeriod(range);

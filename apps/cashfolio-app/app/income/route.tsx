@@ -28,6 +28,7 @@ import { findSubtreeRootNode } from "./functions";
 import invariant from "tiny-invariant";
 import type { Route } from "./+types/route";
 import { getPageTitle } from "~/meta";
+import { saveViewPreference, viewKey } from "~/view-preferences/functions";
 
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   { title: getPageTitle(`Income / ${loaderData.node.name}`) },
@@ -155,37 +156,17 @@ export default function Route() {
             <NavNavbarItem
               data-disabled={node.nodeType === "account" ? true : undefined}
               href={`/${accountBook.id}/income/${node.id}/breakdown`}
-              onClick={() => {
-                const viewPreferencesForm = new FormData();
-                viewPreferencesForm.append(
-                  "key",
-                  `account-book-${accountBook.id}-view`,
-                );
-                viewPreferencesForm.append("value", "breakdown");
-
-                fetch(`/view-preferences/set`, {
-                  method: "POST",
-                  body: viewPreferencesForm,
-                });
-              }}
+              onClick={() =>
+                saveViewPreference(viewKey(accountBook.id), "breakdown")
+              }
             >
               Breakdown
             </NavNavbarItem>
             <NavNavbarItem
               href={`/${accountBook.id}/income/${node.id}/timeline`}
-              onClick={() => {
-                const viewPreferencesForm = new FormData();
-                viewPreferencesForm.append(
-                  "key",
-                  `account-book-${accountBook.id}-view`,
-                );
-                viewPreferencesForm.append("value", "timeline");
-
-                fetch(`/view-preferences/set`, {
-                  method: "POST",
-                  body: viewPreferencesForm,
-                });
-              }}
+              onClick={() =>
+                saveViewPreference(viewKey(accountBook.id), "timeline")
+              }
             >
               Timeline
             </NavNavbarItem>
