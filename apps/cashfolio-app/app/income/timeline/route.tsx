@@ -9,41 +9,27 @@ import { getPeriodDateRangeFromPeriod } from "~/period/functions.server";
 import { AgCharts } from "ag-charts-react";
 import { getTheme } from "~/theme";
 import { formatMoney } from "~/formatting";
-import { format, getQuarter, getYear, parseISO } from "date-fns";
+import { format, getQuarter, parseISO } from "date-fns";
 import { decrementPeriod } from "~/period/functions";
 import type { IncomeAccountsNode } from "../types";
 import { findSubtreeRootNode, isExpensesNode } from "../functions";
 import { sum } from "~/utils.server";
 import { defaultChartOptions, defaultChartTheme } from "~/platform/charts";
-import { today } from "~/dates";
-import { parseRange, TimelineSelector } from "~/period/timeline";
-import type { Period } from "~/period/types";
+import {
+  getInitialTimelinePeriod,
+  parseRange,
+  TimelineSelector,
+} from "~/period/timeline";
+import { getNumberOfPeriods } from "~/period/timeline.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);
 
   if (!params.range) return redirect("../timeline/12m");
-  const parsedRange = parseRange(params.range);
 
-  const period: Period =
-    parsedRange[0] === "year"
-      ? {
-          granularity: "year",
-          year: getYear(today()),
-        }
-      : parsedRange[0] === "quarter"
-        ? {
-            granularity: "quarter",
-            year: getYear(today()),
-            quarter: getQuarter(today()),
-          }
-        : {
-            granularity: "month",
-            year: getYear(today()),
-            month: today().getMonth(),
-          };
-
-  const n = parsedRange[1] === "max" ? 12 : parsedRange[1];
+  const range = parseRange(params.range);
+  const period = getInitialTimelinePeriod(range);
+  const n = await getNumberOfPeriods(link.accountBookId, range);
 
   const periods = new Array(n).fill(null);
 

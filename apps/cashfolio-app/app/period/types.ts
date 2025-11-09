@@ -1,3 +1,8 @@
+export type TimelineRange = {
+  granularity: Granularity;
+  numberOfPeriods: number;
+};
+
 export type Granularity = Period["granularity"];
 
 export type YearPeriod = {

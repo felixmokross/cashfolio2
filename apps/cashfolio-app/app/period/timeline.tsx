@@ -1,13 +1,15 @@
 import clsx from "clsx";
-import type { Granularity, Period } from "./types";
+import type { Granularity, Period, TimelineRange } from "./types";
 import { Field } from "~/platform/forms/fieldset";
 import { Select } from "~/platform/forms/select";
 import { useNavigate } from "react-router";
+import { getMonth, getQuarter, getYear } from "date-fns";
+import { today } from "~/dates";
 
 const LIMITED_RANGE_REGEX = /^(\d+)([ymq])$/;
 const MAX_RANGE_REGEX = /^max-(year|month|quarter)$/;
 
-export function parseRange(range: string): [Granularity, number | "max"] {
+export function parseRange(range: string): TimelineRange {
   const normalizedRange = range.toLowerCase().trim();
 
   // 5y  12m  4q
@@ -27,17 +29,39 @@ export function parseRange(range: string): [Granularity, number | "max"] {
         `bad range ${range}: invalid granularity '${granularityChar}'`,
       );
     }
-    return [granularity, Number(count)];
+    return { granularity, numberOfPeriods: Number(count) };
   }
 
   // max-years  max-months  max-quarters
   const maxRangeResult = MAX_RANGE_REGEX.exec(normalizedRange);
   if (maxRangeResult) {
     const [, granularity] = maxRangeResult;
-    return [granularity, "max"] as [Granularity, number | "max"];
+    return {
+      granularity: granularity as Granularity,
+      numberOfPeriods: Infinity,
+    };
   }
 
   throw new Error(`bad range ${normalizedRange}: unrecognized format`);
+}
+
+export function getInitialTimelinePeriod(range: TimelineRange): Period {
+  return range.granularity === "year"
+    ? {
+        granularity: "year",
+        year: getYear(today()),
+      }
+    : range.granularity === "quarter"
+      ? {
+          granularity: "quarter",
+          year: getYear(today()),
+          quarter: getQuarter(today()),
+        }
+      : {
+          granularity: "month",
+          year: getYear(today()),
+          month: getMonth(today()),
+        };
 }
 
 export function TimelineSelector({
