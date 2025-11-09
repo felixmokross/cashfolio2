@@ -88,6 +88,7 @@ export function TimelineSelector({
               <option value="4q">Last 4 Quarters</option>
               <option value="8q">Last 8 Quarters</option>
               <option value="12q">Last 12 Quarters</option>
+              <option value="24q">Last 24 Quarters</option>
               <option value="max-quarter">Max</option>
             </>
           ) : period.granularity === "month" ? (
@@ -95,7 +96,8 @@ export function TimelineSelector({
               <option value="12m">Last 12 Months</option>
               <option value="24m">Last 24 Months</option>
               <option value="36m">Last 36 Months</option>
-              <option value="max-year">Max</option>
+              <option value="48m">Last 48 Months</option>
+              <option value="max-month">Max</option>
             </>
           ) : null}
         </Select>
