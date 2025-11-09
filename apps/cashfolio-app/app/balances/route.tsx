@@ -10,6 +10,7 @@ import { getBalanceSheet } from "./functions.server";
 import { serialize } from "~/serialization";
 import { defaultShouldRevalidate } from "~/revalidation";
 import { NavbarSection, NavNavbarItem } from "~/platform/navbar";
+import { saveViewPreference, viewKey } from "~/view-preferences/functions";
 
 export const meta: Route.MetaFunction = () => [
   { title: getPageTitle("Balances") },
@@ -43,37 +44,17 @@ export default function Route() {
           <NavbarSection className="-mx-2">
             <NavNavbarItem
               href={`/${accountBook.id}/balances/breakdown`}
-              onClick={() => {
-                const viewPreferencesForm = new FormData();
-                viewPreferencesForm.append(
-                  "key",
-                  `account-book-${accountBook.id}-view`,
-                );
-                viewPreferencesForm.append("value", "breakdown");
-
-                fetch(`/view-preferences/set`, {
-                  method: "POST",
-                  body: viewPreferencesForm,
-                });
-              }}
+              onClick={() =>
+                saveViewPreference(viewKey(accountBook.id), "breakdown")
+              }
             >
               Breakdown
             </NavNavbarItem>
             <NavNavbarItem
               href={`/${accountBook.id}/balances/timeline`}
-              onClick={() => {
-                const viewPreferencesForm = new FormData();
-                viewPreferencesForm.append(
-                  "key",
-                  `account-book-${accountBook.id}-view`,
-                );
-                viewPreferencesForm.append("value", "timeline");
-
-                fetch(`/view-preferences/set`, {
-                  method: "POST",
-                  body: viewPreferencesForm,
-                });
-              }}
+              onClick={() =>
+                saveViewPreference(viewKey(accountBook.id), "timeline")
+              }
             >
               Timeline
             </NavNavbarItem>
