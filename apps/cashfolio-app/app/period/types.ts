@@ -1,4 +1,7 @@
-import type { Quarter } from "date-fns";
+export type TimelineRange = {
+  granularity: Granularity;
+  numberOfPeriods: number;
+};
 
 export type Granularity = Period["granularity"];
 
@@ -10,7 +13,7 @@ export type YearPeriod = {
 export type QuarterPeriod = {
   granularity: "quarter";
   year: number;
-  quarter: Quarter;
+  quarter: number;
 };
 
 export type MonthPeriod = {

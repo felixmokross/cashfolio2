@@ -8,6 +8,6 @@ export const routes = [
       route("table", "income/breakdown/table/route.tsx"),
       route("chart", "income/breakdown/chart/route.tsx"),
     ]),
-    route("timeline", "income/timeline/route.tsx"),
+    route("timeline/:range?", "income/timeline/route.tsx"),
   ]),
 ];

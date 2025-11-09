@@ -1,31 +1,44 @@
 import { AgCharts } from "ag-charts-react";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { ensureAuthorized } from "~/account-books/functions.server";
+import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functions.server";
 import { decrementPeriod } from "~/period/functions";
-import {
-  getPeriod,
-  getPeriodDateRangeFromPeriod,
-} from "~/period/functions.server";
+import { getPeriodDateRangeFromPeriod } from "~/period/functions.server";
 import { defaultChartOptions, defaultChartTheme } from "~/platform/charts";
 import { defaultShouldRevalidate } from "~/revalidation";
 import { serialize } from "~/serialization";
 import { getBalanceSheet } from "../functions.server";
 import type { AgChartOptions } from "ag-charts-community";
 import { formatMoney } from "~/formatting";
-import { format, getQuarter, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { getTheme } from "~/theme";
+import {
+  getInitialTimelinePeriod,
+  parseRange,
+  TimelineSelector,
+} from "~/period/timeline";
+import {
+  getNumberOfPeriods,
+  redirectToLastUsedTimelineRange,
+} from "~/period/timeline.server";
+import { ensureUser } from "~/users/functions.server";
+import invariant from "tiny-invariant";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const link = await ensureAuthorized(request, params);
+  const user = await ensureUser(request);
 
-  const period = await getPeriod(request);
+  invariant(params.accountBookId, "accountBookId not found");
+  const link = await ensureAuthorizedForUserAndAccountBookId(
+    user,
+    params.accountBookId,
+  );
 
-  const n =
-    period.granularity === "month"
-      ? 24
-      : period.granularity === "quarter"
-        ? 12
-        : 10;
+  if (!params.range) throw await redirectToLastUsedTimelineRange(user, link);
+
+  const range = parseRange(params.range);
+  const period = getInitialTimelinePeriod(range);
+  const n = await getNumberOfPeriods(link.accountBookId, range, {
+    includeOpeningPeriod: true,
+  });
 
   const periods = new Array(n).fill(null);
 
@@ -54,6 +67,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   return serialize({
     period,
+    range: params.range,
     balanceSheets,
   });
 }
@@ -75,92 +89,95 @@ export default function Route() {
     getTheme() === "dark"
       ? "oklch(87.1% 0.006 286.286)"
       : "oklch(55.2% 0.016 285.938)";
-  const neutralStrokeColor =
-    getTheme() === "dark"
-      ? "oklch(96.7% 0.001 286.375)"
-      : "oklch(14.1% 0.005 285.823)";
   return (
-    <AgCharts
-      className="h-[calc(100vh_-_13rem)] mt-12"
-      options={
-        {
-          ...defaultChartOptions,
-          theme: {
-            ...defaultChartTheme,
-            palette: {
-              fills: [positiveFillColor, negativeFillColor, neutralFillColor],
-            },
-          },
-          series: [
-            {
-              type: "area",
-              xKey: "date",
-              yKey: "assets",
-              yName: "Assets",
-              marker: { enabled: true },
-              interpolation: { type: "smooth" },
-              tooltip: {
-                renderer: (params) => ({
-                  heading: format(params.datum.date, "dd MMM yyyy"),
-                }),
+    <>
+      <TimelineSelector
+        className="mt-12"
+        period={loaderData.period}
+        range={loaderData.range}
+      />
+      <AgCharts
+        className="h-[calc(100vh_-_16rem)] mt-4"
+        options={
+          {
+            ...defaultChartOptions,
+            theme: {
+              ...defaultChartTheme,
+              palette: {
+                fills: [positiveFillColor, negativeFillColor, neutralFillColor],
               },
             },
-            {
-              type: "area",
-              xKey: "date",
-              yKey: "liabilities",
-              yName: "Liabilities",
-              marker: { enabled: true },
-              interpolation: { type: "smooth" },
-              tooltip: {
-                renderer: (params) => ({
-                  heading: format(params.datum.date, "dd MMM yyyy"),
-                }),
+            series: [
+              {
+                type: "area",
+                xKey: "date",
+                yKey: "assets",
+                yName: "Assets",
+                marker: { enabled: true },
+                interpolation: { type: "smooth" },
+                tooltip: {
+                  renderer: (params) => ({
+                    heading: format(params.datum.date, "dd MMM yyyy"),
+                  }),
+                },
               },
-            },
-            {
-              type: "line",
-              xKey: "date",
-              yKey: "netWorth",
-              yName: "Net Worth",
-              marker: { enabled: true },
-              interpolation: { type: "smooth" },
-              tooltip: {
-                renderer: (params) => ({
-                  heading: format(params.datum.date, "dd MMM yyyy"),
-                }),
+              {
+                type: "area",
+                xKey: "date",
+                yKey: "liabilities",
+                yName: "Liabilities",
+                marker: { enabled: true },
+                interpolation: { type: "smooth" },
+                tooltip: {
+                  renderer: (params) => ({
+                    heading: format(params.datum.date, "dd MMM yyyy"),
+                  }),
+                },
               },
+              {
+                type: "line",
+                xKey: "date",
+                yKey: "netWorth",
+                yName: "Net Worth",
+                marker: { enabled: true },
+                interpolation: { type: "smooth" },
+                tooltip: {
+                  renderer: (params) => ({
+                    heading: format(params.datum.date, "dd MMM yyyy"),
+                  }),
+                },
+              },
+            ],
+            formatter: {
+              y: (params) => formatMoney(params.value as number),
             },
-          ],
-          formatter: {
-            y: (params) => formatMoney(params.value as number),
-          },
-          axes: [
-            {
-              type: "time",
-              position: "bottom",
-              label:
-                loaderData.period.granularity === "quarter"
-                  ? {
-                      formatter: (params) => format(params.value, "QQQ yyyy"),
-                    }
-                  : undefined,
-            },
-            {
-              type: "number",
-              position: "left",
-            },
-          ],
-          data: loaderData.balanceSheets.map(
-            ({ periodDateRange, balanceSheet }) => ({
-              date: parseISO(periodDateRange.to),
-              assets: balanceSheet.assets.balance,
-              liabilities: -balanceSheet.liabilities.balance,
-              netWorth: balanceSheet.equity,
-            }),
-          ),
-        } as AgChartOptions
-      }
-    />
+            axes: [
+              {
+                type: "time",
+                position: "bottom",
+                label:
+                  loaderData.period.granularity === "quarter"
+                    ? {
+                        formatter: (params) => format(params.value, "QQQ yyyy"),
+                      }
+                    : undefined,
+              },
+              {
+                type: "number",
+                position: "left",
+              },
+            ],
+            data: loaderData.balanceSheets.map(
+              ({ periodDateRange, balanceSheet }) => ({
+                date: parseISO(periodDateRange.to),
+                assets: balanceSheet.assets.balance,
+                liabilities: -balanceSheet.liabilities.balance,
+                netWorth: balanceSheet.equity,
+              }),
+            ),
+          } as AgChartOptions
+        }
+      />
+    </>
   );
 }
