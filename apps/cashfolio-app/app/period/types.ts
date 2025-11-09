@@ -1,5 +1,3 @@
-import type { Quarter } from "date-fns";
-
 export type Granularity = Period["granularity"];
 
 export type YearPeriod = {
@@ -10,7 +8,7 @@ export type YearPeriod = {
 export type QuarterPeriod = {
   granularity: "quarter";
   year: number;
-  quarter: Quarter;
+  quarter: number;
 };
 
 export type MonthPeriod = {

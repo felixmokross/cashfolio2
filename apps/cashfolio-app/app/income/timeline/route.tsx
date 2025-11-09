@@ -1,35 +1,49 @@
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { ensureAuthorized } from "~/account-books/functions.server";
 import { defaultShouldRevalidate } from "~/revalidation";
 import { serialize } from "~/serialization";
 import { getIncomeStatement } from "../calculation.server";
 import { prisma } from "~/prisma.server";
 import { getAccountGroups } from "~/account-groups/data";
-import {
-  getPeriod,
-  getPeriodDateRangeFromPeriod,
-} from "~/period/functions.server";
+import { getPeriodDateRangeFromPeriod } from "~/period/functions.server";
 import { AgCharts } from "ag-charts-react";
 import { getTheme } from "~/theme";
 import { formatMoney } from "~/formatting";
-import { format, getQuarter, parseISO } from "date-fns";
+import { format, getQuarter, getYear, parseISO } from "date-fns";
 import { decrementPeriod } from "~/period/functions";
 import type { IncomeAccountsNode } from "../types";
 import { findSubtreeRootNode, isExpensesNode } from "../functions";
 import { sum } from "~/utils.server";
 import { defaultChartOptions, defaultChartTheme } from "~/platform/charts";
+import { today } from "~/dates";
+import { parseRange, TimelineSelector } from "~/period/timeline";
+import type { Period } from "~/period/types";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);
 
-  const period = await getPeriod(request);
+  if (!params.range) return redirect("../timeline/12m");
+  const parsedRange = parseRange(params.range);
 
-  const n =
-    period.granularity === "month"
-      ? 12
-      : period.granularity === "quarter"
-        ? 4
-        : 5;
+  const period: Period =
+    parsedRange[0] === "year"
+      ? {
+          granularity: "year",
+          year: getYear(today()),
+        }
+      : parsedRange[0] === "quarter"
+        ? {
+            granularity: "quarter",
+            year: getYear(today()),
+            quarter: getQuarter(today()),
+          }
+        : {
+            granularity: "month",
+            year: getYear(today()),
+            month: today().getMonth(),
+          };
+
+  const n = parsedRange[1] === "max" ? 12 : parsedRange[1];
 
   const periods = new Array(n).fill(null);
 
@@ -96,6 +110,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   return serialize({
     period,
+    range: params.range,
     timeline,
     average: sum(timeline.map((i) => i.node?.value ?? 0)).dividedBy(
       timeline.length,
@@ -106,7 +121,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export const shouldRevalidate = defaultShouldRevalidate;
 
 export default function Route() {
-  const { timeline, average, period } = useLoaderData<typeof loader>();
+  const { timeline, average, period, range } = useLoaderData<typeof loader>();
 
   const isExpensesGroup = timeline[0].node && isExpensesNode(timeline[0].node);
   const negativeFillColor =
@@ -136,76 +151,79 @@ export default function Route() {
         }
       : undefined;
   return (
-    <AgCharts
-      className="h-[calc(100vh_-_14rem)] mt-12"
-      options={{
-        ...defaultChartOptions,
-        theme: {
-          ...defaultChartTheme,
-          palette: {
-            fills: [neutralFillColor],
-          },
-        },
-        series: [
-          {
-            type: "bar",
-            xKey: "date",
-            yKey: "value",
-            yName: "Period",
-            tooltip: tooltipOptions,
-            itemStyler: (params) => {
-              return {
-                fill:
-                  isExpensesGroup || params.yValue < 0
-                    ? negativeFillColor
-                    : positiveFillColor,
-              };
+    <>
+      <TimelineSelector className="mt-12" period={period} range={range} />
+      <AgCharts
+        className="h-[calc(100vh_-_16rem)] mt-4"
+        options={{
+          ...defaultChartOptions,
+          theme: {
+            ...defaultChartTheme,
+            palette: {
+              fills: [neutralFillColor],
             },
           },
-          {
-            type: "line",
-            xKey: "date",
-            yKey: "average",
-            yName: "Average",
-            marker: { enabled: false },
-            stroke: neutralStrokeColor,
-            lineDash: [6, 4],
-            tooltip: tooltipOptions,
+          series: [
+            {
+              type: "bar",
+              xKey: "date",
+              yKey: "value",
+              yName: "Period",
+              tooltip: tooltipOptions,
+              itemStyler: (params) => {
+                return {
+                  fill:
+                    isExpensesGroup || params.yValue < 0
+                      ? negativeFillColor
+                      : positiveFillColor,
+                };
+              },
+            },
+            {
+              type: "line",
+              xKey: "date",
+              yKey: "average",
+              yName: "Average",
+              marker: { enabled: false },
+              stroke: neutralStrokeColor,
+              lineDash: [6, 4],
+              tooltip: tooltipOptions,
+            },
+          ],
+          tooltip: {
+            mode: "single",
           },
-        ],
-        tooltip: {
-          mode: "single",
-        },
-        formatter: {
-          y: (params) => formatMoney(params.value as number),
-        },
-        axes: [
-          {
-            type: "unit-time",
-            position: "bottom",
-            label:
-              period.granularity === "quarter"
-                ? {
-                    formatter: (params) => `Q${getQuarter(params.value)}`,
-                  }
-                : undefined,
+          formatter: {
+            y: (params) => formatMoney(params.value as number),
           },
-          {
-            type: "number",
-            position: "left",
-          },
-        ],
-        data: timeline
-          .map((i) => ({
-            date: parseISO(i.periodDateRange.from),
-            value: i.node?.value ?? 0,
-          }))
-          .map(({ date, value }) => ({
-            date,
-            value: isExpensesGroup ? -value : value,
-            average: isExpensesGroup ? -average : average,
-          })),
-      }}
-    />
+          axes: [
+            {
+              type: "unit-time",
+              position: "bottom",
+              label:
+                period.granularity === "quarter"
+                  ? {
+                      formatter: (params) => `Q${getQuarter(params.value)}`,
+                    }
+                  : undefined,
+            },
+            {
+              type: "number",
+              position: "left",
+            },
+          ],
+          data: timeline
+            .map((i) => ({
+              date: parseISO(i.periodDateRange.from),
+              value: i.node?.value ?? 0,
+            }))
+            .map(({ date, value }) => ({
+              date,
+              value: isExpensesGroup ? -value : value,
+              average: isExpensesGroup ? -average : average,
+            })),
+        }}
+      />
+    </>
   );
 }
