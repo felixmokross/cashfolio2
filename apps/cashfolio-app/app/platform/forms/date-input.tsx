@@ -72,63 +72,75 @@ export function DateInput({
 
   return (
     <Headless.Popover className="relative" data-slot="control">
-      <span
-        data-disabled={disabled ? "true" : undefined}
-        data-invalid={invalid ? "true" : undefined}
-        {...groupProps}
-        ref={ref}
-        className={clsx(
-          // Layout
-          "inline-flex rounded-lg w-full gap-2 justify-between items-center px-[calc(--spacing(3.5)-1px)] py-[calc(--spacing(2.5)-1px)] sm:px-[calc(--spacing(3)-1px)] sm:py-[calc(--spacing(1.5)-1px)]",
-          // Typography
-          "text-base/6 text-neutral-950 sm:text-sm/6 dark:text-white",
-          // Border
-          "border border-neutral-950/10 hover:border-neutral-950/20 dark:border-white/10 dark:hover:border-white/20 shadow-sm dark:shadow-none",
-          // Background color
-          "bg-white dark:bg-white/5",
-          // Invalid state
-          "data-invalid:border-accent-negative-500 data-invalid:hover:border-accent-negative-500 dark:data-invalid:border-accent-negative-600 dark:data-invalid:hover:border-accent-negative-600",
-          // Disabled state
-          "data-disabled:opacity-50 data-disabled:bg-neutral-950/5 data-disabled:shadow-none data-disabled:pointer-events-none",
-          className,
-        )}
-      >
-        <input
-          type="hidden"
-          name={name}
-          value={state.value?.toString() || ""}
-          ref={inputRef}
-        />
-        <DateField
-          {...fieldProps}
-          autoFocus={autoFocus}
-          onEnterKeyDown={() => {
-            inputRef.current?.form?.requestSubmit();
-          }}
-        />
-        <DatePickerButton disabled={disabled}>
-          <CalendarDaysIcon />
-        </DatePickerButton>
-      </span>
-      <Headless.PopoverPanel
-        anchor="bottom"
-        className={clsx(
-          // Anchor positioning
-          "[--anchor-gap:--spacing(4)] [--anchor-padding:--spacing(4)] sm:data-[anchor~=start]:[--anchor-offset:-4px]",
-          // Base styles,
-          "isolate scroll-py-1 rounded-xl p-1 select-none",
-          // Invisible border that is only visible in `forced-colors` mode for accessibility purposes
-          "outline outline-transparent focus:outline-hidden",
-          // Popover background
-          "bg-white/75 backdrop-blur-xl dark:bg-neutral-800/75",
-          // Shadows
-          "shadow-lg ring-1 ring-neutral-950/10 dark:ring-white/10 dark:ring-inset",
-          // Typography
-          "text-base text-neutral-950 sm:text-sm dark:text-white forced-colors:text-[CanvasText]",
-        )}
-      >
-        <Calendar {...calendarProps} />
-      </Headless.PopoverPanel>
+      {({ close }) => (
+        <>
+          <span
+            data-disabled={disabled ? "true" : undefined}
+            data-invalid={invalid ? "true" : undefined}
+            {...groupProps}
+            ref={ref}
+            className={clsx(
+              // Layout
+              "inline-flex rounded-lg w-full gap-2 justify-between items-center px-[calc(--spacing(3.5)-1px)] py-[calc(--spacing(2.5)-1px)] sm:px-[calc(--spacing(3)-1px)] sm:py-[calc(--spacing(1.5)-1px)]",
+              // Typography
+              "text-base/6 text-neutral-950 sm:text-sm/6 dark:text-white",
+              // Border
+              "border border-neutral-950/10 hover:border-neutral-950/20 dark:border-white/10 dark:hover:border-white/20 shadow-sm dark:shadow-none",
+              // Background color
+              "bg-white dark:bg-white/5",
+              // Invalid state
+              "data-invalid:border-accent-negative-500 data-invalid:hover:border-accent-negative-500 dark:data-invalid:border-accent-negative-600 dark:data-invalid:hover:border-accent-negative-600",
+              // Disabled state
+              "data-disabled:opacity-50 data-disabled:bg-neutral-950/5 data-disabled:shadow-none data-disabled:pointer-events-none",
+              className,
+            )}
+          >
+            <input
+              type="hidden"
+              name={name}
+              value={state.value?.toString() || ""}
+              ref={inputRef}
+            />
+            <DateField
+              {...fieldProps}
+              autoFocus={autoFocus}
+              onEnterKeyDown={() => {
+                inputRef.current?.form?.requestSubmit();
+              }}
+            />
+            <DatePickerButton disabled={disabled}>
+              <CalendarDaysIcon />
+            </DatePickerButton>
+          </span>
+          <Headless.PopoverPanel
+            anchor="bottom"
+            className={clsx(
+              // Anchor positioning
+              "[--anchor-gap:--spacing(4)] [--anchor-padding:--spacing(4)] sm:data-[anchor~=start]:[--anchor-offset:-4px]",
+              // Base styles,
+              "isolate scroll-py-1 rounded-xl p-1 select-none",
+              // Invisible border that is only visible in `forced-colors` mode for accessibility purposes
+              "outline outline-transparent focus:outline-hidden",
+              // Popover background
+              "bg-white/75 backdrop-blur-xl dark:bg-neutral-800/75",
+              // Shadows
+              "shadow-lg ring-1 ring-neutral-950/10 dark:ring-white/10 dark:ring-inset",
+              // Typography
+              "text-base text-neutral-950 sm:text-sm dark:text-white forced-colors:text-[CanvasText]",
+            )}
+          >
+            <Calendar
+              {...{
+                ...calendarProps,
+                onChange(date) {
+                  calendarProps.onChange && calendarProps.onChange(date);
+                  close();
+                },
+              }}
+            />
+          </Headless.PopoverPanel>
+        </>
+      )}
     </Headless.Popover>
   );
 }
