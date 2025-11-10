@@ -1,3 +1,7 @@
+export function dateOrDateOptionKey(accountBookId: string) {
+  return `account-book-${accountBookId}-date-or-date-option`;
+}
+
 export function viewKey(accountBookId: string) {
   return `account-book-${accountBookId}-view`;
 }
