@@ -12,6 +12,8 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     loaderData: {
+      date: "2024-06-15",
+      dateOption: "date",
       balanceSheet: {
         assets: {
           id: "cmfb6zp1m000435oscptmvjkk",
