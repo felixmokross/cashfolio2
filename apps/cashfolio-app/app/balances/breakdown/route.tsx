@@ -5,7 +5,7 @@ import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functio
 import { getBalanceSheet } from "../functions.server";
 import { serialize } from "~/serialization";
 import { defaultShouldRevalidate } from "~/revalidation";
-import { endOfMonthUtc, today } from "~/dates";
+import { endOfMonthUtc, endOfQuarterUtc, endOfYearUtc, today } from "~/dates";
 import { subMonths } from "date-fns";
 import { getViewPreference } from "~/view-preferences/functions.server";
 import { ensureUser } from "~/users/functions.server";
@@ -38,7 +38,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       ? today()
       : dateOption === "end-of-last-month"
         ? endOfMonthUtc(subMonths(today(), 1))
-        : new Date(params.dateOrDateOption);
+        : dateOption === "end-of-last-quarter"
+          ? endOfQuarterUtc(subMonths(today(), 3))
+          : dateOption === "end-of-last-year"
+            ? endOfYearUtc(subMonths(today(), 12))
+            : new Date(params.dateOrDateOption);
 
   const balanceSheet = await getBalanceSheet(link.accountBookId, date);
   return serialize({

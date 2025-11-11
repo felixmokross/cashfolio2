@@ -27,7 +27,7 @@ export default function Route() {
   return (
     <>
       <AgCharts
-        className="h-[calc(100vh_-_18rem)] mt-2"
+        className="h-[calc(100vh_-_19rem)] mt-4"
         options={{
           ...defaultChartOptions,
           series: nodes.map((n) => ({
