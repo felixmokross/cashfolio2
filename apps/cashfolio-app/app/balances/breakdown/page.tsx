@@ -56,6 +56,8 @@ export function Page({
           >
             <option value="today">Today</option>
             <option value="end-of-last-month">End of Last Month</option>
+            <option value="end-of-last-quarter">End of Last Quarter</option>
+            <option value="end-of-last-year">End of Last Year</option>
             <option value="date">Select date…</option>
           </Select>
         </Field>
@@ -63,7 +65,10 @@ export function Page({
           <DateInput
             value={formatISODate(parseISO(dateValue))}
             disabled={
-              dateOption === "today" || dateOption === "end-of-last-month"
+              dateOption === "today" ||
+              dateOption === "end-of-last-month" ||
+              dateOption === "end-of-last-quarter" ||
+              dateOption === "end-of-last-year"
             }
             onChange={(value) => {
               if (value) {

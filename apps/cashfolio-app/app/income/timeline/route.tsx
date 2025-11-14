@@ -5,7 +5,7 @@ import { serialize } from "~/serialization";
 import { getIncomeStatement } from "../calculation.server";
 import { prisma } from "~/prisma.server";
 import { getAccountGroups } from "~/account-groups/data";
-import { getPeriodDateRangeFromPeriod } from "~/period/functions.server";
+import { getPeriodDateRangeFromPeriod } from "~/period/functions";
 import { AgCharts } from "ag-charts-react";
 import { getTheme } from "~/theme";
 import { formatMoney } from "~/formatting";
@@ -49,11 +49,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     periods[i] = decrementPeriod(periods[i - 1]);
   }
 
-  const periodDateRanges = (
-    await Promise.all(
-      periods.map((p) => getPeriodDateRangeFromPeriod(p, link.accountBookId)),
-    )
-  ).toReversed();
+  const periodDateRanges = periods
+    .map((p) => getPeriodDateRangeFromPeriod(p))
+    .toReversed();
 
   const [accountBook, accountGroups] = await Promise.all([
     prisma.accountBook.findUniqueOrThrow({

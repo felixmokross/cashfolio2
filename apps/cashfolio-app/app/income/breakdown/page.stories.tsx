@@ -12,7 +12,13 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     loaderData: {
-      siblings: [],
+      periodSpecifier: "mtd",
+      period: {
+        granularity: "month",
+        year: 2024,
+        month: 5,
+      },
+      minBookingDate: "2024-01-01",
       rootNode: {
         id: "equity-root",
         name: "Income",

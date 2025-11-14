@@ -12,11 +12,6 @@ export function useAccountBookLoaderData() {
   return accountBookLoaderData;
 }
 
-export function usePeriod() {
-  const { period } = useAccountBookLoaderData();
-  return period;
-}
-
 export function useAccountBook() {
   const { accountBook } = useAccountBookLoaderData();
   return accountBook;

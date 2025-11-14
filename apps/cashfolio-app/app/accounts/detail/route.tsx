@@ -9,8 +9,7 @@ import {
   getAccount,
   getBookings,
 } from "./calculation.server";
-import { subDays } from "date-fns";
-import { getPeriodDateRange } from "~/period/functions.server";
+import { parseISO, subDays } from "date-fns";
 import type { Account } from "~/.prisma-client/client";
 import { AccountType, EquityAccountSubtype } from "~/.prisma-client/enums";
 import { prisma } from "~/prisma.server";
@@ -19,6 +18,8 @@ import { getAccountUnitInfo, getCurrencyUnitInfo } from "~/units/functions";
 import type { Route } from "./+types/route";
 import { getPageTitle } from "~/meta";
 import { defaultShouldRevalidate } from "~/revalidation";
+import { getMinBookingDateForAccount } from "~/transactions/functions.server";
+import { today } from "~/dates";
 
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   { title: getPageTitle(loaderData.account.name) },
@@ -27,11 +28,18 @@ export const meta: Route.MetaFunction = ({ loaderData }) => [
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const link = await ensureAuthorized(request, params);
 
-  const { from, to } = await getPeriodDateRange(request, link.accountBookId);
-
   if (!params.accountId) {
     throw new Response("Not Found", { status: 400 });
   }
+
+  const requestUrl = new URL(request.url);
+
+  const from = requestUrl.searchParams.has("from")
+    ? parseISO(requestUrl.searchParams.get("from")!)
+    : await getMinBookingDateForAccount(link.accountBookId, params.accountId);
+  const to = requestUrl.searchParams.has("to")
+    ? parseISO(requestUrl.searchParams.get("to")!)
+    : today();
 
   const accountBook = await prisma.accountBook.findUniqueOrThrow({
     where: { id: link.accountBookId },

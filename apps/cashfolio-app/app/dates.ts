@@ -12,3 +12,13 @@ export function startOfMonthUtc(date: Date) {
 export function endOfMonthUtc(date: Date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
 }
+
+export function endOfQuarterUtc(date: Date) {
+  const month = date.getUTCMonth();
+  const quarterEndMonth = month - (month % 3) + 2;
+  return new Date(Date.UTC(date.getUTCFullYear(), quarterEndMonth + 1, 0));
+}
+
+export function endOfYearUtc(date: Date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), 12, 0));
+}

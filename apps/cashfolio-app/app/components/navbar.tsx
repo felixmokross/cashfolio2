@@ -3,10 +3,8 @@ import {
   NavSidebarItem,
   Sidebar,
   SidebarBody,
-  SidebarDivider,
   SidebarFooter,
   SidebarHeader,
-  SidebarHeading,
   SidebarItem,
   SidebarLabel,
   SidebarSection,
@@ -30,7 +28,6 @@ import {
   ScaleIcon,
   WalletIcon,
 } from "~/platform/icons/navigation";
-import { PeriodSelector } from "~/period/period-selector";
 import { useRouteLoaderData } from "react-router";
 import { Logo } from "~/components/logo";
 import type { loader as accountBookLoader } from "~/account-books/route";
@@ -72,11 +69,6 @@ export function Navbar() {
             <WalletIcon />
             <SidebarLabel>Accounts</SidebarLabel>
           </NavSidebarItem>
-        </SidebarSection>
-        <SidebarDivider />
-        <SidebarSection>
-          <SidebarHeading>Period</SidebarHeading>
-          <PeriodSelector />
         </SidebarSection>
       </SidebarBody>
       <SidebarFooter>

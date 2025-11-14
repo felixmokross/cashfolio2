@@ -1,21 +1,113 @@
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { Page } from "~/income/breakdown/page";
 import { getIncomeStatement } from "~/income/calculation.server";
 import { serialize } from "~/serialization";
 import { getAccountGroups } from "~/account-groups/data";
 import { prisma } from "~/prisma.server";
-import { getPeriodDateRange } from "~/period/functions.server";
-import { ensureAuthorized } from "~/account-books/functions.server";
+import { getPeriodDateRangeFromPeriod } from "~/period/functions";
+import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functions.server";
 import type { IncomeAccountsNode } from "../types";
 import { defaultShouldRevalidate } from "~/revalidation";
 import { findSubtreeRootNode } from "../functions";
 import type { Route } from "./+types/route";
 import type { AccountGroupNode } from "~/types";
+import { getMonth, getQuarter, getYear } from "date-fns";
+import { today } from "~/dates";
+import type { Period } from "~/period/types";
+import { ensureUser } from "~/users/functions.server";
+import invariant from "tiny-invariant";
+import { getViewPreference } from "~/view-preferences/functions.server";
+import { periodOrPeriodSpecifierKey } from "~/view-preferences/functions";
+import { getMinBookingDate } from "~/transactions/functions.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const link = await ensureAuthorized(request, params);
+  const user = await ensureUser(request);
 
-  const { from, to } = await getPeriodDateRange(request, link.accountBookId);
+  invariant(params.accountBookId, "accountBookId param is required");
+  const link = await ensureAuthorizedForUserAndAccountBookId(
+    user,
+    params.accountBookId,
+  );
+
+  if (!params.periodOrPeriodSpecifier) {
+    return redirect(
+      `./${getViewPreference(user, periodOrPeriodSpecifierKey(link.accountBookId)) ?? "mtd"}`,
+    );
+  }
+
+  const yearPeriodResult = /^[\d]{4}$/.exec(params.periodOrPeriodSpecifier);
+  const quarterPeriodResult = /^([\d]{4})-?q([1-4])$/i.exec(
+    params.periodOrPeriodSpecifier,
+  );
+  const monthPeriodResult = /^([\d]{4})-?([\d]{1,2})$/.exec(
+    params.periodOrPeriodSpecifier,
+  );
+
+  const minBookingDate = await getMinBookingDate(link.accountBookId);
+
+  const periodSpecifier = yearPeriodResult
+    ? "year"
+    : quarterPeriodResult
+      ? "quarter"
+      : monthPeriodResult
+        ? "month"
+        : params.periodOrPeriodSpecifier;
+
+  const period: Period | undefined =
+    periodSpecifier === "year"
+      ? { granularity: "year", year: Number(yearPeriodResult![0]) }
+      : periodSpecifier === "quarter"
+        ? {
+            granularity: "quarter",
+            year: Number(quarterPeriodResult![1]),
+            quarter: Number(quarterPeriodResult![2]),
+          }
+        : periodSpecifier === "month"
+          ? {
+              granularity: "month",
+              year: Number(monthPeriodResult![1]),
+              month: Number(monthPeriodResult![2]) - 1,
+            }
+          : periodSpecifier === "mtd"
+            ? {
+                granularity: "month",
+                year: getYear(today()),
+                month: getMonth(today()),
+              }
+            : periodSpecifier === "last-month"
+              ? {
+                  granularity: "month",
+                  year: getYear(today()),
+                  month: getMonth(today()) - 1,
+                }
+              : periodSpecifier === "qtd"
+                ? {
+                    granularity: "quarter",
+                    year: getYear(today()),
+                    quarter: getQuarter(today()),
+                  }
+                : periodSpecifier === "last-quarter"
+                  ? {
+                      granularity: "quarter",
+                      year: getYear(today()),
+                      quarter: getQuarter(today()) - 1,
+                    }
+                  : periodSpecifier === "ytd"
+                    ? {
+                        granularity: "year",
+                        year: getYear(today()),
+                      }
+                    : periodSpecifier === "last-year"
+                      ? {
+                          granularity: "year",
+                          year: getYear(today()) - 1,
+                        }
+                      : undefined;
+  if (!period) {
+    throw new Response("Not Found", { status: 404 });
+  }
+
+  const { from, to } = getPeriodDateRangeFromPeriod(period);
 
   const [accountBook, accounts, accountGroups] = await Promise.all([
     prisma.accountBook.findUniqueOrThrow({
@@ -56,7 +148,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     rootNode = incomeStatementTree;
   }
 
-  return serialize({ rootNode });
+  return serialize({
+    rootNode,
+    period,
+    periodSpecifier,
+    minBookingDate,
+  });
 }
 
 export const shouldRevalidate = defaultShouldRevalidate;
@@ -64,5 +161,6 @@ export const shouldRevalidate = defaultShouldRevalidate;
 export type LoaderData = ReturnType<typeof useLoaderData<typeof loader>>;
 
 export default function Route() {
-  return <Page />;
+  const loaderData = useLoaderData<typeof loader>();
+  return <Page loaderData={loaderData} />;
 }

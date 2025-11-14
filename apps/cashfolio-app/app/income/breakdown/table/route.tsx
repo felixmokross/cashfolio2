@@ -9,11 +9,13 @@ import { IncomeTableRows } from "./table-rows";
 import { formatMoney } from "~/formatting";
 import { useRouteLoaderData } from "react-router";
 import type { LoaderData as IncomeLoaderData } from "../route";
+import { getPeriodDateRangeFromPeriod } from "~/period/functions";
 
 export default function Route() {
   const loaderData = useRouteLoaderData<IncomeLoaderData>(
     "income/breakdown/route",
   );
+  const { from, to } = getPeriodDateRangeFromPeriod(loaderData!.period);
   return (
     <Table
       dense
@@ -30,7 +32,10 @@ export default function Route() {
         </TableRow>
       </TableHead>
       <TableBody>
-        <IncomeTableRows node={loaderData!.rootNode} />
+        <IncomeTableRows
+          node={loaderData!.rootNode}
+          options={{ queryParams: { from, to } }}
+        />
       </TableBody>
     </Table>
   );
