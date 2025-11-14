@@ -1,4 +1,8 @@
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import {
+  useLoaderData,
+  useNavigate,
+  type LoaderFunctionArgs,
+} from "react-router";
 import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functions.server";
 import { defaultShouldRevalidate } from "~/revalidation";
 import { serialize } from "~/serialization";
@@ -118,6 +122,7 @@ export const shouldRevalidate = defaultShouldRevalidate;
 export default function Route() {
   const { timeline, average, period, range } = useLoaderData<typeof loader>();
 
+  const navigate = useNavigate();
   const isExpensesGroup = timeline[0].node && isExpensesNode(timeline[0].node);
   const negativeFillColor =
     getTheme() === "dark"
@@ -190,6 +195,20 @@ export default function Route() {
           },
           formatter: {
             y: (params) => formatMoney(params.value as number),
+          },
+          listeners: {
+            seriesNodeDoubleClick: (event) => {
+              navigate(
+                `../breakdown/${format(
+                  event.datum.date,
+                  period.granularity === "year"
+                    ? "yyyy"
+                    : period.granularity === "quarter"
+                      ? "yyyy-QQQ"
+                      : "yyyy-MM",
+                ).toLowerCase()}`,
+              );
+            },
           },
           axes: [
             {
