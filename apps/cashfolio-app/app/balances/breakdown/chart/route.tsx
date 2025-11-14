@@ -33,23 +33,21 @@ const percentageNumberFormat = new Intl.NumberFormat("en-CH", {
 
 export default function Route() {
   const { chartType } = useLoaderData<typeof loader>();
-  const navigate = useNavigate();
   const breakdownLoaderData = useRouteLoaderData<typeof breakdownLoader>(
     "balances/breakdown/route",
   );
+  const navigate = useNavigate();
   invariant(breakdownLoaderData, "Loader data is required");
 
-  const { balanceSheet } = breakdownLoaderData;
-  const node = balanceSheet[
-    chartType === "assets" ? "assets" : "liabilities"
-  ] as Serialize<BalancesAccountsNode & AccountGroupNode>;
+  const { node } = breakdownLoaderData;
 
-  const chartDataItems = node.children
-    .map((c) => ({
-      ...c,
-      balance: chartType === "assets" ? c.balance : -c.balance,
-    }))
-    .filter((c) => c.balance >= 0);
+  const chartDataItems =
+    node?.children
+      .map((c) => ({
+        ...c,
+        balance: chartType === "assets" ? c.balance : -c.balance,
+      }))
+      .filter((c) => c.balance >= 0) ?? [];
   const totalBalance = sum(chartDataItems.map((c) => c.balance));
   return (
     <>
@@ -84,6 +82,15 @@ export default function Route() {
                         },
                       ],
                     };
+                  },
+                },
+                listeners: {
+                  seriesNodeDoubleClick: (e) => {
+                    if (e.datum.nodeType === "accountGroup") {
+                      navigate(`../../../balances/${e.datum.id}`);
+                    } else {
+                      navigate(`../../../accounts/${e.datum.id}`);
+                    }
                   },
                 },
               },

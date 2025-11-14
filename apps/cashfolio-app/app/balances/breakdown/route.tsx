@@ -25,6 +25,9 @@ import { useEffect, useState } from "react";
 import { useAccountBook } from "~/account-books/hooks";
 import { formatISODate } from "~/formatting";
 import { DateInput } from "~/platform/forms/date-input";
+import { findSubtreeRootNode } from "~/income/functions";
+import type { BalancesAccountsNode } from "../types";
+import type { AccountGroupNode } from "~/account-groups/accounts-tree";
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -59,10 +62,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             : new Date(params.dateOrDateOption);
 
   const balanceSheet = await getBalanceSheet(link.accountBookId, date);
+  const node = params.nodeId
+    ? findSubtreeRootNode(balanceSheet.assets, params.nodeId)
+    : balanceSheet.assets;
   return serialize({
     balanceSheet,
     date,
     dateOption,
+    node: node as (BalancesAccountsNode & AccountGroupNode) | undefined,
   });
 }
 
@@ -77,7 +84,7 @@ export default function Route() {
   const accountBook = useAccountBook();
   const [dateValue, setDateValue] = useState(date);
 
-  const match = useMatch("/:_/balances/breakdown/:_/:viewType/:chartType?");
+  const match = useMatch("/:_/balances/:_?/breakdown/:_/:viewType/:chartType?");
 
   useEffect(() => {
     setDateValue(date);
