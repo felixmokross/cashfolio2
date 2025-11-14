@@ -1,5 +1,9 @@
 import { AgCharts } from "ag-charts-react";
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import {
+  useLoaderData,
+  useNavigate,
+  type LoaderFunctionArgs,
+} from "react-router";
 import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functions.server";
 import { decrementPeriod } from "~/period/functions";
 import { getPeriodDateRangeFromPeriod } from "~/period/functions";
@@ -8,7 +12,7 @@ import { defaultShouldRevalidate } from "~/revalidation";
 import { serialize } from "~/serialization";
 import { getBalanceSheet } from "../functions.server";
 import type { AgChartOptions } from "ag-charts-community";
-import { formatMoney } from "~/formatting";
+import { formatISODate, formatMoney } from "~/formatting";
 import { format, parseISO } from "date-fns";
 import { getTheme } from "~/theme";
 import {
@@ -73,6 +77,7 @@ export const shouldRevalidate = defaultShouldRevalidate;
 
 export default function Route() {
   const loaderData = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
   const negativeFillColor =
     getTheme() === "dark"
       ? "oklch(57.7% 0.245 27.325)"
@@ -86,6 +91,7 @@ export default function Route() {
     getTheme() === "dark"
       ? "oklch(87.1% 0.006 286.286)"
       : "oklch(55.2% 0.016 285.938)";
+
   return (
     <>
       <TimelineSelector
@@ -147,6 +153,11 @@ export default function Route() {
             ],
             formatter: {
               y: (params) => formatMoney(params.value as number),
+            },
+            listeners: {
+              seriesNodeDoubleClick: (event) => {
+                navigate(`../breakdown/${formatISODate(event.datum.date)}`);
+              },
             },
             axes: [
               {
