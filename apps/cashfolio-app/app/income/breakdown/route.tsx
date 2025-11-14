@@ -5,7 +5,7 @@ import { serialize } from "~/serialization";
 import { getAccountGroups } from "~/account-groups/data";
 import { prisma } from "~/prisma.server";
 import { getPeriodDateRangeFromPeriod } from "~/period/functions.server";
-import { ensureAuthorized } from "~/account-books/functions.server";
+import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functions.server";
 import type { IncomeAccountsNode } from "../types";
 import { defaultShouldRevalidate } from "~/revalidation";
 import { findSubtreeRootNode } from "../functions";
@@ -14,12 +14,24 @@ import type { AccountGroupNode } from "~/types";
 import { getMonth, getQuarter, getYear } from "date-fns";
 import { today } from "~/dates";
 import type { Period } from "~/period/types";
+import { ensureUser } from "~/users/functions.server";
+import invariant from "tiny-invariant";
+import { getViewPreference } from "~/view-preferences/functions.server";
+import { periodOrPeriodSpecifierKey } from "~/view-preferences/functions";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const link = await ensureAuthorized(request, params);
+  const user = await ensureUser(request);
+
+  invariant(params.accountBookId, "accountBookId param is required");
+  const link = await ensureAuthorizedForUserAndAccountBookId(
+    user,
+    params.accountBookId,
+  );
 
   if (!params.periodOrPeriodSpecifier) {
-    return redirect("./mtd");
+    return redirect(
+      `./${getViewPreference(user, periodOrPeriodSpecifierKey(link.accountBookId)) ?? "mtd"}`,
+    );
   }
 
   const yearPeriodResult = /^[\d]{4}$/.exec(params.periodOrPeriodSpecifier);

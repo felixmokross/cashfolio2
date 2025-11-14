@@ -4,12 +4,16 @@ import { Select } from "~/platform/forms/select";
 import type { LoaderData } from "./route";
 import { today } from "~/dates";
 import { addDays, format, getYear } from "date-fns";
+import {
+  periodOrPeriodSpecifierKey,
+  saveViewPreference,
+} from "~/view-preferences/functions";
+import { useAccountBook } from "~/account-books/hooks";
 
 export function Page({ loaderData }: { loaderData: LoaderData }) {
   const navigate = useNavigate();
-  const match = useMatch(
-    "/:accountBookId/income/:nodeId/breakdown/:period?/:viewType",
-  );
+  const match = useMatch("/:_/income/:_/breakdown/:_/:viewType");
+  const accountBook = useAccountBook();
   return (
     <div className="space-y-4 mt-12">
       <div className="flex justify-center items-center gap-2">
@@ -19,7 +23,7 @@ export function Page({ loaderData }: { loaderData: LoaderData }) {
             onChange={(e) => {
               const newPeriodSpecifier = e.target.value;
 
-              const newPeriod =
+              const newPeriodOrPeriodSpecifier =
                 newPeriodSpecifier === "month"
                   ? format(today(), "yyyy-MM")
                   : newPeriodSpecifier === "quarter"
@@ -28,7 +32,13 @@ export function Page({ loaderData }: { loaderData: LoaderData }) {
                       ? format(today(), "yyyy")
                       : newPeriodSpecifier;
 
-              navigate(`../breakdown/${newPeriod}/${match?.params.viewType}`);
+              navigate(
+                `../breakdown/${newPeriodOrPeriodSpecifier}/${match?.params.viewType}`,
+              );
+              saveViewPreference(
+                periodOrPeriodSpecifierKey(accountBook.id),
+                newPeriodOrPeriodSpecifier,
+              );
             }}
           >
             <optgroup label="Monthly">
@@ -64,6 +74,10 @@ export function Page({ loaderData }: { loaderData: LoaderData }) {
                         .toString()
                         .padStart(2, "0")}`;
               navigate(`../breakdown/${newPeriod}/${match?.params.viewType}`);
+              saveViewPreference(
+                periodOrPeriodSpecifierKey(accountBook.id),
+                newPeriod,
+              );
             }}
             value={loaderData.period.year.toString()}
           >
@@ -87,10 +101,11 @@ export function Page({ loaderData }: { loaderData: LoaderData }) {
               value={loaderData.period.quarter.toString()}
               onChange={(e) => {
                 const newQuarter = Number(e.target.value);
-                navigate(
-                  `../breakdown/${loaderData.period.year}-q${
-                    newQuarter
-                  }/${match?.params.viewType}`,
+                const newPeriod = `${loaderData.period.year}-q${newQuarter}`;
+                navigate(`../breakdown/${newPeriod}/${match?.params.viewType}`);
+                saveViewPreference(
+                  periodOrPeriodSpecifierKey(accountBook.id),
+                  newPeriod,
                 );
               }}
               disabled={loaderData.periodSpecifier !== "quarter"}
@@ -108,10 +123,13 @@ export function Page({ loaderData }: { loaderData: LoaderData }) {
               value={loaderData.period.month.toString()}
               onChange={(e) => {
                 const newMonth = Number(e.target.value);
-                navigate(
-                  `../breakdown/${loaderData.period.year}-${(newMonth + 1)
-                    .toString()
-                    .padStart(2, "0")}/${match?.params.viewType}`,
+                const newPeriod = `${loaderData.period.year}-${(newMonth + 1)
+                  .toString()
+                  .padStart(2, "0")}`;
+                navigate(`../breakdown/${newPeriod}/${match?.params.viewType}`);
+                saveViewPreference(
+                  periodOrPeriodSpecifierKey(accountBook.id),
+                  newPeriod,
                 );
               }}
               disabled={loaderData.periodSpecifier !== "month"}
