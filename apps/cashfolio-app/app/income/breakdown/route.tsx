@@ -4,7 +4,7 @@ import { getIncomeStatement } from "~/income/calculation.server";
 import { serialize } from "~/serialization";
 import { getAccountGroups } from "~/account-groups/data";
 import { prisma } from "~/prisma.server";
-import { getPeriodDateRangeFromPeriod } from "~/period/functions.server";
+import { getPeriodDateRangeFromPeriod } from "~/period/functions";
 import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functions.server";
 import type { IncomeAccountsNode } from "../types";
 import { defaultShouldRevalidate } from "~/revalidation";
@@ -18,6 +18,7 @@ import { ensureUser } from "~/users/functions.server";
 import invariant from "tiny-invariant";
 import { getViewPreference } from "~/view-preferences/functions.server";
 import { periodOrPeriodSpecifierKey } from "~/view-preferences/functions";
+import { getMinBookingDate } from "~/transactions/functions.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const user = await ensureUser(request);
@@ -42,15 +43,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     params.periodOrPeriodSpecifier,
   );
 
-  const {
-    _min: { date: minBookingDate },
-  } = await prisma.booking.aggregate({
-    _min: { date: true },
-    where: { accountBookId: link.accountBookId },
-  });
-  if (!minBookingDate) {
-    throw new Error("No bookings found");
-  }
+  const minBookingDate = await getMinBookingDate(link.accountBookId);
 
   const periodSpecifier = yearPeriodResult
     ? "year"
@@ -114,10 +107,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw new Response("Not Found", { status: 404 });
   }
 
-  const { from, to } = await getPeriodDateRangeFromPeriod(
-    period,
-    link.accountBookId,
-  );
+  const { from, to } = getPeriodDateRangeFromPeriod(period);
 
   const [accountBook, accounts, accountGroups] = await Promise.all([
     prisma.accountBook.findUniqueOrThrow({

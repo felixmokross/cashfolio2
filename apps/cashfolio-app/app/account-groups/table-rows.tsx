@@ -13,9 +13,14 @@ import { useAccountBook } from "~/account-books/hooks";
 import { useFetcher, useRouteLoaderData } from "react-router";
 import { Badge } from "~/platform/badge";
 import type { loader as rootLoader } from "~/root";
+import { formatISODate } from "~/formatting";
 
-type AccountsNodeTableRowOptions = {
+export type AccountsNodeTableRowOptions = {
   showInactiveBadge?: boolean;
+  queryParams?: {
+    from?: Date;
+    to?: Date;
+  };
 };
 
 export function AccountsNodeChildrenTableRows<TData = {}>({
@@ -96,11 +101,30 @@ export function AccountsNodeTableRow<TData = {}>({
       action: `/view-preferences/set`,
     });
   }
+
+  const urlSearchParams = options.queryParams
+    ? new URLSearchParams(
+        Object.fromEntries(
+          Object.entries(options.queryParams)
+            .map(([key, value]) => [
+              key,
+              value
+                ? value instanceof Date
+                  ? formatISODate(value)
+                  : String(value)
+                : undefined,
+            ])
+            .filter(([, value]) => !!value),
+        ),
+      )
+    : undefined;
   return (
     <>
       <TableRow
         {...(node.nodeType === "account"
-          ? { href: `/${accountBook.id}/accounts/${node.id}` }
+          ? {
+              href: `/${accountBook.id}/accounts/${node.id}${urlSearchParams ? `?${urlSearchParams.toString()}` : ""}`,
+            }
           : { onClick: () => toggleExpanded() })}
       >
         <TableCell>

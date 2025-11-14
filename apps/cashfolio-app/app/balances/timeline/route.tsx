@@ -2,7 +2,7 @@ import { AgCharts } from "ag-charts-react";
 import { useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functions.server";
 import { decrementPeriod } from "~/period/functions";
-import { getPeriodDateRangeFromPeriod } from "~/period/functions.server";
+import { getPeriodDateRangeFromPeriod } from "~/period/functions";
 import { defaultChartOptions, defaultChartTheme } from "~/platform/charts";
 import { defaultShouldRevalidate } from "~/revalidation";
 import { serialize } from "~/serialization";
@@ -50,10 +50,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const balanceSheets = (
     await Promise.all(
       periods.map(async (p) => {
-        const periodDateRange = await getPeriodDateRangeFromPeriod(
-          p,
-          link.accountBookId,
-        );
+        const periodDateRange = getPeriodDateRangeFromPeriod(p);
         return {
           periodDateRange,
           balanceSheet: await getBalanceSheet(
