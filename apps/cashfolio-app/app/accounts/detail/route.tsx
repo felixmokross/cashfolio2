@@ -1,4 +1,4 @@
-import { useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { serialize } from "~/serialization";
 import { Page } from "./page";
 import { getAccountGroupsWithPath } from "~/account-groups/data";
@@ -9,7 +9,7 @@ import {
   getAccount,
   getBookings,
 } from "./calculation.server";
-import { parseISO, subDays } from "date-fns";
+import { subDays } from "date-fns";
 import type { Account } from "~/.prisma-client/client";
 import { AccountType, EquityAccountSubtype } from "~/.prisma-client/enums";
 import { prisma } from "~/prisma.server";
@@ -18,8 +18,8 @@ import { getAccountUnitInfo, getCurrencyUnitInfo } from "~/units/functions";
 import type { Route } from "./+types/route";
 import { getPageTitle } from "~/meta";
 import { defaultShouldRevalidate } from "~/revalidation";
+import { getPeriodDateRangeFromPeriod, parsePeriod } from "~/period/functions";
 import { getMinBookingDateForAccount } from "~/transactions/functions.server";
-import { today } from "~/dates";
 
 export const meta: Route.MetaFunction = ({ loaderData }) => [
   { title: getPageTitle(loaderData.account.name) },
@@ -32,14 +32,14 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     throw new Response("Not Found", { status: 400 });
   }
 
-  const requestUrl = new URL(request.url);
+  if (!params.periodOrPeriodSpecifier) {
+    throw redirect("./mtd");
+  }
 
-  const from = requestUrl.searchParams.has("from")
-    ? parseISO(requestUrl.searchParams.get("from")!)
-    : await getMinBookingDateForAccount(link.accountBookId, params.accountId);
-  const to = requestUrl.searchParams.has("to")
-    ? parseISO(requestUrl.searchParams.get("to")!)
-    : today();
+  const { period, periodSpecifier } = parsePeriod(
+    params.periodOrPeriodSpecifier,
+  );
+  const { from, to } = getPeriodDateRangeFromPeriod(period);
 
   const accountBook = await prisma.accountBook.findUniqueOrThrow({
     where: { id: link.accountBookId },
@@ -54,6 +54,10 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     throw new Response("Not Found", { status: 404 });
   }
 
+  const minBookingDate = await getMinBookingDateForAccount(
+    link.accountBookId,
+    account.id,
+  );
   const accountGroups = await getAccountGroupsWithPath(
     link.accountBookId,
     account.isActive ? { isActive: true } : undefined,
@@ -89,6 +93,9 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   );
 
   return serialize({
+    period,
+    periodSpecifier,
+    minBookingDate,
     ledgerUnitInfo,
     account: {
       ...account,

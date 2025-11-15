@@ -1,4 +1,4 @@
-import { Outlet } from "react-router";
+import { Outlet, useParams } from "react-router";
 import { getPageTitle } from "~/meta";
 import type { Route } from "./+types/route";
 import { Heading } from "~/platform/heading";
@@ -12,6 +12,7 @@ export const meta: Route.MetaFunction = () => [
 ];
 
 export default function Route() {
+  const { nodeId } = useParams<"nodeId">();
   const accountBook = useAccountBook();
   return (
     <>
@@ -23,7 +24,11 @@ export default function Route() {
         <div className="grow-0">
           <NavbarSection className="-mx-2">
             <NavNavbarItem
-              href={`/${accountBook.id}/balances/breakdown`}
+              href={
+                nodeId
+                  ? `/${accountBook.id}/balances/${nodeId}/breakdown`
+                  : `/${accountBook.id}/balances/breakdown`
+              }
               onClick={() =>
                 saveViewPreference(viewKey(accountBook.id), "breakdown")
               }
@@ -31,7 +36,11 @@ export default function Route() {
               Breakdown
             </NavNavbarItem>
             <NavNavbarItem
-              href={`/${accountBook.id}/balances/timeline`}
+              href={
+                nodeId
+                  ? `/${accountBook.id}/balances/${nodeId}/timeline`
+                  : `/${accountBook.id}/balances/timeline`
+              }
               onClick={() =>
                 saveViewPreference(viewKey(accountBook.id), "timeline")
               }

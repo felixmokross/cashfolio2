@@ -1,13 +1,12 @@
-import { useNavigate, useRouteLoaderData } from "react-router";
+import { useNavigate, useParams, useRouteLoaderData } from "react-router";
 import type { LoaderData as IncomeLoaderData } from "../route";
 import invariant from "tiny-invariant";
 import { AgCharts } from "ag-charts-react";
 import { useAccountBook } from "~/account-books/hooks";
-import { formatISODate, formatMoney } from "~/formatting";
+import { formatMoney } from "~/formatting";
 import { Subheading } from "~/platform/heading";
 import { isExpensesNode } from "~/income/functions";
 import { defaultChartOptions } from "~/platform/charts";
-import { getPeriodDateRangeFromPeriod } from "~/period/functions";
 
 export default function Route() {
   const loaderData = useRouteLoaderData<IncomeLoaderData>(
@@ -26,7 +25,9 @@ export default function Route() {
         .toReversed()
     : loaderData!.rootNode.children;
 
-  const { from, to } = getPeriodDateRangeFromPeriod(loaderData!.period);
+  const { periodOrPeriodSpecifier } = useParams<{
+    periodOrPeriodSpecifier: string;
+  }>();
   return (
     <>
       <AgCharts
@@ -50,7 +51,7 @@ export default function Route() {
                   );
                 } else {
                   navigate(
-                    `/${accountBook.id}/accounts/${node.id}?from=${formatISODate(from)}&to=${formatISODate(to)}`,
+                    `/${accountBook.id}/accounts/${node.id}/${periodOrPeriodSpecifier}`,
                   );
                 }
               },
