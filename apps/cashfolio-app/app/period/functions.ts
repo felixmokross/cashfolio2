@@ -59,3 +59,77 @@ export function getPeriodDateRangeFromPeriod(period: Period) {
 
   return { from, to };
 }
+
+export function parsePeriod(periodOrPeriodSpecifier: string) {
+  const yearPeriodResult = /^[\d]{4}$/.exec(periodOrPeriodSpecifier);
+  const quarterPeriodResult = /^([\d]{4})-?q([1-4])$/i.exec(
+    periodOrPeriodSpecifier,
+  );
+  const monthPeriodResult = /^([\d]{4})-?([\d]{1,2})$/.exec(
+    periodOrPeriodSpecifier,
+  );
+
+  const periodSpecifier = yearPeriodResult
+    ? "year"
+    : quarterPeriodResult
+      ? "quarter"
+      : monthPeriodResult
+        ? "month"
+        : periodOrPeriodSpecifier;
+
+  const period: Period | undefined =
+    periodSpecifier === "year"
+      ? { granularity: "year", year: Number(yearPeriodResult![0]) }
+      : periodSpecifier === "quarter"
+        ? {
+            granularity: "quarter",
+            year: Number(quarterPeriodResult![1]),
+            quarter: Number(quarterPeriodResult![2]),
+          }
+        : periodSpecifier === "month"
+          ? {
+              granularity: "month",
+              year: Number(monthPeriodResult![1]),
+              month: Number(monthPeriodResult![2]) - 1,
+            }
+          : periodSpecifier === "mtd"
+            ? {
+                granularity: "month",
+                year: getYear(today()),
+                month: getMonth(today()),
+              }
+            : periodSpecifier === "last-month"
+              ? {
+                  granularity: "month",
+                  year: getYear(today()),
+                  month: getMonth(today()) - 1,
+                }
+              : periodSpecifier === "qtd"
+                ? {
+                    granularity: "quarter",
+                    year: getYear(today()),
+                    quarter: getQuarter(today()),
+                  }
+                : periodSpecifier === "last-quarter"
+                  ? {
+                      granularity: "quarter",
+                      year: getYear(today()),
+                      quarter: getQuarter(today()) - 1,
+                    }
+                  : periodSpecifier === "ytd"
+                    ? {
+                        granularity: "year",
+                        year: getYear(today()),
+                      }
+                    : periodSpecifier === "last-year"
+                      ? {
+                          granularity: "year",
+                          year: getYear(today()) - 1,
+                        }
+                      : undefined;
+  if (!period) {
+    throw new Response("Not Found", { status: 404 });
+  }
+
+  return { period, periodSpecifier };
+}

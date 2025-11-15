@@ -40,6 +40,8 @@ import { EditAccount, useEditAccount } from "../edit-account";
 import { DeleteAccount, useDeleteAccount } from "../delete-account";
 import { getUnitInfo, getUnitLabel, isSameUnit } from "~/units/functions";
 import { Rebook, useRebook } from "~/transactions/rebook";
+import { PeriodSelector } from "~/period/period-selector";
+import { useNavigate } from "react-router";
 
 export function Page({
   loaderData: {
@@ -49,6 +51,9 @@ export function Page({
     openingBalance,
     ledgerRows,
     accountGroups,
+    period,
+    periodSpecifier,
+    minBookingDate,
   },
 }: {
   loaderData: LoaderData;
@@ -66,6 +71,7 @@ export function Page({
     useRebook();
 
   const accountBook = useAccountBook();
+  const navigate = useNavigate();
 
   return (
     <>
@@ -125,6 +131,16 @@ export function Page({
         {...moveBookingProps}
         accounts={allAccounts}
         currentAccount={account}
+      />
+
+      <PeriodSelector
+        className="mt-12"
+        period={period}
+        periodSpecifier={periodSpecifier}
+        minBookingDate={minBookingDate}
+        onNavigate={(newPeriodOrPeriodSpecifier) =>
+          navigate(`../accounts/${account.id}/${newPeriodOrPeriodSpecifier}`)
+        }
       />
 
       <Table
