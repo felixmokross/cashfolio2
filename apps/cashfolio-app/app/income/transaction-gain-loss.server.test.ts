@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import {
   buildBooking,
-  buildTransaction,
   buildTransactionWithBookings,
 } from "~/transactions/builders";
 import {
@@ -10,85 +9,51 @@ import {
   TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
 } from "./transaction-gain-loss.server";
 import { Decimal } from "@prisma/client/runtime/library";
-import { Unit, type Booking } from "~/.prisma-client/client";
+import {
+  AccountType,
+  Unit,
+  type Account,
+  type Booking,
+} from "~/.prisma-client/client";
 import { redis } from "~/redis.server";
 import { prisma } from "~/prisma.server";
 import { parseISO } from "date-fns";
-import { buildAccountBook } from "~/account-books/builders";
-import { buildAccount } from "~/accounts/builders";
-import { buildAccountGroup } from "~/account-groups/builders";
+import {
+  createTestAccount,
+  createTestTransaction,
+  testAccountBook,
+} from "test-setup";
 
 describe("generateTransactionGainLossBookings", () => {
+  let account1: Account = undefined!;
+  let account2: Account = undefined!;
+
   beforeEach(async () => {
-    await prisma.accountBook.deleteMany({});
-
-    await prisma.accountBook.create({
-      data: buildAccountBook({
-        id: "account-book-1",
-        referenceCurrency: "CHF",
-      }),
-    });
-
-    await prisma.accountGroup.create({
-      data: buildAccountGroup({
-        id: "equity",
-        type: "EQUITY",
-        accountBookId: "account-book-1",
-      }),
-    });
-
-    await prisma.account.createMany({
-      data: [
-        buildAccount({
-          accountBookId: "account-book-1",
-          id: "acc-1",
-          groupId: "equity",
-        }),
-        buildAccount({
-          accountBookId: "account-book-1",
-          id: "acc-2",
-          groupId: "equity",
-        }),
-      ],
-    });
+    account1 = await createTestAccount(AccountType.EQUITY);
+    account2 = await createTestAccount(AccountType.EQUITY);
   });
 
   test("returns transaction gain/loss bookings for given account book and date range", async () => {
     await redis.set("2025-11-15", JSON.stringify({ USDCHF: 1.1, USDEUR: 1 }));
 
-    await prisma.transaction.create({
-      data: buildTransaction({
-        id: "tx-1",
-        accountBookId: "account-book-1",
-      }),
-    });
-
-    await prisma.booking.createMany({
-      data: [
-        buildBooking({
-          transactionId: "tx-1",
-          accountBookId: "account-book-1",
-          accountId: "acc-1",
-          date: new Date("2025-11-15"),
-          unit: Unit.CURRENCY,
-          currency: "CHF",
-          value: new Decimal(-1070),
-        }),
-        buildBooking({
-          transactionId: "tx-1",
-          accountBookId: "account-book-1",
-          accountId: "acc-2",
-          date: new Date("2025-11-15"),
-          unit: Unit.CURRENCY,
-          currency: "EUR",
-          value: new Decimal(1000),
-        }),
-      ],
-    });
+    const transaction = await createTestTransaction(
+      {
+        date: "2025-11-15",
+        accountId: account1.id,
+        currency: "CHF",
+        value: -1070,
+      },
+      {
+        date: "2025-11-15",
+        accountId: account2.id,
+        currency: "EUR",
+        value: 1000,
+      },
+    );
 
     const result = await generateTransactionGainLossBookings(
       await prisma.accountBook.findUniqueOrThrow({
-        where: { id: "account-book-1" },
+        where: { id: testAccountBook.id },
       }),
       parseISO("2025-11-14"),
       parseISO("2025-11-16"),
@@ -96,9 +61,9 @@ describe("generateTransactionGainLossBookings", () => {
 
     expect(result).toEqual([
       expect.objectContaining<Partial<Booking>>({
-        date: new Date("2025-11-15"),
-        id: "transaction-gain-loss-tx-1",
-        accountBookId: "account-book-1",
+        date: parseISO("2025-11-15"),
+        id: `transaction-gain-loss-${transaction.id}`,
+        accountBookId: testAccountBook.id,
         accountId: TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
         unit: Unit.CURRENCY,
         currency: "CHF",

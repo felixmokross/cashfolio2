@@ -1,3 +1,4 @@
+name: cashfolio
 services:
   postgres:
     image: postgres:17
