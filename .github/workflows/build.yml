@@ -15,8 +15,6 @@ on:
 env:
   NODE_VERSION: 22
   FLYCTL_VERSION: 0.3.193
-#   FRONTEND_INTERNAL_PORT: 3000
-#   CMS_INTERNAL_PORT: 3001
 
 jobs:
   version:
@@ -88,11 +86,11 @@ jobs:
       - name: Setup
         uses: felixmokross/webplatform/.github/actions/setup@main
       - name: Install dependencies
-        run: pnpm --filter cashfolio-app install
+        run: pnpm --filter cashfolio-app --filter cli install
       - name: Generate Prisma Client
         run: pnpm --filter cashfolio-app exec prisma generate
-      - name: Run unit tests in cashfolio-app
-        run: pnpm --filter cashfolio-app test
+      - name: Run unit tests
+        run: pnpm --filter cli start test
 
   cashfolio-redis-build-push:
     name: "cashfolio-redis: Build and Push"
