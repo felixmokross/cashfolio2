@@ -1,4 +1,4 @@
-import { beforeEach, expect, test, vi } from "vitest";
+import { beforeEach, expect, test } from "vitest";
 import { getEquityAccountIncome } from "./get-equity-account-income.server";
 import { prisma } from "~/prisma.server";
 import { buildAccountBook } from "~/account-books/builders";
@@ -11,9 +11,6 @@ import { parseISO } from "date-fns";
 import { buildAccountGroup } from "~/account-groups/builders";
 
 beforeEach(async () => {
-  // clean up
-  await redis.flushAll();
-
   await prisma.accountBook.deleteMany({});
 
   await prisma.accountBook.create({

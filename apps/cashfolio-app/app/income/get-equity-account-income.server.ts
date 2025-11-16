@@ -12,16 +12,11 @@ export async function getEquityAccountIncome(
 ): Promise<Map<string, Decimal>> {
   const accountBook = await prisma.accountBook.findUniqueOrThrow({
     where: { id: accountBookId },
-  });
-  const accounts = await prisma.account.findMany({
-    where: {
-      accountBookId: accountBookId,
-      type: AccountType.EQUITY,
-    },
+    include: { accounts: { where: { type: AccountType.EQUITY } } },
   });
 
   const valueByAccountId = new Map<string, Decimal>();
-  for (const account of accounts) {
+  for (const account of accountBook.accounts) {
     const balanceAtEnd = await getBalanceCached(
       accountBookId,
       account.id,

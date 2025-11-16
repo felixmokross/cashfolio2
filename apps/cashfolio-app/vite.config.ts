@@ -5,6 +5,10 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [tailwindcss(), !isStorybook() && reactRouter(), tsconfigPaths()],
+  test: {
+    setupFiles: "./test-setup.ts",
+    maxWorkers: 1,
+  },
 });
 
 function isStorybook() {

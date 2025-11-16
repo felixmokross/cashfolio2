@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
-  completeTransaction,
   generateHoldingBookingsForAccount,
   getIncomeData,
 } from "./calculation.server";
@@ -143,62 +142,6 @@ describe.skip("generateFxBookingsForFxAccount", () => {
     );
 
     expect(result).toEqual([]);
-  });
-});
-
-describe.skip("completeFxTransaction", () => {
-  test("completes an FX transaction", async () => {
-    const fxRates = {
-      "2025-01-03_EUR_CHF": new Decimal(0.9),
-    };
-
-    async function getFxRate(
-      date: Date,
-      from: UnitInfo,
-      to: UnitInfo,
-    ): Promise<Decimal> {
-      if (from.unit !== "CURRENCY") throw new Error("Only currency supported");
-      if (to.unit !== "CURRENCY") throw new Error("Only currency supported");
-
-      if (from.currency === to.currency) {
-        return new Decimal(1);
-      }
-
-      const key = `${formatISODate(date)}_${from.currency}_${to.currency}`;
-      if (!(key in fxRates)) throw new Error(`Unexpected FX rate: ${key}`);
-
-      return fxRates[key as keyof typeof fxRates];
-    }
-
-    mockGetExchangeRate.mockImplementation(
-      (from: UnitInfo, to: UnitInfo, date: Date) => getFxRate(date, from, to),
-    );
-
-    const result = await completeTransaction("CHF", {
-      id: "transaction_1",
-      description: "FX transaction",
-      bookings: [
-        buildBooking({
-          id: "booking_1",
-          accountId: "account_1",
-          date: new Date("2025-01-03"),
-          value: new Decimal(-100),
-          currency: "EUR",
-        }),
-        buildBooking({
-          id: "booking_2",
-          date: new Date("2025-01-04"),
-          accountId: "account_2",
-          value: new Decimal(88),
-          currency: "CHF",
-        }),
-      ],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      accountBookId: "book-1",
-    });
-
-    expect(result).toEqual(new Decimal(2));
   });
 });
 

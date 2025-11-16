@@ -6,10 +6,6 @@ import { isAfter, isEqual } from "date-fns";
 import {
   generateHoldingBookingsForAccount,
   generateHoldingGainLossAccount,
-  generateTransactionGainLossAccount,
-  generateTransactionGainLossBooking,
-  generateTransactionGainLossBookings,
-  TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
 } from "~/income/calculation.server";
 import { Decimal } from "@prisma/client/runtime/library";
 import type { AccountBook, Booking } from "~/.prisma-client/client";
@@ -19,6 +15,12 @@ import { TRANSFER_CLEARING_ACCOUNT_ID } from "../constants";
 import invariant from "tiny-invariant";
 import type { UnitInfo } from "~/units/types";
 import { getUnitInfo } from "~/units/functions";
+import {
+  generateTransactionGainLossAccount,
+  generateTransactionGainLossBooking,
+  generateTransactionGainLossBookings,
+  TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
+} from "~/income/transaction-gain-loss.server";
 
 export async function getAccount(accountId: string, accountBookId: string) {
   if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
