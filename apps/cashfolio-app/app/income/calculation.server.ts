@@ -42,6 +42,10 @@ import {
   isTransactionGainLossAccount,
   TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
 } from "./transaction-gain-loss.server";
+import {
+  generateHoldingBookingsForAccount,
+  generateHoldingGainLossAccount,
+} from "./holding-gain-loss.server";
 
 export async function getIncomeStatement(
   accountBook: AccountBook,
@@ -94,107 +98,6 @@ export async function getIncomeStatement(
   }
 
   return withIncomeData(netIncomeNode);
-}
-
-export async function generateHoldingBookingsForAccount(
-  accountBook: AccountBook,
-  fxAccount: AccountWithBookings,
-  fromDate: Date,
-  toDate: Date,
-): Promise<BookingWithTransaction[]> {
-  const initialDate = subDays(fromDate, 1);
-
-  const fxAccountUnit = getAccountUnitInfo(fxAccount);
-  invariant(fxAccountUnit, "FX account must have a unit defined");
-
-  const referenceCurrencyUnit = getCurrencyUnitInfo(
-    accountBook.referenceCurrency,
-  );
-
-  let balance = await getBalanceCached(
-    accountBook.id,
-    fxAccount.id,
-    fxAccountUnit,
-    initialDate,
-  );
-
-  if (balance.isZero() && fxAccount.bookings.length === 0) {
-    // no balance and no bookings within this period, nothing to do
-    return [];
-  }
-
-  let fxRate = await getExchangeRate(
-    fxAccountUnit,
-    referenceCurrencyUnit,
-    initialDate,
-  );
-
-  const bookings = new Array<BookingWithTransaction>(
-    fxAccount.bookings.length + 1,
-  );
-
-  for (let i = 0; i < bookings.length; i++) {
-    const date = fxAccount.bookings[i]?.date ?? toDate;
-    const newFxRate = await getExchangeRate(
-      fxAccountUnit,
-      referenceCurrencyUnit,
-      date,
-    );
-    const fxRateDiff = newFxRate.minus(fxRate);
-
-    bookings[i] = {
-      id: `fx-booking-${fxAccount.id}-${formatISODate(date)}`,
-      date,
-      accountId: fxAccount.id,
-      value: balance.mul(fxRateDiff).negated(),
-      unit: Unit.CURRENCY,
-      currency: accountBook.referenceCurrency,
-      cryptocurrency: null,
-      symbol: null,
-      tradeCurrency: null,
-      description: "",
-      transactionId: "transaction-fx-profit-loss",
-      accountBookId: accountBook.id,
-      transaction: {
-        id: "transaction-fx-profit-loss",
-        description: `Holding G/L as of ${formatISO(date, { representation: "date" })}`,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        bookings: [],
-        accountBookId: accountBook.id,
-      },
-    };
-
-    // TODO test this better, if new balance is set before calculating the FX booking value, it's wrong
-    balance = await getBalanceCached(
-      accountBook.id,
-      fxAccount.id,
-      fxAccountUnit,
-      date,
-    );
-    fxRate = newFxRate;
-  }
-
-  return bookings;
-}
-
-export function generateHoldingGainLossAccount(account: Account): Account {
-  return {
-    id: `holding-gain-loss-${account.id}`,
-    type: AccountType.EQUITY,
-    equityAccountSubtype: EquityAccountSubtype.GAIN_LOSS,
-    name: `${account.unit === Unit.CURRENCY ? "FX" : account.unit === Unit.CRYPTOCURRENCY ? "Crypto" : "Security"} Holding Gain/Loss for ${account.name}`,
-    groupId: `${account.unit === Unit.CURRENCY ? "fx" : account.unit === Unit.CRYPTOCURRENCY ? "crypto" : "security"}-${account.currency || account.cryptocurrency || account.symbol}-accounts`,
-    unit: null,
-    currency: null,
-    cryptocurrency: null,
-    symbol: null,
-    tradeCurrency: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    accountBookId: account.accountBookId,
-    isActive: true,
-  };
 }
 
 export async function getIncomeData(
