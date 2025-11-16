@@ -1,28 +1,13 @@
-import {
-  differenceInDays,
-  formatISO,
-  isSameMonth,
-  max,
-  subDays,
-} from "date-fns";
+import { isSameMonth } from "date-fns";
 import type { AccountWithBookings } from "~/accounts/types";
-import { formatISODate } from "~/formatting";
-import type { TransactionWithBookings } from "~/transactions/types";
 import { sum } from "~/utils.server";
 import type { IncomeAccountsNode, IncomeData } from "./types";
-import { convert, getExchangeRate } from "~/fx.server";
+import { convert } from "~/fx.server";
 import {
   getAccountsTree,
   type AccountsNode,
 } from "~/account-groups/accounts-tree";
-import { getBalanceCached } from "~/accounts/detail/calculation.server";
-import type { BookingWithTransaction } from "~/accounts/detail/types";
-import { prisma } from "~/prisma.server";
-import {
-  AccountType,
-  EquityAccountSubtype,
-  Unit,
-} from "~/.prisma-client/enums";
+import { AccountType, Unit } from "~/.prisma-client/enums";
 import { Decimal } from "@prisma/client/runtime/library";
 import type {
   Account,
@@ -30,17 +15,11 @@ import type {
   AccountGroup,
 } from "~/.prisma-client/client";
 import { redis } from "~/redis.server";
-import {
-  getAccountUnitInfo,
-  getCurrencyUnitInfo,
-  getUnitInfo,
-} from "~/units/functions";
-import invariant from "tiny-invariant";
+import { getCurrencyUnitInfo, getUnitInfo } from "~/units/functions";
 import {
   generateTransactionGainLossAccount,
   generateTransactionGainLossBookings,
   isTransactionGainLossAccount,
-  TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
 } from "./transaction-gain-loss.server";
 import {
   generateHoldingBookingsForAccount,

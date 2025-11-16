@@ -3,10 +3,6 @@ import { convert } from "~/fx.server";
 import { redis } from "~/redis.server";
 import { prisma } from "~/prisma.server";
 import { isAfter, isEqual } from "date-fns";
-import {
-  generateHoldingBookingsForAccount,
-  generateHoldingGainLossAccount,
-} from "~/income/calculation.server";
 import { Decimal } from "@prisma/client/runtime/library";
 import type { AccountBook, Booking } from "~/.prisma-client/client";
 import { Unit as UnitEnum } from "~/.prisma-client/enums";
@@ -21,6 +17,10 @@ import {
   generateTransactionGainLossBookings,
   TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
 } from "~/income/transaction-gain-loss.server";
+import {
+  generateHoldingBookingsForAccount,
+  generateHoldingGainLossAccount,
+} from "~/income/holding-gain-loss.server";
 
 export async function getAccount(accountId: string, accountBookId: string) {
   if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
