@@ -42,7 +42,12 @@ export async function getHoldingGainLoss(
         currency: accountBook.referenceCurrency,
       },
     },
-    include: { bookings: { where: { date: { gte: fromDate, lte: toDate } } } },
+    include: {
+      bookings: {
+        where: { date: { gte: fromDate, lte: toDate } },
+        orderBy: { date: "asc" }, // TODO test this, this is crucial for correct calculation
+      },
+    },
   });
 
   const holdingGainLossAccounts: Account[] = [];
