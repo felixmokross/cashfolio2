@@ -1,16 +1,12 @@
 import { createId } from "@paralleldrive/cuid2";
 import { Decimal } from "@prisma/client/runtime/library";
 import { parseISO } from "date-fns";
-import type { connect } from "http2";
 import { beforeEach } from "vitest";
-import {
-  AccountType,
-  type Account,
-  type AccountBook,
-} from "~/.prisma-client/client";
+import { AccountType, type AccountBook } from "~/.prisma-client/client";
 import { Unit } from "~/.prisma-client/enums";
 import { prisma } from "~/prisma.server";
 import { redis } from "~/redis.server";
+import type { UnitInfo } from "~/units/types";
 
 export let testAccountBook: AccountBook = undefined!;
 
@@ -37,8 +33,13 @@ beforeEach(async () => {
   });
 });
 
+export type AccountConfig = {
+  type: AccountType;
+  unit?: UnitInfo;
+};
+
 export async function createTestAccount(
-  type: AccountType,
+  { type, unit }: AccountConfig,
   ...transactions: Omit<CreateTestTransactionBookingArg, "accountId">[]
 ) {
   const rootGroupForType = await prisma.accountGroup.findFirstOrThrow({
@@ -51,6 +52,13 @@ export async function createTestAccount(
       type,
       groupId: rootGroupForType.id,
       accountBookId: testAccountBook.id,
+      unit: unit?.unit,
+      currency: unit?.unit === Unit.CURRENCY ? unit?.currency : undefined,
+      cryptocurrency:
+        unit?.unit === Unit.CRYPTOCURRENCY ? unit?.cryptocurrency : undefined,
+      symbol: unit?.unit === Unit.SECURITY ? unit?.symbol : undefined,
+      tradeCurrency:
+        unit?.unit === Unit.SECURITY ? unit?.tradeCurrency : undefined,
     },
   });
 

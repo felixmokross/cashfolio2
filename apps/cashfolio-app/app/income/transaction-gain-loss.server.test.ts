@@ -29,8 +29,8 @@ describe("generateTransactionGainLossBookings", () => {
   let account2: Account = undefined!;
 
   beforeEach(async () => {
-    account1 = await createTestAccount(AccountType.EQUITY);
-    account2 = await createTestAccount(AccountType.EQUITY);
+    account1 = await createTestAccount({ type: AccountType.EQUITY });
+    account2 = await createTestAccount({ type: AccountType.EQUITY });
   });
 
   test("returns transaction gain/loss bookings for given account book and date range", async () => {

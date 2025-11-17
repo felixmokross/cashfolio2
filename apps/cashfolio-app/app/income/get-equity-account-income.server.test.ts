@@ -4,31 +4,34 @@ import { AccountType } from "~/.prisma-client/enums";
 import { Decimal } from "@prisma/client/runtime/library";
 import { redis } from "~/redis.server";
 import { parseISO } from "date-fns";
-import {
-  createTestAccount as createTestAccount,
-  testAccountBook,
-} from "test-setup";
+import { createTestAccount, testAccountBook } from "test-setup";
 
 test("returns the income per equity account", async () => {
   await redis.set("2025-11-15", JSON.stringify({ USDCHF: 1.1, USDEUR: 1 }));
 
-  const salaryAccount = await createTestAccount(AccountType.EQUITY, {
-    date: "2025-11-15",
-    currency: "CHF",
-    value: 10000,
-  });
+  const salaryAccount = await createTestAccount(
+    { type: AccountType.EQUITY },
+    {
+      date: "2025-11-15",
+      currency: "CHF",
+      value: 10000,
+    },
+  );
 
   const groceriesAccount = await createTestAccount(
-    AccountType.EQUITY,
+    { type: AccountType.EQUITY },
     { date: "2025-11-10", currency: "CHF", value: -200 },
     { date: "2025-11-15", currency: "EUR", value: -150 },
   );
 
-  const rentAccount = await createTestAccount(AccountType.EQUITY, {
-    date: "2025-11-01",
-    currency: "CHF",
-    value: -2000,
-  });
+  const rentAccount = await createTestAccount(
+    { type: AccountType.EQUITY },
+    {
+      date: "2025-11-01",
+      currency: "CHF",
+      value: -2000,
+    },
+  );
 
   const result = await getEquityAccountIncome(
     testAccountBook.id,
