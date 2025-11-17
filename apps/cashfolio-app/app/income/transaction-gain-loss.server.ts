@@ -18,6 +18,7 @@ import {
   getUnitLabel,
 } from "~/units/functions";
 import { sum } from "~/utils.server";
+import type { Income } from "./types";
 
 export const TRANSACTION_GAIN_LOSS_ACCOUNT_ID = "transaction-gain-loss";
 
@@ -50,15 +51,36 @@ export async function getTransactionGainLoss(
   accountBookId: string,
   fromDate: Date,
   toDate: Date,
-) {
+): Promise<Income> {
   const accountBook = await prisma.accountBook.findUniqueOrThrow({
     where: { id: accountBookId },
   });
-  return sum(
-    (
-      await generateTransactionGainLossBookings(accountBook, fromDate, toDate)
-    ).map((b) => b.value),
-  );
+
+  const equityRootGroup = await prisma.accountGroup.findFirstOrThrow({
+    where: {
+      accountBookId: accountBook.id,
+      type: AccountType.EQUITY,
+      parentGroupId: null,
+    },
+  });
+  return {
+    incomeByAccountId: new Map<string, Decimal>([
+      [
+        TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
+        sum(
+          (
+            await generateTransactionGainLossBookings(
+              accountBook,
+              fromDate,
+              toDate,
+            )
+          ).map((b) => b.value),
+        ),
+      ],
+    ]),
+    accounts: [generateTransactionGainLossAccount(equityRootGroup)],
+    accountGroups: [equityRootGroup],
+  };
 }
 
 export async function generateTransactionGainLossBookings(

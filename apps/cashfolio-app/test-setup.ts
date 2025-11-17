@@ -96,3 +96,43 @@ export async function createTestTransaction(
     },
   });
 }
+
+export async function setupTestHoldingGainLossAccountGroups() {
+  const equityRootGroup = await prisma.accountGroup.findFirstOrThrow({
+    where: {
+      accountBookId: testAccountBook.id,
+      type: AccountType.EQUITY,
+      parentGroupId: null,
+    },
+  });
+
+  await prisma.accountBook.update({
+    where: { id: testAccountBook.id },
+    data: {
+      fxHoldingGainLossAccountGroup: {
+        create: {
+          accountBookId: testAccountBook.id,
+          name: "FX Holding Gain/Loss",
+          type: AccountType.EQUITY,
+          parentGroupId: equityRootGroup.id,
+        },
+      },
+      cryptoHoldingGainLossAccountGroup: {
+        create: {
+          accountBookId: testAccountBook.id,
+          name: "Crypto Holding Gain/Loss",
+          type: AccountType.EQUITY,
+          parentGroupId: equityRootGroup.id,
+        },
+      },
+      securityHoldingGainLossAccountGroup: {
+        create: {
+          accountBookId: testAccountBook.id,
+          name: "Security Holding Gain/Loss",
+          type: AccountType.EQUITY,
+          parentGroupId: equityRootGroup.id,
+        },
+      },
+    },
+  });
+}

@@ -16,14 +16,20 @@ import { getExchangeRate } from "~/fx.server";
 import { prisma } from "~/prisma.server";
 import { getAccountUnitInfo, getCurrencyUnitInfo } from "~/units/functions";
 import { sum } from "~/utils.server";
+import type { Income } from "./types";
 
 export async function getHoldingGainLoss(
   accountBookId: string,
   fromDate: Date,
   toDate: Date,
-) {
+): Promise<Income> {
   const accountBook = await prisma.accountBook.findUniqueOrThrow({
     where: { id: accountBookId },
+    include: {
+      securityHoldingGainLossAccountGroup: true,
+      cryptoHoldingGainLossAccountGroup: true,
+      fxHoldingGainLossAccountGroup: true,
+    },
   });
   const holdingGainLossByAccountId = new Map<string, Decimal>();
 
@@ -39,21 +45,44 @@ export async function getHoldingGainLoss(
     include: { bookings: { where: { date: { gte: fromDate, lte: toDate } } } },
   });
 
+  const holdingGainLossAccounts: Account[] = [];
   for (const holdingAccount of holdingAccounts) {
     const holdingGainLossAccount =
       generateHoldingGainLossAccount(holdingAccount);
+
+    // TODO temporarily just adding to the existing parent group
+    const parentGroupId =
+      holdingAccount.unit === Unit.CURRENCY
+        ? accountBook.fxHoldingGainLossAccountGroupId
+        : holdingAccount.unit === Unit.CRYPTOCURRENCY
+          ? accountBook.cryptoHoldingGainLossAccountGroupId
+          : accountBook.securityHoldingGainLossAccountGroupId;
+    invariant(parentGroupId, "Parent group ID must be defined");
+
+    holdingGainLossAccount.groupId = parentGroupId;
+
     const bookings = await generateHoldingBookingsForAccount(
       accountBook,
       holdingAccount,
       fromDate,
       toDate,
     );
+
+    holdingGainLossAccounts.push(holdingGainLossAccount);
     holdingGainLossByAccountId.set(
       holdingGainLossAccount.id,
       sum(bookings.map((b) => b.value)),
     );
   }
-  return holdingGainLossByAccountId;
+  return {
+    incomeByAccountId: holdingGainLossByAccountId,
+    accounts: holdingGainLossAccounts,
+    accountGroups: [
+      accountBook.fxHoldingGainLossAccountGroup,
+      accountBook.cryptoHoldingGainLossAccountGroup,
+      accountBook.securityHoldingGainLossAccountGroup,
+    ].filter((g) => !!g),
+  };
 }
 
 export async function generateHoldingBookingsForAccount(

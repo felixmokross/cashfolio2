@@ -4,12 +4,13 @@ import { getCurrencyUnitInfo } from "~/units/functions";
 import { Decimal } from "@prisma/client/runtime/library";
 import { getBalanceCached } from "~/accounts/detail/calculation.server";
 import { subDays } from "date-fns";
+import type { Income } from "./types";
 
 export async function getEquityAccountIncome(
   accountBookId: string,
   fromDate: Date,
   toDate: Date,
-): Promise<Map<string, Decimal>> {
+): Promise<Income> {
   const accountBook = await prisma.accountBook.findUniqueOrThrow({
     where: { id: accountBookId },
     include: {
@@ -19,10 +20,12 @@ export async function getEquityAccountIncome(
           bookings: { some: { date: { gte: fromDate, lte: toDate } } },
         },
       },
+      // Currently we include all equity groups – to filter only relevant ones we'll need a open/close date, going through the group tree would be ineffecient
+      groups: { where: { type: AccountType.EQUITY } },
     },
   });
 
-  const valueByAccountId = new Map<string, Decimal>();
+  const incomeByAccountId = new Map<string, Decimal>();
   for (const account of accountBook.accounts) {
     const balanceAtEnd = await getBalanceCached(
       accountBookId,
@@ -38,7 +41,12 @@ export async function getEquityAccountIncome(
       subDays(fromDate, 1),
     );
 
-    valueByAccountId.set(account.id, balanceAtEnd.sub(balanceAtStart));
+    incomeByAccountId.set(account.id, balanceAtEnd.sub(balanceAtStart));
   }
-  return valueByAccountId;
+
+  return {
+    incomeByAccountId,
+    accounts: accountBook.accounts,
+    accountGroups: accountBook.groups,
+  };
 }

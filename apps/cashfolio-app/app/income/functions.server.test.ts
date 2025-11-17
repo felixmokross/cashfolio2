@@ -6,6 +6,7 @@ import { redis } from "~/redis.server";
 import {
   createTestAccount,
   createTestTransaction,
+  setupTestHoldingGainLossAccountGroups,
   testAccountBook,
 } from "test-setup";
 import { getCurrencyUnitInfo } from "~/units/functions";
@@ -16,6 +17,8 @@ describe("getIncome", () => {
   test("returns holding gain/loss", async () => {
     await redis.set("2025-10-31", JSON.stringify({ USDCHF: 1.1, USDEUR: 1 }));
     await redis.set("2025-11-30", JSON.stringify({ USDCHF: 1.05, USDEUR: 1 }));
+
+    await setupTestHoldingGainLossAccountGroups();
 
     const holdingAccount = await createTestAccount(
       {
@@ -35,7 +38,7 @@ describe("getIncome", () => {
       parseISO("2025-11-30"),
     );
 
-    expect([...result.entries()]).toEqual(
+    expect([...result.incomeByAccountId.entries()]).toEqual(
       expect.arrayContaining([
         [`holding-gain-loss-${holdingAccount.id}`, new Decimal(50)],
       ]),
@@ -58,7 +61,7 @@ describe("getIncome", () => {
       parseISO("2025-11-30"),
     );
 
-    expect([...result.entries()]).toEqual(
+    expect([...result.incomeByAccountId.entries()]).toEqual(
       expect.arrayContaining([[rentAccount.id, new Decimal(-2000)]]),
     );
   });
@@ -90,7 +93,7 @@ describe("getIncome", () => {
       parseISO("2025-11-30"),
     );
 
-    expect([...result.entries()]).toEqual(
+    expect([...result.incomeByAccountId.entries()]).toEqual(
       expect.arrayContaining([
         [TRANSACTION_GAIN_LOSS_ACCOUNT_ID, new Decimal(-30)],
       ]),

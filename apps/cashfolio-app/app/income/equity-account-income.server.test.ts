@@ -39,11 +39,18 @@ test("returns the income per equity account", async () => {
     parseISO("2025-11-30"),
   );
 
-  expect(result).toEqual(
-    new Map([
+  expect(result).toEqual({
+    accounts: [salaryAccount, groceriesAccount, rentAccount],
+    accountGroups: [
+      expect.objectContaining({
+        type: AccountType.EQUITY,
+        parentGroupId: null,
+      }),
+    ],
+    incomeByAccountId: new Map([
       [salaryAccount.id, new Decimal(10000)],
       [groceriesAccount.id, new Decimal(-365)],
       [rentAccount.id, new Decimal(-2000)],
     ]),
-  );
+  });
 });
