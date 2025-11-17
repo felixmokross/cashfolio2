@@ -20,7 +20,7 @@ program.command("test").action(async () => {
     shell: true,
   });
 
-  testProcess.on("close", (code) => {
-    console.log(`Exited with code ${code}`);
+  process.on("SIGINT", () => {
+    testProcess.kill("SIGINT");
   });
 });

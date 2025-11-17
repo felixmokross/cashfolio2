@@ -1,3 +1,4 @@
+import type { Decimal } from "@prisma/client/runtime/library";
 import { subDays } from "date-fns";
 import invariant from "tiny-invariant";
 import {
@@ -12,7 +13,48 @@ import type { BookingWithTransaction } from "~/accounts/detail/types";
 import type { AccountWithBookings } from "~/accounts/types";
 import { formatISODate } from "~/formatting";
 import { getExchangeRate } from "~/fx.server";
+import { prisma } from "~/prisma.server";
 import { getAccountUnitInfo, getCurrencyUnitInfo } from "~/units/functions";
+import { sum } from "~/utils.server";
+
+export async function getHoldingGainLoss(
+  accountBookId: string,
+  fromDate: Date,
+  toDate: Date,
+) {
+  const accountBook = await prisma.accountBook.findUniqueOrThrow({
+    where: { id: accountBookId },
+  });
+  const holdingGainLossByAccountId = new Map<string, Decimal>();
+
+  const holdingAccounts = await prisma.account.findMany({
+    where: {
+      accountBookId: accountBook.id,
+      type: { in: [AccountType.ASSET, AccountType.LIABILITY] },
+      NOT: {
+        unit: Unit.CURRENCY,
+        currency: accountBook.referenceCurrency,
+      },
+    },
+    include: { bookings: { where: { date: { gte: fromDate, lte: toDate } } } },
+  });
+
+  for (const holdingAccount of holdingAccounts) {
+    const holdingGainLossAccount =
+      generateHoldingGainLossAccount(holdingAccount);
+    const bookings = await generateHoldingBookingsForAccount(
+      accountBook,
+      holdingAccount,
+      fromDate,
+      toDate,
+    );
+    holdingGainLossByAccountId.set(
+      holdingGainLossAccount.id,
+      sum(bookings.map((b) => b.value)),
+    );
+  }
+  return holdingGainLossByAccountId;
+}
 
 export async function generateHoldingBookingsForAccount(
   accountBook: AccountBook,

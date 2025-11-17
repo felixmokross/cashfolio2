@@ -3,8 +3,14 @@ import { getIncome } from "./functions.server";
 import { Decimal } from "@prisma/client/runtime/library";
 import { AccountType } from "~/.prisma-client/enums";
 import { redis } from "~/redis.server";
-import { createTestAccount, testAccountBook } from "test-setup";
+import {
+  createTestAccount,
+  createTestTransaction,
+  testAccountBook,
+} from "test-setup";
 import { getCurrencyUnitInfo } from "~/units/functions";
+import { TRANSACTION_GAIN_LOSS_ACCOUNT_ID } from "./transaction-gain-loss.server";
+import { parseISO } from "date-fns";
 
 describe("getIncome", () => {
   test("returns holding gain/loss", async () => {
@@ -25,12 +31,14 @@ describe("getIncome", () => {
 
     const result = await getIncome(
       testAccountBook.id,
-      new Date("2025-11-01"),
-      new Date("2025-11-30"),
+      parseISO("2025-11-01"),
+      parseISO("2025-11-30"),
     );
 
-    expect(result).toEqual(
-      new Map([[`holding-gain-loss-${holdingAccount.id}`, new Decimal(50)]]),
+    expect([...result.entries()]).toEqual(
+      expect.arrayContaining([
+        [`holding-gain-loss-${holdingAccount.id}`, new Decimal(50)],
+      ]),
     );
   });
 
@@ -46,10 +54,46 @@ describe("getIncome", () => {
 
     const result = await getIncome(
       testAccountBook.id,
-      new Date("2025-11-01"),
-      new Date("2025-11-30"),
+      parseISO("2025-11-01"),
+      parseISO("2025-11-30"),
     );
 
-    expect(result).toEqual(new Map([[rentAccount.id, new Decimal(-2000)]]));
+    expect([...result.entries()]).toEqual(
+      expect.arrayContaining([[rentAccount.id, new Decimal(-2000)]]),
+    );
+  });
+
+  test("returns transaction gain/loss", async () => {
+    const account1 = await createTestAccount({ type: AccountType.ASSET });
+    const account2 = await createTestAccount({ type: AccountType.ASSET });
+
+    await redis.set("2025-11-15", JSON.stringify({ USDCHF: 1.1, USDEUR: 1 }));
+
+    await createTestTransaction(
+      {
+        date: "2025-11-15",
+        accountId: account1.id,
+        currency: "CHF",
+        value: -1070,
+      },
+      {
+        date: "2025-11-15",
+        accountId: account2.id,
+        currency: "EUR",
+        value: 1000,
+      },
+    );
+
+    const result = await getIncome(
+      testAccountBook.id,
+      parseISO("2025-11-01"),
+      parseISO("2025-11-30"),
+    );
+
+    expect([...result.entries()]).toEqual(
+      expect.arrayContaining([
+        [TRANSACTION_GAIN_LOSS_ACCOUNT_ID, new Decimal(-30)],
+      ]),
+    );
   });
 });

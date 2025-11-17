@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { getEquityAccountIncome } from "./get-equity-account-income.server";
+import { getEquityAccountIncome } from "./equity-account-income.server";
 import { AccountType } from "~/.prisma-client/enums";
 import { Decimal } from "@prisma/client/runtime/library";
 import { redis } from "~/redis.server";

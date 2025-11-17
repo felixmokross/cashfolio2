@@ -12,7 +12,11 @@ import type { BookingWithTransaction } from "~/accounts/detail/types";
 import { convert } from "~/fx.server";
 import { prisma } from "~/prisma.server";
 import type { TransactionWithBookings } from "~/transactions/types";
-import { getCurrencyUnitInfo, getUnitInfo } from "~/units/functions";
+import {
+  getCurrencyUnitInfo,
+  getUnitInfo,
+  getUnitLabel,
+} from "~/units/functions";
 import { sum } from "~/utils.server";
 
 export const TRANSACTION_GAIN_LOSS_ACCOUNT_ID = "transaction-gain-loss";
@@ -42,6 +46,21 @@ export function generateTransactionGainLossAccount(
   };
 }
 
+export async function getTransactionGainLoss(
+  accountBookId: string,
+  fromDate: Date,
+  toDate: Date,
+) {
+  const accountBook = await prisma.accountBook.findUniqueOrThrow({
+    where: { id: accountBookId },
+  });
+  return sum(
+    (
+      await generateTransactionGainLossBookings(accountBook, fromDate, toDate)
+    ).map((b) => b.value),
+  );
+}
+
 export async function generateTransactionGainLossBookings(
   accountBook: AccountBook,
   fromDate: Date,
@@ -57,8 +76,6 @@ export async function generateTransactionGainLossBookings(
 
         // no booking after the end of the period
         { bookings: { none: { date: { gt: toDate } } } },
-
-        // TODO how can we query for FX transactions only?
       ],
     },
     include: {
@@ -68,22 +85,32 @@ export async function generateTransactionGainLossBookings(
     },
   });
 
-  const bookings = new Array<BookingWithTransaction>(transactions.length);
-  for (let i = 0; i < transactions.length; i++) {
-    const t = transactions[i];
+  // only consider transactions with bookings in multiple units
+  const multiUnitTransactions = transactions.filter(
+    (t) =>
+      new Set(
+        ...t.bookings.map((b) => {
+          const unitInfo = getUnitInfo(b);
+          return `${unitInfo.unit}-${getUnitLabel(unitInfo)}`;
+        }),
+      ).size > 1,
+  );
+
+  const bookings = new Array<BookingWithTransaction>(
+    multiUnitTransactions.length,
+  );
+  for (let i = 0; i < multiUnitTransactions.length; i++) {
+    const t = multiUnitTransactions[i];
     bookings[i] = await generateTransactionGainLossBooking(
       accountBook.id,
       accountBook.referenceCurrency,
       t,
     );
   }
-  return (
-    bookings
-      // TODO filter this out earlier to improve performance
-      .filter((b) => !b.value.isZero())
-      .toSorted((a, b) => differenceInDays(b.date, a.date))
-      .toReversed()
-  );
+  return bookings
+    .filter((b) => !b.value.isZero())
+    .toSorted((a, b) => differenceInDays(b.date, a.date))
+    .toReversed();
 }
 
 export async function generateTransactionGainLossBooking(
