@@ -1,4 +1,3 @@
-import type { AccountWithBookings } from "~/accounts/types";
 import { sum } from "~/utils.server";
 import type { IncomeAccountsNode } from "./types";
 import {
@@ -6,17 +5,14 @@ import {
   type AccountsNode,
 } from "~/account-groups/accounts-tree";
 import { Decimal } from "@prisma/client/runtime/library";
-import type { AccountBook, AccountGroup } from "~/.prisma-client/client";
 import { getIncome } from "./functions.server";
 
 export async function getIncomeStatement(
-  accountBook: AccountBook,
-  _: AccountWithBookings[],
-  __: AccountGroup[],
+  accountBookId: string,
   fromDate: Date,
   toDate: Date,
 ) {
-  const incomeData = await getIncome(accountBook.id, fromDate, toDate);
+  const incomeData = await getIncome(accountBookId, fromDate, toDate);
 
   const equityRootNode = getAccountsTree(
     incomeData.accounts,
