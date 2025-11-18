@@ -7,6 +7,7 @@ import {
   Unit,
   type Account,
   type AccountBook,
+  type AccountGroup,
 } from "~/.prisma-client/client";
 import { getBalanceCached } from "~/accounts/detail/calculation.server";
 import type { BookingWithTransaction } from "~/accounts/detail/types";
@@ -14,7 +15,12 @@ import type { AccountWithBookings } from "~/accounts/types";
 import { formatISODate } from "~/formatting";
 import { getExchangeRate } from "~/fx.server";
 import { prisma } from "~/prisma.server";
-import { getAccountUnitInfo, getCurrencyUnitInfo } from "~/units/functions";
+import {
+  getAccountUnitInfo,
+  getCurrencyUnitInfo,
+  getUnitKey,
+  getUnitLabel,
+} from "~/units/functions";
 import { sum } from "~/utils.server";
 import type { Income } from "./types";
 
@@ -50,21 +56,48 @@ export async function getHoldingGainLoss(
     },
   });
 
+  const holdingGainLossAccountGroups: AccountGroup[] = [];
   const holdingGainLossAccounts: Account[] = [];
   for (const holdingAccount of holdingAccounts) {
-    const holdingGainLossAccount =
-      generateHoldingGainLossAccount(holdingAccount);
+    const unitInfo = getAccountUnitInfo(holdingAccount);
+    invariant(unitInfo, "Holding account must have a unit defined");
 
-    // TODO temporarily just adding to the existing parent group
-    const parentGroupId =
-      holdingAccount.unit === Unit.CURRENCY
-        ? accountBook.fxHoldingGainLossAccountGroupId
-        : holdingAccount.unit === Unit.CRYPTOCURRENCY
-          ? accountBook.cryptoHoldingGainLossAccountGroupId
-          : accountBook.securityHoldingGainLossAccountGroupId;
-    invariant(parentGroupId, "Parent group ID must be defined");
+    const unitKey = getUnitKey(unitInfo);
+    const groupId = `holding-gain-loss-${unitKey}-accounts`;
+    let holdingGainLossAccountGroup = holdingGainLossAccountGroups.find(
+      (g) => g.id === groupId,
+    );
+    if (!holdingGainLossAccountGroup) {
+      holdingGainLossAccountGroup = {
+        id: groupId,
+        name: getUnitLabel(unitInfo),
+        parentGroupId:
+          // TODO currently always placing into account book groups, add auto-generation of groups if not set
+          holdingAccount.unit === Unit.CURRENCY
+            ? accountBook.fxHoldingGainLossAccountGroupId
+            : holdingAccount.unit === Unit.CRYPTOCURRENCY
+              ? accountBook.cryptoHoldingGainLossAccountGroupId
+              : accountBook.securityHoldingGainLossAccountGroupId,
+        type: AccountType.EQUITY,
+        accountBookId: accountBook.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isActive: true,
+        sortOrder: Infinity,
+      };
 
-    holdingGainLossAccount.groupId = parentGroupId;
+      invariant(
+        holdingGainLossAccountGroup.parentGroupId,
+        "Auto-generation of holding gain/loss account groups not yet implemented",
+      );
+
+      holdingGainLossAccountGroups.push(holdingGainLossAccountGroup);
+    }
+
+    const holdingGainLossAccount = generateHoldingGainLossAccount(
+      holdingAccount,
+      holdingGainLossAccountGroup.id,
+    );
 
     const bookings = await generateHoldingBookingsForAccount(
       accountBook,
@@ -86,6 +119,7 @@ export async function getHoldingGainLoss(
       accountBook.fxHoldingGainLossAccountGroup,
       accountBook.cryptoHoldingGainLossAccountGroup,
       accountBook.securityHoldingGainLossAccountGroup,
+      ...holdingGainLossAccountGroups,
     ].filter((g) => !!g),
   };
 }
@@ -172,13 +206,18 @@ export async function generateHoldingBookingsForAccount(
   return bookings;
 }
 
-export function generateHoldingGainLossAccount(account: Account): Account {
+export function generateHoldingGainLossAccount(
+  account: Account,
+  groupId?: string,
+): Account {
   return {
     id: `holding-gain-loss-${account.id}`,
     type: AccountType.EQUITY,
     equityAccountSubtype: EquityAccountSubtype.GAIN_LOSS,
     name: `${account.unit === Unit.CURRENCY ? "FX" : account.unit === Unit.CRYPTOCURRENCY ? "Crypto" : "Security"} Holding Gain/Loss for ${account.name}`,
-    groupId: `${account.unit === Unit.CURRENCY ? "fx" : account.unit === Unit.CRYPTOCURRENCY ? "crypto" : "security"}-${account.currency || account.cryptocurrency || account.symbol}-accounts`,
+    groupId:
+      groupId ??
+      `${account.unit === Unit.CURRENCY ? "fx" : account.unit === Unit.CRYPTOCURRENCY ? "crypto" : "security"}-${account.currency || account.cryptocurrency || account.symbol}-accounts`,
     unit: null,
     currency: null,
     cryptocurrency: null,

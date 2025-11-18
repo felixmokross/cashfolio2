@@ -89,13 +89,20 @@ describe("getHoldingGainLoss", () => {
       accounts: [
         expect.objectContaining({
           id: `holding-gain-loss-${holdingAccount.id}`,
+          groupId: result.accountGroups.find((ag) => ag.name === "EUR")?.id,
         }),
       ],
-      accountGroups: [
+      accountGroups: expect.arrayContaining([
+        expect.objectContaining({
+          name: "EUR",
+          parentGroupId: result.accountGroups.find(
+            (ag) => ag.name === "FX Holding Gain/Loss",
+          )?.id,
+        }),
         expect.objectContaining({ name: "FX Holding Gain/Loss" }),
         expect.objectContaining({ name: "Crypto Holding Gain/Loss" }),
         expect.objectContaining({ name: "Security Holding Gain/Loss" }),
-      ],
+      ]),
       incomeByAccountId: new Map([
         [`holding-gain-loss-${holdingAccount.id}`, new Decimal(185)],
       ]),

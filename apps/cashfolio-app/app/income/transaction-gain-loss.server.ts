@@ -15,7 +15,7 @@ import type { TransactionWithBookings } from "~/transactions/types";
 import {
   getCurrencyUnitInfo,
   getUnitInfo,
-  getUnitLabel,
+  getUnitKey,
 } from "~/units/functions";
 import { sum } from "~/utils.server";
 import type { Income } from "./types";
@@ -110,12 +110,7 @@ export async function generateTransactionGainLossBookings(
   // only consider transactions with bookings in multiple units
   const multiUnitTransactions = transactions.filter(
     (t) =>
-      new Set(
-        ...t.bookings.map((b) => {
-          const unitInfo = getUnitInfo(b);
-          return `${unitInfo.unit}-${getUnitLabel(unitInfo)}`;
-        }),
-      ).size > 1,
+      new Set(...t.bookings.map((b) => getUnitKey(getUnitInfo(b)))).size > 1,
   );
 
   const bookings = new Array<BookingWithTransaction>(
