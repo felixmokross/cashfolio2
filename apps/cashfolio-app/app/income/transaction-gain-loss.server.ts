@@ -109,8 +109,7 @@ export async function generateTransactionGainLossBookings(
 
   // only consider transactions with bookings in multiple units
   const multiUnitTransactions = transactions.filter(
-    (t) =>
-      new Set(...t.bookings.map((b) => getUnitKey(getUnitInfo(b)))).size > 1,
+    (t) => new Set(t.bookings.map((b) => getUnitKey(getUnitInfo(b)))).size > 1,
   );
 
   const bookings = new Array<BookingWithTransaction>(
