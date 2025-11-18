@@ -45,7 +45,7 @@ export async function getHoldingGainLoss(
     include: {
       bookings: {
         where: { date: { gte: fromDate, lte: toDate } },
-        orderBy: { date: "asc" }, // TODO test this, this is crucial for correct calculation
+        orderBy: { date: "asc" },
       },
     },
   });

@@ -53,6 +53,8 @@ describe("generateHoldingBookingsForAccount", () => {
 describe("getHoldingGainLoss", () => {
   test("returns holding gain/loss", async () => {
     await redis.set("2025-10-31", JSON.stringify({ USDCHF: 1.1, USDEUR: 1 }));
+    await redis.set("2025-11-13", JSON.stringify({ USDCHF: 1.2, USDEUR: 1 }));
+    await redis.set("2025-11-15", JSON.stringify({ USDCHF: 1.4, USDEUR: 1 }));
     await redis.set("2025-11-30", JSON.stringify({ USDCHF: 1.05, USDEUR: 1 }));
 
     await setupTestHoldingGainLossAccountGroups();
@@ -63,6 +65,17 @@ describe("getHoldingGainLoss", () => {
         date: "2025-10-12",
         currency: "EUR",
         value: 1000,
+      },
+      {
+        date: "2025-11-15",
+        currency: "EUR",
+        value: 300,
+      },
+      {
+        // store in reverse chronological order to test sorting, as it is crucial for correct calculation
+        date: "2025-11-13",
+        currency: "EUR",
+        value: 200,
       },
     );
 
@@ -84,7 +97,7 @@ describe("getHoldingGainLoss", () => {
         expect.objectContaining({ name: "Security Holding Gain/Loss" }),
       ],
       incomeByAccountId: new Map([
-        [`holding-gain-loss-${holdingAccount.id}`, new Decimal(50)],
+        [`holding-gain-loss-${holdingAccount.id}`, new Decimal(185)],
       ]),
     });
   });
