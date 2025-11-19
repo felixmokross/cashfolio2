@@ -2,7 +2,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { isAfter, subDays } from "date-fns";
 import type { Booking } from "~/.prisma-client/client";
 import { Unit } from "~/.prisma-client/enums";
-import { startOfMonthUtc, today } from "~/dates";
+import { today } from "~/dates";
 import { redis } from "~/redis.server";
 import { sum } from "~/utils.server";
 
@@ -108,21 +108,6 @@ export async function purgeCachedBalances(
       const cacheKey = `account-book:${accountBookId}:account:${b.accountId}:balance`;
       if (await redis.exists(cacheKey)) {
         await redis.ts.del(cacheKey, b.date.getTime(), "+");
-      }
-    }),
-  );
-}
-
-export async function purgeCachedMonthlyIncome(
-  accountBookId: string,
-  bookings: Pick<Booking, "accountId" | "date">[],
-) {
-  await Promise.all(
-    bookings.map(async (b) => {
-      const cacheKey = `account-book:${accountBookId}:account:${b.accountId}:income:monthly`;
-      if (await redis.exists(cacheKey)) {
-        const month = startOfMonthUtc(b.date);
-        await redis.ts.del(cacheKey, month, month);
       }
     }),
   );
