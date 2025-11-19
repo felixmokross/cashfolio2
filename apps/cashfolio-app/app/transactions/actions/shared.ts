@@ -2,6 +2,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { isAfter, subDays } from "date-fns";
 import type { Booking } from "~/.prisma-client/client";
 import { Unit } from "~/.prisma-client/enums";
+import { getAccountBalanceCacheKey } from "~/caching";
 import { today } from "~/dates";
 import { redis } from "~/redis.server";
 import { sum } from "~/utils.server";
@@ -105,7 +106,7 @@ export async function purgeCachedBalances(
 ) {
   await Promise.all(
     bookings.map(async (b) => {
-      const cacheKey = `account-book:${accountBookId}:account:${b.accountId}:balance`;
+      const cacheKey = getAccountBalanceCacheKey(accountBookId, b.accountId);
       if (await redis.exists(cacheKey)) {
         await redis.ts.del(cacheKey, b.date.getTime(), "+");
       }

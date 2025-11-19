@@ -21,6 +21,7 @@ import {
   generateHoldingBookingsForAccount,
   generateHoldingGainLossAccount,
 } from "~/income/holding-gain-loss.server";
+import { getAccountBalanceCacheKey } from "~/caching";
 
 export async function getAccount(accountId: string, accountBookId: string) {
   if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
@@ -120,7 +121,7 @@ export async function getBalanceCached(
     );
   }
 
-  const cacheKey = `account-book:${accountBookId}:account:${accountId}:balance`;
+  const cacheKey = getAccountBalanceCacheKey(accountBookId, accountId);
   const [cacheEntry] = (await redis.exists(cacheKey))
     ? await redis.ts.REVRANGE(cacheKey, "-", date.getTime(), { COUNT: 1 })
     : [];
