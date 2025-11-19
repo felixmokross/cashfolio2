@@ -53,11 +53,14 @@ async function getBaseRate(date: Date, unitInfo: UnitInfo): Promise<Decimal> {
 
   switch (unitInfo.unit) {
     case UnitEnum.CURRENCY:
-      const fxRates = await getFxExchangeRates(date);
-      return new Decimal(fxRates[`${baseCurrency}${unitInfo.currency}`]);
+      const fxRate = await getFxExchangeRate(date, unitInfo.currency);
+      return new Decimal(fxRate);
     case UnitEnum.CRYPTOCURRENCY:
-      const cryptoPrices = await getCryptocurrencyPrices(date);
-      return new Decimal(1).dividedBy(cryptoPrices[unitInfo.cryptocurrency]);
+      const cryptoPrice = await getCryptocurrencyPrice(
+        date,
+        unitInfo.cryptocurrency,
+      );
+      return new Decimal(1).dividedBy(cryptoPrice);
     case UnitEnum.SECURITY:
       return new Decimal(1).dividedBy(
         await convert(
@@ -70,44 +73,56 @@ async function getBaseRate(date: Date, unitInfo: UnitInfo): Promise<Decimal> {
   }
 }
 
-async function getFxExchangeRates(date: Date) {
-  const key = formatISODate(date);
-  const cacheEntry = await redis.get(key);
+async function getFxExchangeRate(date: Date, targetCurrency: string) {
+  const key = `fx:${targetCurrency}`;
+  const [cacheEntry] = (await redis.exists(key))
+    ? await redis.ts.range(key, date.getTime(), date.getTime(), { COUNT: 1 })
+    : [];
   if (!cacheEntry) {
-    console.log(`Fetching FX rates for ${key}...`);
+    console.log(
+      `Fetching FX rates for ${targetCurrency} and ${formatISODate(date)} (base currency ${baseCurrency})...`,
+    );
     const response = await fetch(
-      `https://api.currencylayer.com/historical?access_key=${process.env.CURRENCYLAYER_API_KEY}&date=${formatISODate(date)}`,
+      `https://api.currencylayer.com/historical?access_key=${process.env.CURRENCYLAYER_API_KEY}&source=${baseCurrency}&currencies=${targetCurrency}&date=${formatISODate(date)}`,
     );
     const data = await response.json();
     if (!data.success) {
       throw new Error(`FX rates fetch failed: ${data.error?.info}`);
     }
 
-    await redis.set(key, JSON.stringify(data.quotes));
-    return data.quotes as Record<string, number>;
+    const value = data.quotes[`${baseCurrency}${targetCurrency}`] as number;
+    await redis.ts.add(key, date.getTime(), value);
+
+    return value;
   }
 
-  return JSON.parse(cacheEntry) as Record<string, number>;
+  return cacheEntry.value;
 }
 
-async function getCryptocurrencyPrices(date: Date) {
-  const key = `crypto-${formatISODate(date)}`;
-  const cacheEntry = await redis.get(key);
+async function getCryptocurrencyPrice(date: Date, cryptocurrency: string) {
+  const key = `crypto:${cryptocurrency}`;
+  const [cacheEntry] = (await redis.exists(key))
+    ? await redis.ts.range(key, date.getTime(), date.getTime(), { COUNT: 1 })
+    : [];
   if (!cacheEntry) {
-    console.log(`Fetching cryptocurrency prices for ${key}...`);
+    console.log(
+      `Fetching cryptocurrency price for ${cryptocurrency} and ${formatISODate(date)} (base currency ${baseCurrency})...`,
+    );
     const response = await fetch(
-      `http://api.coinlayer.com/${formatISODate(date)}?access_key=${process.env.COINLAYER_API_KEY}&target=${baseCurrency}`,
+      `http://api.coinlayer.com/${formatISODate(date)}?access_key=${process.env.COINLAYER_API_KEY}&target=${baseCurrency}&symbols=${cryptocurrency}`,
     );
     const data = await response.json();
     if (!data.success) {
       throw new Error(`Cryptocurrency rates fetch failed: ${data.error?.info}`);
     }
 
-    await redis.set(key, JSON.stringify(data.rates));
-    return data.rates as Record<string, number>;
+    const value = data.rates[cryptocurrency] as number;
+    await redis.ts.add(key, date.getTime(), value);
+
+    return value;
   }
 
-  return JSON.parse(cacheEntry) as Record<string, number>;
+  return cacheEntry.value;
 }
 
 async function getSecurityPrice(
