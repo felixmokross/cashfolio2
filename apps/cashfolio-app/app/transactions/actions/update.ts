@@ -3,7 +3,6 @@ import {
   hasErrors,
   parseBookings,
   purgeCachedBalances,
-  purgeCachedMonthlyIncome,
   validate,
 } from "./shared";
 import { data, type ActionFunctionArgs } from "react-router";
@@ -72,11 +71,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
     .concat(transactionBeforeUpdate.bookings);
 
   await purgeCachedBalances(link.accountBookId, bookingsBeforeAndAfterUpdate);
-
-  await purgeCachedMonthlyIncome(
-    link.accountBookId,
-    bookingsBeforeAndAfterUpdate,
-  );
 
   return data({ success: true });
 }

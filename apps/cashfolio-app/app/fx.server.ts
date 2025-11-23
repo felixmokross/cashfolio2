@@ -1,10 +1,11 @@
 import { Unit as UnitEnum } from "./.prisma-client/enums";
 import { formatISODate } from "./formatting";
 import { redis } from "~/redis.server";
-import { subDays } from "date-fns";
+import { isBefore, subDays } from "date-fns";
 import { Decimal } from "@prisma/client/runtime/library";
 import { getUnitLabel, isSameUnit } from "./units/functions";
 import type { UnitInfo } from "./units/types";
+import { today } from "./dates";
 
 const baseCurrency = "USD";
 const baseUnitInfo: UnitInfo = {
@@ -53,15 +54,18 @@ async function getBaseRate(date: Date, unitInfo: UnitInfo): Promise<Decimal> {
 
   switch (unitInfo.unit) {
     case UnitEnum.CURRENCY:
-      const fxRates = await getFxExchangeRates(date);
-      return new Decimal(fxRates[`${baseCurrency}${unitInfo.currency}`]);
+      const fxRate = await getFxExchangeRate(date, unitInfo.currency);
+      return new Decimal(fxRate);
     case UnitEnum.CRYPTOCURRENCY:
-      const cryptoPrices = await getCryptocurrencyPrices(date);
-      return new Decimal(1).dividedBy(cryptoPrices[unitInfo.cryptocurrency]);
+      const cryptoPrice = await getCryptocurrencyPrice(
+        date,
+        unitInfo.cryptocurrency,
+      );
+      return new Decimal(1).dividedBy(cryptoPrice);
     case UnitEnum.SECURITY:
       return new Decimal(1).dividedBy(
         await convert(
-          await getSecurityPrice(date, unitInfo.symbol),
+          new Decimal(await getSecurityPrice(date, unitInfo.symbol)),
           { unit: UnitEnum.CURRENCY, currency: unitInfo.tradeCurrency },
           baseUnitInfo,
           date,
@@ -70,94 +74,118 @@ async function getBaseRate(date: Date, unitInfo: UnitInfo): Promise<Decimal> {
   }
 }
 
-async function getFxExchangeRates(date: Date) {
-  const key = formatISODate(date);
-  const cacheEntry = await redis.get(key);
+async function getFxExchangeRate(date: Date, targetCurrency: string) {
+  const key = `fx:${targetCurrency}`;
+  const [cacheEntry] = (await redis.exists(key))
+    ? await redis.ts.range(key, date.getTime(), date.getTime(), { COUNT: 1 })
+    : [];
   if (!cacheEntry) {
-    console.log(`Fetching FX rates for ${key}...`);
+    console.log(
+      `Fetching FX rates for ${targetCurrency} and ${formatISODate(date)} (base currency ${baseCurrency})...`,
+    );
     const response = await fetch(
-      `https://api.currencylayer.com/historical?access_key=${process.env.CURRENCYLAYER_API_KEY}&date=${formatISODate(date)}`,
+      `https://api.currencylayer.com/historical?access_key=${process.env.CURRENCYLAYER_API_KEY}&source=${baseCurrency}&currencies=${targetCurrency}&date=${formatISODate(date)}`,
     );
     const data = await response.json();
     if (!data.success) {
       throw new Error(`FX rates fetch failed: ${data.error?.info}`);
     }
 
-    await redis.set(key, JSON.stringify(data.quotes));
-    return data.quotes as Record<string, number>;
+    const value = data.quotes[`${baseCurrency}${targetCurrency}`] as number;
+    await redis.ts.add(key, date.getTime(), value);
+
+    return value;
   }
 
-  return JSON.parse(cacheEntry) as Record<string, number>;
+  return cacheEntry.value;
 }
 
-async function getCryptocurrencyPrices(date: Date) {
-  const key = `crypto-${formatISODate(date)}`;
-  const cacheEntry = await redis.get(key);
+async function getCryptocurrencyPrice(date: Date, cryptocurrency: string) {
+  const key = `crypto:${cryptocurrency}`;
+  const [cacheEntry] = (await redis.exists(key))
+    ? await redis.ts.range(key, date.getTime(), date.getTime(), { COUNT: 1 })
+    : [];
   if (!cacheEntry) {
-    console.log(`Fetching cryptocurrency prices for ${key}...`);
+    console.log(
+      `Fetching cryptocurrency price for ${cryptocurrency} and ${formatISODate(date)} (base currency ${baseCurrency})...`,
+    );
     const response = await fetch(
-      `http://api.coinlayer.com/${formatISODate(date)}?access_key=${process.env.COINLAYER_API_KEY}&target=${baseCurrency}`,
+      `http://api.coinlayer.com/${formatISODate(date)}?access_key=${process.env.COINLAYER_API_KEY}&target=${baseCurrency}&symbols=${cryptocurrency}`,
     );
     const data = await response.json();
     if (!data.success) {
       throw new Error(`Cryptocurrency rates fetch failed: ${data.error?.info}`);
     }
 
-    await redis.set(key, JSON.stringify(data.rates));
-    return data.rates as Record<string, number>;
+    const value = data.rates[cryptocurrency] as number;
+    await redis.ts.add(key, date.getTime(), value);
+
+    return value;
   }
 
-  return JSON.parse(cacheEntry) as Record<string, number>;
+  return cacheEntry.value;
 }
+
+const MAX_BACKTRACK_DAYS = 5;
 
 async function getSecurityPrice(
   date: Date,
   symbol: string,
   backtrackCount = 0,
-): Promise<Decimal> {
-  const key = `security:${symbol}:${formatISODate(date)}`;
-  const cacheEntry = await redis.get(key);
+): Promise<number> {
+  const key = `security:${symbol}`;
+  const [cacheEntry] = (await redis.exists(key))
+    ? await redis.ts.range(key, date.getTime(), date.getTime(), { COUNT: 1 })
+    : [];
   if (!cacheEntry) {
-    console.log(`Fetching security price for ${key}...`);
-    const response = await fetch(
-      `http://api.marketstack.com/v2/eod/${formatISODate(date)}?access_key=${process.env.MARKETSTACK_API_KEY}&symbols=${symbol}`,
-    );
-    if (!response.ok) {
-      throw new Error(
-        `Security price fetch failed for ${symbol} on ${formatISODate(date)}`,
-      );
-    }
-    const data = await response.json();
-    if (!data || !data.data || !data.data.length) {
-      if (backtrackCount >= 15) {
+    let price = await fetchSecurityPrice(key, date, symbol);
+    if (price == null) {
+      if (backtrackCount >= MAX_BACKTRACK_DAYS) {
         throw new Error(
-          `No security price data for ${symbol} on ${formatISODate(date)} after ${backtrackCount} attempts`,
+          `No security price for ${symbol} on ${formatISODate(
+            date,
+          )} after backtracking ${MAX_BACKTRACK_DAYS} days`,
         );
       }
-      const backtrackedPrice = await getSecurityPrice(
+
+      console.log(
+        `No security price for ${symbol} on ${formatISODate(date)}, backtracking…`,
+      );
+      price = await getSecurityPrice(
         subDays(date, 1),
         symbol,
         backtrackCount + 1,
       );
-
-      // cache the backtracked price only until the next day
-      await redis.set(key, backtrackedPrice.toString(), {
-        expiration: {
-          type: "EX",
-          value:
-            // 24 hours
-            86400,
-        },
-      });
-
-      return backtrackedPrice;
     }
 
-    const price = data.data[0].close as number;
-    await redis.set(key, price.toString());
+    // only cache if date is before day before yesterday, to avoid caching backtracked prices for dates that might still receive a price
+    if (isBefore(date, subDays(today(), 1))) {
+      await redis.ts.add(key, date.getTime(), price);
+    }
 
-    return new Decimal(price);
+    return price;
   }
 
-  return new Decimal(cacheEntry);
+  return cacheEntry.value;
+}
+
+async function fetchSecurityPrice(key: string, date: Date, symbol: string) {
+  console.log(
+    `Fetching security price for ${key} on ${formatISODate(date)}...`,
+  );
+  const response = await fetch(
+    `http://api.marketstack.com/v2/eod/${formatISODate(date)}?access_key=${process.env.MARKETSTACK_API_KEY}&symbols=${symbol}`,
+  );
+  if (!response.ok) {
+    throw new Error(
+      `Security price fetch failed for ${symbol} on ${formatISODate(date)}`,
+    );
+  }
+  const data = await response.json();
+  if (!data || !data.data || !data.data.length) {
+    return undefined;
+  }
+
+  const price = data.data[0].close as number;
+  return price;
 }

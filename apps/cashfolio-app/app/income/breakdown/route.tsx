@@ -2,8 +2,6 @@ import { redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { Page } from "~/income/breakdown/page";
 import { getIncomeStatement } from "~/income/calculation.server";
 import { serialize } from "~/serialization";
-import { getAccountGroups } from "~/account-groups/data";
-import { prisma } from "~/prisma.server";
 import { getPeriodDateRangeFromPeriod, parsePeriod } from "~/period/functions";
 import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functions.server";
 import type { IncomeAccountsNode } from "../types";
@@ -39,27 +37,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const { from, to } = getPeriodDateRangeFromPeriod(period);
 
-  const [accountBook, accounts, accountGroups] = await Promise.all([
-    prisma.accountBook.findUniqueOrThrow({
-      where: { id: link.accountBookId },
-    }),
-    prisma.account.findMany({
-      where: { accountBookId: link.accountBookId },
-      orderBy: { name: "asc" },
-      include: {
-        bookings: {
-          orderBy: { date: "asc" },
-          where: { date: { gte: from, lte: to } },
-        },
-      },
-    }),
-    getAccountGroups(link.accountBookId),
-  ]);
-
   const incomeStatementTree = await getIncomeStatement(
-    accountBook,
-    accounts,
-    accountGroups,
+    link.accountBookId,
     from,
     to,
   );

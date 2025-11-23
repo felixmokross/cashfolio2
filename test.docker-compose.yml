@@ -1,4 +1,4 @@
-name: cashfolio
+name: cashfolio-test
 services:
   postgres:
     image: postgres:17
@@ -8,9 +8,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+      - "5433:5432"
 
   redis:
     image: cashfolio-redis
@@ -18,13 +16,7 @@ services:
       context: .
       dockerfile: infra/cashfolio-redis/Dockerfile
     ports:
-      - "6379:6379"
-    volumes:
-      - redis:/data
+      - "6380:6379"
     environment:
       - REDIS_ADMIN_PASS=admin
       - REDIS_APP_PASS=app
-
-volumes:
-  pgdata:
-  redis:

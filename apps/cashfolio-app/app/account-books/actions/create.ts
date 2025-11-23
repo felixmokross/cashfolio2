@@ -2,6 +2,7 @@ import { data, type ActionFunctionArgs } from "react-router";
 import { prisma } from "~/prisma.server";
 import { getFormValues, validate, hasErrors } from "./shared";
 import { ensureUser } from "~/users/functions.server";
+import { createId } from "@paralleldrive/cuid2";
 
 export async function action({ request }: ActionFunctionArgs) {
   const user = await ensureUser(request);
@@ -14,6 +15,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
   await prisma.accountBook.create({
     data: {
+      id: createId(),
       name: "New Account Book",
       referenceCurrency: values.referenceCurrency,
       groups: {

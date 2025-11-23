@@ -69,6 +69,10 @@ export function getUnitLabel(unitInfo: UnitInfo) {
   }
 }
 
+export function getUnitKey(unitInfo: UnitInfo) {
+  return `${unitInfo.unit}-${getUnitLabel(unitInfo)}`;
+}
+
 export function isSameUnit(unitInfoA: UnitInfo, unitInfoB: UnitInfo) {
   if (unitInfoA.unit !== unitInfoB.unit) return false;
 

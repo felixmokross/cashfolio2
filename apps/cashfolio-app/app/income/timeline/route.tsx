@@ -7,8 +7,6 @@ import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functio
 import { defaultShouldRevalidate } from "~/revalidation";
 import { serialize } from "~/serialization";
 import { getIncomeStatement } from "../calculation.server";
-import { prisma } from "~/prisma.server";
-import { getAccountGroups } from "~/account-groups/data";
 import { getPeriodDateRangeFromPeriod } from "~/period/functions";
 import { AgCharts } from "ag-charts-react";
 import { getTheme } from "~/theme";
@@ -57,34 +55,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     .map((p) => getPeriodDateRangeFromPeriod(p))
     .toReversed();
 
-  const [accountBook, accountGroups] = await Promise.all([
-    prisma.accountBook.findUniqueOrThrow({
-      where: { id: link.accountBookId },
-    }),
-    getAccountGroups(link.accountBookId),
-  ]);
-
   const timeline = await Promise.all(
     periodDateRanges.map(async (dr) => {
-      const accounts = await prisma.account.findMany({
-        where: { accountBookId: link.accountBookId },
-        orderBy: { name: "asc" },
-        include: {
-          bookings: {
-            orderBy: { date: "asc" },
-            where: {
-              date: {
-                gte: dr.from,
-                lte: dr.to,
-              },
-            },
-          },
-        },
-      });
       const incomeStatement = await getIncomeStatement(
-        accountBook,
-        accounts,
-        accountGroups,
+        link.accountBookId,
         dr.from,
         dr.to,
       );

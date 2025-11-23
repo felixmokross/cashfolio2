@@ -3,14 +3,6 @@ import { convert } from "~/fx.server";
 import { redis } from "~/redis.server";
 import { prisma } from "~/prisma.server";
 import { isAfter, isEqual } from "date-fns";
-import {
-  generateHoldingBookingsForAccount,
-  generateHoldingGainLossAccount,
-  generateTransactionGainLossAccount,
-  generateTransactionGainLossBooking,
-  generateTransactionGainLossBookings,
-  TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
-} from "~/income/calculation.server";
 import { Decimal } from "@prisma/client/runtime/library";
 import type { AccountBook, Booking } from "~/.prisma-client/client";
 import { Unit as UnitEnum } from "~/.prisma-client/enums";
@@ -19,6 +11,17 @@ import { TRANSFER_CLEARING_ACCOUNT_ID } from "../constants";
 import invariant from "tiny-invariant";
 import type { UnitInfo } from "~/units/types";
 import { getUnitInfo } from "~/units/functions";
+import {
+  generateTransactionGainLossAccount,
+  generateTransactionGainLossBooking,
+  generateTransactionGainLossBookings,
+  TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
+} from "~/income/transaction-gain-loss.server";
+import {
+  generateHoldingBookingsForAccount,
+  generateHoldingGainLossAccount,
+} from "~/income/holding-gain-loss.server";
+import { getAccountBalanceCacheKey } from "~/caching";
 
 export async function getAccount(accountId: string, accountBookId: string) {
   if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
@@ -118,7 +121,7 @@ export async function getBalanceCached(
     );
   }
 
-  const cacheKey = `account-book:${accountBookId}:account:${accountId}:balance`;
+  const cacheKey = getAccountBalanceCacheKey(accountBookId, accountId);
   const [cacheEntry] = (await redis.exists(cacheKey))
     ? await redis.ts.REVRANGE(cacheKey, "-", date.getTime(), { COUNT: 1 })
     : [];

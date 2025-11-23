@@ -9,7 +9,7 @@
     "typecheck": "react-router typegen && tsc",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "test": "vitest"
+    "test": "DATABASE_URL='postgresql://postgres:postgres@localhost:5433/cashfolio?schema=public' REDIS_URL='redis://admin:admin@localhost:6380' vitest"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.7",
