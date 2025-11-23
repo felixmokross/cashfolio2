@@ -18,8 +18,10 @@ import { parseISO } from "date-fns";
 
 describe("generateHoldingBookingsForAccount", () => {
   test("returns holding bookings for account", async () => {
-    await redis.set("2025-10-31", JSON.stringify({ USDCHF: 1.1, USDEUR: 1 }));
-    await redis.set("2025-11-30", JSON.stringify({ USDCHF: 1.05, USDEUR: 1 }));
+    await redis.ts.add(`fx:CHF`, parseISO("2025-10-31").getTime(), 1.1);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-10-31").getTime(), 1);
+    await redis.ts.add(`fx:CHF`, parseISO("2025-11-30").getTime(), 1.05);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-11-30").getTime(), 1);
 
     const holdingAccount = await createTestAccount(
       { type: AccountType.ASSET, unit: getCurrencyUnitInfo("EUR") },
@@ -52,10 +54,14 @@ describe("generateHoldingBookingsForAccount", () => {
 
 describe("getHoldingGainLoss", () => {
   test("returns holding gain/loss", async () => {
-    await redis.set("2025-10-31", JSON.stringify({ USDCHF: 1.1, USDEUR: 1 }));
-    await redis.set("2025-11-13", JSON.stringify({ USDCHF: 1.2, USDEUR: 1 }));
-    await redis.set("2025-11-15", JSON.stringify({ USDCHF: 1.4, USDEUR: 1 }));
-    await redis.set("2025-11-30", JSON.stringify({ USDCHF: 1.05, USDEUR: 1 }));
+    await redis.ts.add(`fx:CHF`, parseISO("2025-10-31").getTime(), 1.1);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-10-31").getTime(), 1);
+    await redis.ts.add(`fx:CHF`, parseISO("2025-11-13").getTime(), 1.2);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-11-13").getTime(), 1);
+    await redis.ts.add(`fx:CHF`, parseISO("2025-11-15").getTime(), 1.4);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-11-15").getTime(), 1);
+    await redis.ts.add(`fx:CHF`, parseISO("2025-11-30").getTime(), 1.05);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-11-30").getTime(), 1);
 
     await setupTestHoldingGainLossAccountGroups();
 

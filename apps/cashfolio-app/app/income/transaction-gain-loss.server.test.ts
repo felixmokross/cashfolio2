@@ -34,7 +34,8 @@ describe("generateTransactionGainLossBookings", () => {
   });
 
   test("returns transaction gain/loss bookings for given account book and date range", async () => {
-    await redis.set("2025-11-15", JSON.stringify({ USDCHF: 1.1, USDEUR: 1 }));
+    await redis.ts.add(`fx:CHF`, parseISO("2025-11-15").getTime(), 1.1);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-11-15").getTime(), 1);
 
     const transaction = await createTestTransaction(
       {
@@ -75,20 +76,21 @@ describe("generateTransactionGainLossBookings", () => {
 
 describe("generateTransactionGainLossBooking", () => {
   test("returns a virtual booking with the transaction gain/loss for the given transaction", async () => {
-    await redis.set("2025-01-02", JSON.stringify({ USDCHF: 1.1, USDEUR: 1 }));
+    await redis.ts.add(`fx:CHF`, parseISO("2025-01-02").getTime(), 1.1);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-01-02").getTime(), 1);
 
     const transaction = buildTransactionWithBookings({
       id: "tx-1",
       accountBookId: "account-book-1",
       bookings: [
         buildBooking({
-          date: new Date("2025-01-01"),
+          date: parseISO("2025-01-01"),
           unit: Unit.CURRENCY,
           currency: "CHF",
           value: new Decimal(-1070),
         }),
         buildBooking({
-          date: new Date("2025-01-02"),
+          date: parseISO("2025-01-02"),
           unit: Unit.CURRENCY,
           currency: "EUR",
           value: new Decimal(1000),
@@ -104,7 +106,7 @@ describe("generateTransactionGainLossBooking", () => {
 
     expect(result).toEqual(
       expect.objectContaining<Partial<Booking>>({
-        date: new Date("2025-01-02"),
+        date: parseISO("2025-01-02"),
         id: "transaction-gain-loss-tx-1",
         accountId: TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
         unit: Unit.CURRENCY,

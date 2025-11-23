@@ -15,8 +15,10 @@ import { parseISO } from "date-fns";
 
 describe("getIncome", () => {
   test("returns holding gain/loss", async () => {
-    await redis.set("2025-10-31", JSON.stringify({ USDCHF: 1.1, USDEUR: 1 }));
-    await redis.set("2025-11-30", JSON.stringify({ USDCHF: 1.05, USDEUR: 1 }));
+    await redis.ts.add(`fx:CHF`, parseISO("2025-10-31").getTime(), 1.1);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-10-31").getTime(), 1);
+    await redis.ts.add(`fx:CHF`, parseISO("2025-11-30").getTime(), 1.05);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-11-30").getTime(), 1);
 
     await setupTestHoldingGainLossAccountGroups();
 
@@ -70,7 +72,8 @@ describe("getIncome", () => {
     const account1 = await createTestAccount({ type: AccountType.ASSET });
     const account2 = await createTestAccount({ type: AccountType.ASSET });
 
-    await redis.set("2025-11-15", JSON.stringify({ USDCHF: 1.1, USDEUR: 1 }));
+    await redis.ts.add(`fx:CHF`, parseISO("2025-11-15").getTime(), 1.1);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-11-15").getTime(), 1);
 
     await createTestTransaction(
       {
