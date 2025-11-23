@@ -126,7 +126,7 @@ async function getCryptocurrencyPrice(date: Date, cryptocurrency: string) {
   return cacheEntry.value;
 }
 
-const MAX_BACKTRACK_DAYS = 5;
+const MAX_BACKTRACK_DAYS = 30;
 
 async function getSecurityPrice(
   date: Date,
