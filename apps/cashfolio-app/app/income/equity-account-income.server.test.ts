@@ -7,7 +7,8 @@ import { parseISO } from "date-fns";
 import { createTestAccount, testAccountBook } from "test-setup";
 
 test("returns the income per equity account", async () => {
-  await redis.set("2025-11-15", JSON.stringify({ USDCHF: 1.1, USDEUR: 1 }));
+  await redis.ts.add(`fx:CHF`, parseISO("2025-11-15").getTime(), 1.1);
+  await redis.ts.add(`fx:EUR`, parseISO("2025-11-15").getTime(), 1);
 
   const salaryAccount = await createTestAccount(
     { type: AccountType.EQUITY },

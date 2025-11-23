@@ -20,6 +20,10 @@ program.command("test").action(async () => {
     shell: true,
   });
 
+  testProcess.on("exit", (code) => {
+    process.exit(code ?? 0);
+  });
+
   process.on("SIGINT", () => {
     testProcess.kill("SIGINT");
   });
