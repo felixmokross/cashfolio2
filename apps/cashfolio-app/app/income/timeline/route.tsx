@@ -35,6 +35,7 @@ import type {
   AgLineSeriesOptions,
 } from "ag-charts-community";
 import type { loader as incomeLoader } from "~/income/route";
+import { useAccountBook } from "~/account-books/hooks";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const user = await ensureUser(request);
@@ -108,6 +109,8 @@ export default function Route() {
   const { view, average, timeline, period, range } =
     useLoaderData<typeof loader>();
 
+  const { referenceCurrency } = useAccountBook();
+
   const incomeLoaderData =
     useRouteLoaderData<typeof incomeLoader>("income/route");
   invariant(incomeLoaderData, "incomeLoaderData not found");
@@ -157,6 +160,12 @@ export default function Route() {
         className="h-[calc(100vh_-_16rem)] mt-4"
         options={{
           ...defaultChartOptions,
+          title:
+            view === "breakdown" && timeline.length === 1
+              ? {
+                  text: `Total: ${referenceCurrency} ${formatMoney(isExpensesGroup ? -timeline[0].node.value : timeline[0].node.value)}`,
+                }
+              : undefined,
           theme:
             view === "totals"
               ? {
