@@ -1,7 +1,7 @@
 import { Unit as UnitEnum } from "./.prisma-client/enums";
 import { formatISODate } from "./formatting";
 import { redis } from "~/redis.server";
-import { isBefore, subDays } from "date-fns";
+import { isAfter, isEqual, subDays } from "date-fns";
 import { Decimal } from "@prisma/client/runtime/library";
 import { getUnitLabel, isSameUnit } from "./units/functions";
 import type { UnitInfo } from "./units/types";
@@ -137,8 +137,15 @@ async function getSecurityPrice(
   const [cacheEntry] = (await redis.exists(key))
     ? await redis.ts.range(key, date.getTime(), date.getTime(), { COUNT: 1 })
     : [];
+
+  const shortLivedKey = `security:${symbol}:short-lived:${formatISODate(date)}`;
+  const shortLivedPriceString = await redis.get(shortLivedKey);
+  if (shortLivedPriceString) {
+    return Number(shortLivedPriceString);
+  }
+
   if (!cacheEntry) {
-    let price = await fetchSecurityPrice(key, date, symbol);
+    let price = await fetchSecurityPrice(date, symbol);
     if (price == null) {
       if (backtrackCount >= MAX_BACKTRACK_DAYS) {
         throw new Error(
@@ -158,7 +165,11 @@ async function getSecurityPrice(
       );
     }
 
-    if (isOutsideGracePeriod(date)) {
+    await redis.set(shortLivedKey, price.toString(), {
+      expiration: { type: "EX", value: 60 * 60 }, // cache for 1 hour
+    });
+
+    if (!isInGracePeriod(date)) {
       await redis.ts.add(key, date.getTime(), price);
     }
 
@@ -168,8 +179,10 @@ async function getSecurityPrice(
   return cacheEntry.value;
 }
 
-async function fetchSecurityPrice(key: string, date: Date, symbol: string) {
-  console.log(`Fetching security price for ${key} on ${formatISODate(date)}…`);
+async function fetchSecurityPrice(date: Date, symbol: string) {
+  console.log(
+    `Fetching security price for ${symbol} on ${formatISODate(date)}…`,
+  );
   const response = await fetch(
     `http://api.marketstack.com/v2/eod/${formatISODate(date)}?access_key=${process.env.MARKETSTACK_API_KEY}&symbols=${symbol}`,
   );
@@ -178,7 +191,7 @@ async function fetchSecurityPrice(key: string, date: Date, symbol: string) {
       console.log("Rate limit reached, waiting 1 second…");
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      return await fetchSecurityPrice(key, date, symbol);
+      return await fetchSecurityPrice(date, symbol);
     } else {
       throw new Error(
         `Security price fetch failed for ${symbol} on ${formatISODate(date)}: ${response.status} ${response.statusText}`,
@@ -194,10 +207,11 @@ async function fetchSecurityPrice(key: string, date: Date, symbol: string) {
   return price;
 }
 
-export function isOutsideGracePeriod(date: Date) {
-  // grace period is today and yesterday
+export function isInGracePeriod(date: Date) {
+  // the grace period is today and yesterday
   // in this period we must not cache prices and derived balances
   // since they might be based on a backtracked price
   // but still might receive a more recent price
-  return isBefore(date, subDays(today(), 1));
+  const dayBeforeYesterday = subDays(today(), 2);
+  return isAfter(date, dayBeforeYesterday);
 }
