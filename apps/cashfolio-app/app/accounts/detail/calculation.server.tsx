@@ -1,5 +1,5 @@
 import type { BookingWithTransaction, LedgerRow } from "./types";
-import { convert } from "~/fx.server";
+import { convert, isOutsideGracePeriod } from "~/fx.server";
 import { redis } from "~/redis.server";
 import { prisma } from "~/prisma.server";
 import { addDays, isAfter, isEqual } from "date-fns";
@@ -141,7 +141,9 @@ export async function getBalanceCached(
     cacheEntry ? new Decimal(cacheEntry.value) : new Decimal(0)
   ).plus(await getBalance(bookings, ledgerUnitInfo));
 
-  await redis.ts.add(cacheKey, date.getTime(), balance.toNumber());
+  if (isOutsideGracePeriod(date)) {
+    await redis.ts.add(cacheKey, date.getTime(), balance.toNumber());
+  }
 
   return balance;
 }
