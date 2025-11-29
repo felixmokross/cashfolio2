@@ -15,22 +15,38 @@ import { parseISO } from "date-fns";
 
 describe("getIncome", () => {
   test("returns holding gain/loss", async () => {
+    await redis.ts.add(`fx:CHF`, parseISO("2025-10-11").getTime(), 1.3);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-10-11").getTime(), 1);
+    await redis.ts.add(`fx:CHF`, parseISO("2025-10-12").getTime(), 1.2);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-10-12").getTime(), 1);
     await redis.ts.add(`fx:CHF`, parseISO("2025-10-31").getTime(), 1.1);
     await redis.ts.add(`fx:EUR`, parseISO("2025-10-31").getTime(), 1);
+    await redis.ts.add(`fx:CHF`, parseISO("2025-11-13").getTime(), 1.2);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-11-13").getTime(), 1);
+    await redis.ts.add(`fx:CHF`, parseISO("2025-11-15").getTime(), 1.4);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-11-15").getTime(), 1);
     await redis.ts.add(`fx:CHF`, parseISO("2025-11-30").getTime(), 1.05);
     await redis.ts.add(`fx:EUR`, parseISO("2025-11-30").getTime(), 1);
 
     await setupTestHoldingGainLossAccountGroups();
 
     const holdingAccount = await createTestAccount(
-      {
-        type: AccountType.ASSET,
-        unit: getCurrencyUnitInfo("EUR"),
-      },
+      { type: AccountType.ASSET, unit: getCurrencyUnitInfo("EUR") },
       {
         date: "2025-10-12",
         currency: "EUR",
         value: 1000,
+      },
+      {
+        date: "2025-11-15",
+        currency: "EUR",
+        value: 300,
+      },
+      {
+        // store in reverse chronological order to test sorting, as it is crucial for correct calculation
+        date: "2025-11-13",
+        currency: "EUR",
+        value: 200,
       },
     );
 
@@ -40,14 +56,54 @@ describe("getIncome", () => {
       parseISO("2025-11-30"),
     );
 
+    expect(result).toEqual(
+      expect.objectContaining({
+        accounts: expect.arrayContaining([
+          expect.objectContaining({
+            id: `holding-gain-loss-${holdingAccount.id}`,
+            groupId: result.accountGroups.find((ag) => ag.name === "EUR")?.id,
+          }),
+        ]),
+        accountGroups: expect.arrayContaining([
+          expect.objectContaining({
+            name: "EUR",
+            parentGroupId: result.accountGroups.find(
+              (ag) => ag.name === "FX Holding Gain/Loss",
+            )?.id,
+          }),
+          expect.objectContaining({ name: "FX Holding Gain/Loss" }),
+          expect.objectContaining({ name: "Crypto Holding Gain/Loss" }),
+          expect.objectContaining({ name: "Security Holding Gain/Loss" }),
+        ]),
+      }),
+    );
+
     expect([...result.incomeByAccountId.entries()]).toEqual(
       expect.arrayContaining([
-        [`holding-gain-loss-${holdingAccount.id}`, new Decimal(50)],
+        [`holding-gain-loss-${holdingAccount.id}`, new Decimal(185)],
       ]),
     );
   });
 
   test("returns equity account income", async () => {
+    await redis.ts.add(`fx:CHF`, parseISO("2025-11-15").getTime(), 1.1);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-11-15").getTime(), 1);
+
+    const salaryAccount = await createTestAccount(
+      { type: AccountType.EQUITY },
+      {
+        date: "2025-11-15",
+        currency: "CHF",
+        value: 10000,
+      },
+    );
+
+    const groceriesAccount = await createTestAccount(
+      { type: AccountType.EQUITY },
+      { date: "2025-11-10", currency: "CHF", value: -200 },
+      { date: "2025-11-15", currency: "EUR", value: -150 },
+    );
+
     const rentAccount = await createTestAccount(
       { type: AccountType.EQUITY },
       {
@@ -63,8 +119,28 @@ describe("getIncome", () => {
       parseISO("2025-11-30"),
     );
 
+    expect(result).toEqual(
+      expect.objectContaining({
+        accounts: expect.arrayContaining([
+          salaryAccount,
+          groceriesAccount,
+          rentAccount,
+        ]),
+        accountGroups: [
+          expect.objectContaining({
+            type: AccountType.EQUITY,
+            parentGroupId: null,
+          }),
+        ],
+      }),
+    );
+
     expect([...result.incomeByAccountId.entries()]).toEqual(
-      expect.arrayContaining([[rentAccount.id, new Decimal(-2000)]]),
+      expect.arrayContaining([
+        [salaryAccount.id, new Decimal(10000)],
+        [groceriesAccount.id, new Decimal(-365)],
+        [rentAccount.id, new Decimal(-2000)],
+      ]),
     );
   });
 

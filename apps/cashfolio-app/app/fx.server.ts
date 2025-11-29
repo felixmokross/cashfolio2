@@ -158,8 +158,7 @@ async function getSecurityPrice(
       );
     }
 
-    // only cache if date is before day before yesterday, to avoid caching backtracked prices for dates that might still receive a price
-    if (isBefore(date, subDays(today(), 1))) {
+    if (isOutsideGracePeriod(date)) {
       await redis.ts.add(key, date.getTime(), price);
     }
 
@@ -170,16 +169,21 @@ async function getSecurityPrice(
 }
 
 async function fetchSecurityPrice(key: string, date: Date, symbol: string) {
-  console.log(
-    `Fetching security price for ${key} on ${formatISODate(date)}...`,
-  );
+  console.log(`Fetching security price for ${key} on ${formatISODate(date)}…`);
   const response = await fetch(
     `http://api.marketstack.com/v2/eod/${formatISODate(date)}?access_key=${process.env.MARKETSTACK_API_KEY}&symbols=${symbol}`,
   );
   if (!response.ok) {
-    throw new Error(
-      `Security price fetch failed for ${symbol} on ${formatISODate(date)}`,
-    );
+    if (response.status === 429) {
+      console.log("Rate limit reached, waiting 1 second…");
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      return await fetchSecurityPrice(key, date, symbol);
+    } else {
+      throw new Error(
+        `Security price fetch failed for ${symbol} on ${formatISODate(date)}: ${response.status} ${response.statusText}`,
+      );
+    }
   }
   const data = await response.json();
   if (!data || !data.data || !data.data.length) {
@@ -188,4 +192,12 @@ async function fetchSecurityPrice(key: string, date: Date, symbol: string) {
 
   const price = data.data[0].close as number;
   return price;
+}
+
+export function isOutsideGracePeriod(date: Date) {
+  // grace period is today and yesterday
+  // in this period we must not cache prices and derived balances
+  // since they might be based on a backtracked price
+  // but still might receive a more recent price
+  return isBefore(date, subDays(today(), 1));
 }

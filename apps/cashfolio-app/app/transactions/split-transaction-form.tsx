@@ -202,55 +202,53 @@ function BookingsTable({
                         <ErrorMessage>{fieldError("unit")}</ErrorMessage>
                       )}
                     </Field>
-                    <Field className="col-span-7">
-                      {booking.unit === Unit.CURRENCY ? (
-                        <>
-                          <Label>Currency</Label>
-                          <CurrencyCombobox
+                    {booking.unit === Unit.CURRENCY ? (
+                      <Field className="col-span-7">
+                        <Label>Currency</Label>
+                        <CurrencyCombobox
+                          name={fieldName("currency")}
+                          value={booking.currency ?? ""}
+                          onChange={(currency) => updateBooking({ currency })}
+                          disabled={!!selectedAccount?.currency}
+                        />
+                        {!!selectedAccount?.currency && (
+                          <input
+                            type="hidden"
                             name={fieldName("currency")}
                             value={booking.currency ?? ""}
-                            onChange={(currency) => updateBooking({ currency })}
-                            disabled={!!selectedAccount?.currency}
                           />
-                          {!!selectedAccount?.currency && (
-                            <input
-                              type="hidden"
-                              name={fieldName("currency")}
-                              value={booking.currency ?? ""}
-                            />
-                          )}
-                          {!!fieldError("currency") && (
-                            <ErrorMessage>
-                              {fieldError("currency")}
-                            </ErrorMessage>
-                          )}
-                        </>
-                      ) : booking.unit === Unit.CRYPTOCURRENCY ? (
-                        <>
-                          <Label>Cryptocurrency</Label>
-                          <CryptocurrencyCombobox
+                        )}
+                        {!!fieldError("currency") && (
+                          <ErrorMessage>{fieldError("currency")}</ErrorMessage>
+                        )}
+                      </Field>
+                    ) : booking.unit === Unit.CRYPTOCURRENCY ? (
+                      <Field className="col-span-7">
+                        <Label>Cryptocurrency</Label>
+                        <CryptocurrencyCombobox
+                          name={fieldName("cryptocurrency")}
+                          value={booking.cryptocurrency ?? ""}
+                          onChange={(cryptocurrency) =>
+                            updateBooking({ cryptocurrency })
+                          }
+                          disabled={!!selectedAccount?.cryptocurrency}
+                        />
+                        {!!selectedAccount?.cryptocurrency && (
+                          <input
+                            type="hidden"
                             name={fieldName("cryptocurrency")}
                             value={booking.cryptocurrency ?? ""}
-                            onChange={(cryptocurrency) =>
-                              updateBooking({ cryptocurrency })
-                            }
-                            disabled={!!selectedAccount?.cryptocurrency}
                           />
-                          {!!selectedAccount?.cryptocurrency && (
-                            <input
-                              type="hidden"
-                              name={fieldName("cryptocurrency")}
-                              value={booking.cryptocurrency ?? ""}
-                            />
-                          )}
-                          {!!fieldError("cryptocurrency") && (
-                            <ErrorMessage>
-                              {fieldError("cryptocurrency")}
-                            </ErrorMessage>
-                          )}
-                        </>
-                      ) : booking.unit === Unit.SECURITY ? (
-                        <>
+                        )}
+                        {!!fieldError("cryptocurrency") && (
+                          <ErrorMessage>
+                            {fieldError("cryptocurrency")}
+                          </ErrorMessage>
+                        )}
+                      </Field>
+                    ) : booking.unit === Unit.SECURITY ? (
+                      <>
+                        <Field className="col-span-4">
                           <Label>Symbol</Label>
                           <Input
                             name={fieldName("symbol")}
@@ -270,9 +268,32 @@ function BookingsTable({
                           {!!fieldError("symbol") && (
                             <ErrorMessage>{fieldError("symbol")}</ErrorMessage>
                           )}
-                        </>
-                      ) : null}
-                    </Field>
+                        </Field>
+                        <Field className="col-span-3">
+                          <Label>Trade Ccy.</Label>
+                          <Input
+                            name={fieldName("tradeCurrency")}
+                            value={booking.tradeCurrency ?? ""}
+                            onChange={(e) =>
+                              updateBooking({ tradeCurrency: e.target.value })
+                            }
+                            disabled={!!selectedAccount?.tradeCurrency}
+                          />
+                          {!!selectedAccount?.tradeCurrency && (
+                            <input
+                              type="hidden"
+                              name={fieldName("tradeCurrency")}
+                              value={booking.tradeCurrency ?? ""}
+                            />
+                          )}
+                          {!!fieldError("tradeCurrency") && (
+                            <ErrorMessage>
+                              {fieldError("tradeCurrency")}
+                            </ErrorMessage>
+                          )}
+                        </Field>
+                      </>
+                    ) : null}
                     <Field className="col-span-5">
                       <Label>Value</Label>
                       <FormattedNumberInput
@@ -352,6 +373,7 @@ export type BookingFormValues = Serialize<
     | "currency"
     | "cryptocurrency"
     | "symbol"
+    | "tradeCurrency"
     | "unit"
   >
 > & { value: string; isAccountLocked: boolean; isUnitLocked: boolean };

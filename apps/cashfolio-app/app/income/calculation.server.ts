@@ -18,6 +18,7 @@ export async function getIncomeStatement(
     incomeData.accounts,
     incomeData.accountGroups,
   ).EQUITY;
+
   if (!equityRootNode) {
     throw new Error("No equity account group found");
   }

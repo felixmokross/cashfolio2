@@ -59,7 +59,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           ? endOfQuarterUtc(subMonths(today(), 3))
           : dateOption === "end-of-last-year"
             ? endOfYearUtc(subMonths(today(), 12))
-            : new Date(params.dateOrDateOption);
+            : parseISO(params.dateOrDateOption);
 
   const balanceSheet = await getBalanceSheet(link.accountBookId, date);
   const node = params.nodeId

@@ -1,59 +1,92 @@
-import { getHoldingGainLoss } from "./holding-gain-loss.server";
-import type { Decimal } from "@prisma/client/runtime/library";
-import { getEquityAccountIncome } from "./equity-account-income.server";
-import { getTransactionGainLoss } from "./transaction-gain-loss.server";
+import { prisma } from "~/prisma.server";
 import type { Income } from "./types";
+import {
+  generateHoldingGainLossAccount,
+  generateHoldingGainLossAccountGroups,
+  getHoldingAccounts,
+} from "./holding-gain-loss.server";
+import { AccountType, type Account } from "~/.prisma-client/client";
+import {
+  getEquityAccountGroups,
+  getEquityAccounts,
+} from "./equity-account-income.server";
+import { generateTransactionGainLossAccount } from "./transaction-gain-loss.server";
+import { getCurrencyUnitInfo } from "~/units/functions";
+import { getBalanceCached } from "~/accounts/detail/calculation.server";
+import type { Decimal } from "@prisma/client/runtime/library";
+import { subDays } from "date-fns";
 
 export async function getIncome(
   accountBookId: string,
   fromDate: Date,
   toDate: Date,
 ): Promise<Income> {
-  const equityIncome = await getEquityAccountIncome(
-    accountBookId,
-    fromDate,
-    toDate,
-  );
+  const accountBook = await prisma.accountBook.findUniqueOrThrow({
+    where: { id: accountBookId },
+  });
 
-  const transactionGainLoss = await getTransactionGainLoss(
-    accountBookId,
-    fromDate,
-    toDate,
-  );
+  const holdingAccounts = await getHoldingAccounts(accountBookId);
 
-  const holdingGainLoss = await getHoldingGainLoss(
+  const accounts = await getAccounts(
     accountBookId,
     fromDate,
     toDate,
+    holdingAccounts,
   );
+  const accountGroups = await getAccountGroups(accountBookId, holdingAccounts);
+
+  const incomeByAccountId = new Map<string, Decimal>();
+  for (const account of accounts) {
+    const balanceAtStart = await getBalanceCached(
+      accountBookId,
+      account.id,
+      getCurrencyUnitInfo(accountBook.referenceCurrency),
+      subDays(fromDate, 1),
+    );
+
+    const balanceAtEnd = await getBalanceCached(
+      accountBookId,
+      account.id,
+      getCurrencyUnitInfo(accountBook.referenceCurrency),
+      toDate,
+    );
+
+    incomeByAccountId.set(account.id, balanceAtEnd.sub(balanceAtStart));
+  }
 
   return {
-    accounts: mergeById(
-      equityIncome.accounts,
-      transactionGainLoss.accounts,
-      holdingGainLoss.accounts,
-    ),
-    accountGroups: mergeById(
-      equityIncome.accountGroups,
-      transactionGainLoss.accountGroups,
-      holdingGainLoss.accountGroups,
-    ),
-    incomeByAccountId: new Map<string, Decimal>([
-      ...equityIncome.incomeByAccountId,
-      ...transactionGainLoss.incomeByAccountId,
-      ...holdingGainLoss.incomeByAccountId,
-    ]),
+    incomeByAccountId,
+    accounts,
+    accountGroups,
   };
 }
 
-type Identifiable = { id: string };
+async function getAccounts(
+  accountBookId: string,
+  fromDate: Date,
+  toDate: Date,
+  holdingAccounts: Account[],
+) {
+  return [
+    ...(await getEquityAccounts(accountBookId, fromDate, toDate)),
+    generateTransactionGainLossAccount(
+      await prisma.accountGroup.findFirstOrThrow({
+        where: { accountBookId, type: AccountType.EQUITY, parentGroupId: null },
+      }),
+    ),
+    ...holdingAccounts.map((a) => generateHoldingGainLossAccount(a)),
+  ];
+}
 
-function mergeById<T extends Identifiable>(...arrays: T[][]): T[] {
-  const map = new Map<string, T>();
-  for (const array of arrays) {
-    for (const item of array) {
-      map.set(item.id, item);
-    }
-  }
-  return Array.from(map.values());
+async function getAccountGroups(
+  accountBookId: string,
+  holdingAccounts: Account[],
+) {
+  return [
+    ...(await getEquityAccountGroups(accountBookId)),
+    ...(await generateHoldingGainLossAccountGroups(
+      accountBookId,
+      holdingAccounts,
+    )),
+  ];
 }

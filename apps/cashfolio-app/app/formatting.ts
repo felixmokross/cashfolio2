@@ -1,4 +1,4 @@
-import { formatISO } from "date-fns";
+import { formatISO, parseISO } from "date-fns";
 
 const locale = "en-CH";
 
@@ -14,7 +14,7 @@ export function formatMoney(value: number) {
 const dateFormat = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
 
 export function formatDate(date: string | Date) {
-  return dateFormat.format(date instanceof Date ? date : new Date(date));
+  return dateFormat.format(date instanceof Date ? date : parseISO(date));
 }
 
 export function formatISODate(date: Date) {

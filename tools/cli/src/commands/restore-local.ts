@@ -17,11 +17,17 @@ program.command("restore-local").action(async () => {
     `pg_restore --no-owner --no-privileges -d "${process.env.RESTORE_DB_URL}/${process.env.RESTORE_DB_NAME}" ./backup.dump`,
   );
 
-  console.log("Purging local Redis…");
+  console.log("Purging account-book keys from local Redis…");
 
   const redis = createClient({ url: process.env.RESTORE_REDIS_URL });
   await redis.connect();
-  await redis.flushAll();
+
+  const keys = await redis.keys("account-book:*");
+  console.log(`Found ${keys.length} keys to delete`);
+  for (const key of keys) {
+    await redis.del(key);
+  }
+
   await redis.close();
 
   console.log("Done");

@@ -1,9 +1,14 @@
 import { Decimal } from "@prisma/client/runtime/library";
-import { isAfter, subDays } from "date-fns";
+import { isAfter, min, parseISO, subDays } from "date-fns";
 import type { Booking } from "~/.prisma-client/client";
 import { Unit } from "~/.prisma-client/enums";
-import { getAccountBalanceCacheKey } from "~/caching";
+import {
+  getAccountBalanceCacheKey,
+  getHoldingGainLossAccountBalanceCacheKey,
+  getTransactionGainLossAccountBalanceCacheKey,
+} from "~/caching";
 import { today } from "~/dates";
+import { isMultiUnitTransaction } from "~/income/transaction-gain-loss.server";
 import { redis } from "~/redis.server";
 import { sum } from "~/utils.server";
 
@@ -13,7 +18,7 @@ export function validate(bookings: BookingFormData[]) {
   let hasBookingValueError = false;
   for (let i = 0; i < bookings.length; i++) {
     const b = bookings[i];
-    if (!b.date || isNaN(new Date(b.date).getTime())) {
+    if (!b.date || isNaN(parseISO(b.date).getTime())) {
       errors[`bookings[${i}][date]`] = "Invalid date";
     } else if (isAfter(b.date, subDays(today(), 1))) {
       errors[`bookings[${i}][date]`] = "Date cannot be in the future";
@@ -96,20 +101,48 @@ export function parseBookings(formData: FormData) {
     currency: String(b.currency ?? ""),
     cryptocurrency: String(b.cryptocurrency ?? ""),
     symbol: String(b.symbol ?? ""),
+    tradeCurrency: String(b.tradeCurrency ?? ""),
     value: String(b.value ?? ""),
   }));
 }
 
 export async function purgeCachedBalances(
   accountBookId: string,
-  bookings: Pick<Booking, "accountId" | "date">[],
+  bookingsBeforeUpdate: Booking[],
+  bookingsAfterUpdate: Booking[],
 ) {
-  await Promise.all(
-    bookings.map(async (b) => {
-      const cacheKey = getAccountBalanceCacheKey(accountBookId, b.accountId);
-      if (await redis.exists(cacheKey)) {
-        await redis.ts.del(cacheKey, b.date.getTime(), "+");
-      }
+  await Promise.all([
+    ...bookingsBeforeUpdate.concat(bookingsAfterUpdate).map(async (b) => {
+      await Promise.all([
+        purgeTimeseriesFromDate(
+          getAccountBalanceCacheKey(accountBookId, b.accountId),
+          b.date,
+        ),
+        // just purging holding gain/loss regardless if this is a holding account – checking this before would be slower
+        purgeTimeseriesFromDate(
+          getHoldingGainLossAccountBalanceCacheKey(accountBookId, b.accountId),
+          b.date,
+        ),
+      ]);
     }),
-  );
+    ...(isMultiUnitTransaction({ bookings: bookingsBeforeUpdate }) ||
+    isMultiUnitTransaction({ bookings: bookingsAfterUpdate })
+      ? [
+          purgeTimeseriesFromDate(
+            getTransactionGainLossAccountBalanceCacheKey(accountBookId),
+            min(
+              bookingsBeforeUpdate
+                .concat(bookingsAfterUpdate)
+                .map((b) => b.date),
+            ),
+          ),
+        ]
+      : []),
+  ]);
+}
+
+async function purgeTimeseriesFromDate(key: string, date: Date) {
+  if (await redis.exists(key)) {
+    await redis.ts.del(key, date.getTime(), "+");
+  }
 }

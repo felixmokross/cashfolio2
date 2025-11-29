@@ -10,6 +10,7 @@ import invariant from "tiny-invariant";
 import { Unit } from "~/.prisma-client/enums";
 import { Decimal } from "@prisma/client/runtime/library";
 import { ensureAuthorized } from "~/account-books/functions.server";
+import { parseISO } from "date-fns";
 
 export async function action({ request, params }: ActionFunctionArgs) {
   const link = await ensureAuthorized(request, params);
@@ -25,18 +26,20 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return data({ success: false, errors }, { status: 400 });
   }
 
-  await prisma.transaction.create({
+  const transaction = await prisma.transaction.create({
+    include: { bookings: true },
     data: {
       description,
       bookings: {
         create: bookingFormValues.map((b) => ({
-          date: new Date(b.date),
+          date: parseISO(b.date),
           description: b.description,
           accountId: b.accountId,
           unit: b.unit as Unit,
           currency: b.currency || null,
           cryptocurrency: b.cryptocurrency || null,
           symbol: b.symbol || null,
+          tradeCurrency: b.tradeCurrency || null,
           value: new Decimal(b.value),
         })),
       },
@@ -44,12 +47,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     },
   });
 
-  const bookings = bookingFormValues.map((b) => ({
-    date: new Date(b.date),
-    accountId: b.accountId,
-  }));
-
-  await purgeCachedBalances(link.accountBookId, bookings);
+  await purgeCachedBalances(link.accountBookId, [], transaction.bookings);
 
   return data({ success: true, errors: undefined });
 }

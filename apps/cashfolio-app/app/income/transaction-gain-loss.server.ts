@@ -18,7 +18,6 @@ import {
   getUnitKey,
 } from "~/units/functions";
 import { sum } from "~/utils.server";
-import type { Income } from "./types";
 
 export const TRANSACTION_GAIN_LOSS_ACCOUNT_ID = "transaction-gain-loss";
 
@@ -47,45 +46,9 @@ export function generateTransactionGainLossAccount(
   };
 }
 
-export async function getTransactionGainLoss(
-  accountBookId: string,
-  fromDate: Date,
-  toDate: Date,
-): Promise<Income> {
-  const accountBook = await prisma.accountBook.findUniqueOrThrow({
-    where: { id: accountBookId },
-  });
-
-  const equityRootGroup = await prisma.accountGroup.findFirstOrThrow({
-    where: {
-      accountBookId: accountBook.id,
-      type: AccountType.EQUITY,
-      parentGroupId: null,
-    },
-  });
-  return {
-    incomeByAccountId: new Map<string, Decimal>([
-      [
-        TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
-        sum(
-          (
-            await generateTransactionGainLossBookings(
-              accountBook,
-              fromDate,
-              toDate,
-            )
-          ).map((b) => b.value),
-        ),
-      ],
-    ]),
-    accounts: [generateTransactionGainLossAccount(equityRootGroup)],
-    accountGroups: [equityRootGroup],
-  };
-}
-
 export async function generateTransactionGainLossBookings(
   accountBook: AccountBook,
-  fromDate: Date,
+  fromDate: Date | undefined,
   toDate: Date,
 ) {
   const transactions = await prisma.transaction.findMany({
@@ -108,9 +71,7 @@ export async function generateTransactionGainLossBookings(
   });
 
   // only consider transactions with bookings in multiple units
-  const multiUnitTransactions = transactions.filter(
-    (t) => new Set(t.bookings.map((b) => getUnitKey(getUnitInfo(b)))).size > 1,
-  );
+  const multiUnitTransactions = transactions.filter(isMultiUnitTransaction);
 
   const bookings = new Array<BookingWithTransaction>(
     multiUnitTransactions.length,
@@ -127,6 +88,15 @@ export async function generateTransactionGainLossBookings(
     .filter((b) => !b.value.isZero())
     .toSorted((a, b) => differenceInDays(b.date, a.date))
     .toReversed();
+}
+
+export function isMultiUnitTransaction(
+  transaction: Pick<TransactionWithBookings, "bookings">,
+) {
+  return (
+    new Set(transaction.bookings.map((b) => getUnitKey(getUnitInfo(b)))).size >
+    1
+  );
 }
 
 export async function generateTransactionGainLossBooking(
