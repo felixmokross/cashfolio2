@@ -1,19 +1,12 @@
 import { describe, expect, test } from "vitest";
 import { prisma } from "~/prisma.server";
-import {
-  generateHoldingBookingsForAccount,
-  getHoldingGainLoss,
-} from "./holding-gain-loss.server";
+import { generateHoldingBookingsForAccount } from "./holding-gain-loss.server";
 import { AccountType, Unit } from "~/.prisma-client/enums";
 import { redis } from "~/redis.server";
 import { Decimal } from "@prisma/client/runtime/library";
 import type { Booking } from "~/.prisma-client/client";
 import { getCurrencyUnitInfo } from "~/units/functions";
-import {
-  createTestAccount,
-  setupTestHoldingGainLossAccountGroups,
-  testAccountBook,
-} from "test-setup";
+import { createTestAccount, testAccountBook } from "test-setup";
 import { parseISO } from "date-fns";
 
 describe("generateHoldingBookingsForAccount", () => {
@@ -49,69 +42,5 @@ describe("generateHoldingBookingsForAccount", () => {
         currency: "CHF",
       }),
     ]);
-  });
-});
-
-describe("getHoldingGainLoss", () => {
-  test("returns holding gain/loss", async () => {
-    await redis.ts.add(`fx:CHF`, parseISO("2025-10-31").getTime(), 1.1);
-    await redis.ts.add(`fx:EUR`, parseISO("2025-10-31").getTime(), 1);
-    await redis.ts.add(`fx:CHF`, parseISO("2025-11-13").getTime(), 1.2);
-    await redis.ts.add(`fx:EUR`, parseISO("2025-11-13").getTime(), 1);
-    await redis.ts.add(`fx:CHF`, parseISO("2025-11-15").getTime(), 1.4);
-    await redis.ts.add(`fx:EUR`, parseISO("2025-11-15").getTime(), 1);
-    await redis.ts.add(`fx:CHF`, parseISO("2025-11-30").getTime(), 1.05);
-    await redis.ts.add(`fx:EUR`, parseISO("2025-11-30").getTime(), 1);
-
-    await setupTestHoldingGainLossAccountGroups();
-
-    const holdingAccount = await createTestAccount(
-      { type: AccountType.ASSET, unit: getCurrencyUnitInfo("EUR") },
-      {
-        date: "2025-10-12",
-        currency: "EUR",
-        value: 1000,
-      },
-      {
-        date: "2025-11-15",
-        currency: "EUR",
-        value: 300,
-      },
-      {
-        // store in reverse chronological order to test sorting, as it is crucial for correct calculation
-        date: "2025-11-13",
-        currency: "EUR",
-        value: 200,
-      },
-    );
-
-    const result = await getHoldingGainLoss(
-      testAccountBook.id,
-      parseISO("2025-11-01"),
-      parseISO("2025-11-30"),
-    );
-
-    expect(result).toEqual({
-      accounts: [
-        expect.objectContaining({
-          id: `holding-gain-loss-${holdingAccount.id}`,
-          groupId: result.accountGroups.find((ag) => ag.name === "EUR")?.id,
-        }),
-      ],
-      accountGroups: expect.arrayContaining([
-        expect.objectContaining({
-          name: "EUR",
-          parentGroupId: result.accountGroups.find(
-            (ag) => ag.name === "FX Holding Gain/Loss",
-          )?.id,
-        }),
-        expect.objectContaining({ name: "FX Holding Gain/Loss" }),
-        expect.objectContaining({ name: "Crypto Holding Gain/Loss" }),
-        expect.objectContaining({ name: "Security Holding Gain/Loss" }),
-      ]),
-      incomeByAccountId: new Map([
-        [`holding-gain-loss-${holdingAccount.id}`, new Decimal(185)],
-      ]),
-    });
   });
 });

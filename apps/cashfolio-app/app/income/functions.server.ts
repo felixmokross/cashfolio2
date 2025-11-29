@@ -1,20 +1,92 @@
-import { getEquityAccountIncome } from "./equity-account-income.server";
+import { prisma } from "~/prisma.server";
 import type { Income } from "./types";
+import {
+  generateHoldingGainLossAccount,
+  generateHoldingGainLossAccountGroups,
+  getHoldingAccounts,
+} from "./holding-gain-loss.server";
+import { AccountType, type Account } from "~/.prisma-client/client";
+import {
+  getEquityAccountGroups,
+  getEquityAccounts,
+} from "./equity-account-income.server";
+import { generateTransactionGainLossAccount } from "./transaction-gain-loss.server";
+import { getCurrencyUnitInfo } from "~/units/functions";
+import { getBalanceCached } from "~/accounts/detail/calculation.server";
+import type { Decimal } from "@prisma/client/runtime/library";
+import { subDays } from "date-fns";
 
 export async function getIncome(
   accountBookId: string,
   fromDate: Date,
   toDate: Date,
 ): Promise<Income> {
-  console.log("Calculating income...");
-  let x = performance.now();
-  const equityIncome = await getEquityAccountIncome(
+  const accountBook = await prisma.accountBook.findUniqueOrThrow({
+    where: { id: accountBookId },
+  });
+
+  const holdingAccounts = await getHoldingAccounts(accountBookId);
+
+  const accounts = await getAccounts(
     accountBookId,
     fromDate,
     toDate,
+    holdingAccounts,
   );
-  console.log(performance.now() - x, "Equity account income calculated");
-  x = performance.now();
+  const accountGroups = await getAccountGroups(accountBookId, holdingAccounts);
 
-  return equityIncome;
+  const incomeByAccountId = new Map<string, Decimal>();
+  for (const account of accounts) {
+    const balanceAtStart = await getBalanceCached(
+      accountBookId,
+      account.id,
+      getCurrencyUnitInfo(accountBook.referenceCurrency),
+      subDays(fromDate, 1),
+    );
+
+    const balanceAtEnd = await getBalanceCached(
+      accountBookId,
+      account.id,
+      getCurrencyUnitInfo(accountBook.referenceCurrency),
+      toDate,
+    );
+
+    incomeByAccountId.set(account.id, balanceAtEnd.sub(balanceAtStart));
+  }
+
+  return {
+    incomeByAccountId,
+    accounts,
+    accountGroups,
+  };
+}
+
+async function getAccounts(
+  accountBookId: string,
+  fromDate: Date,
+  toDate: Date,
+  holdingAccounts: Account[],
+) {
+  return [
+    ...(await getEquityAccounts(accountBookId, fromDate, toDate)),
+    generateTransactionGainLossAccount(
+      await prisma.accountGroup.findFirstOrThrow({
+        where: { accountBookId, type: AccountType.EQUITY, parentGroupId: null },
+      }),
+    ),
+    ...holdingAccounts.map((a) => generateHoldingGainLossAccount(a)),
+  ];
+}
+
+async function getAccountGroups(
+  accountBookId: string,
+  holdingAccounts: Account[],
+) {
+  return [
+    ...(await getEquityAccountGroups(accountBookId)),
+    ...(await generateHoldingGainLossAccountGroups(
+      accountBookId,
+      holdingAccounts,
+    )),
+  ];
 }

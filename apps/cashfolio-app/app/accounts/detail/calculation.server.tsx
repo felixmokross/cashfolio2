@@ -123,7 +123,7 @@ export async function getBalanceCached(
 
   const cacheKey = getAccountBalanceCacheKey(accountBookId, accountId);
   const [cacheEntry] = (await redis.exists(cacheKey))
-    ? await redis.ts.REVRANGE(cacheKey, "-", date.getTime(), { COUNT: 1 })
+    ? await redis.ts.revRange(cacheKey, "-", date.getTime(), { COUNT: 1 })
     : [];
 
   if (cacheEntry && isEqual(cacheEntry.timestamp, date)) {
