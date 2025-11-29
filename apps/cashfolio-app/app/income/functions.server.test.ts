@@ -15,6 +15,8 @@ import { parseISO } from "date-fns";
 
 describe("getIncome", () => {
   test("returns holding gain/loss", async () => {
+    await redis.ts.add(`fx:CHF`, parseISO("2025-10-11").getTime(), 1.3);
+    await redis.ts.add(`fx:EUR`, parseISO("2025-10-11").getTime(), 1);
     await redis.ts.add(`fx:CHF`, parseISO("2025-10-12").getTime(), 1.2);
     await redis.ts.add(`fx:EUR`, parseISO("2025-10-12").getTime(), 1);
     await redis.ts.add(`fx:CHF`, parseISO("2025-10-31").getTime(), 1.1);
