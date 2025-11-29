@@ -1,6 +1,7 @@
 import {
   useLoaderData,
   useNavigate,
+  useRouteLoaderData,
   type LoaderFunctionArgs,
 } from "react-router";
 import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functions.server";
@@ -28,17 +29,26 @@ import {
 } from "~/period/timeline.server";
 import { ensureUser } from "~/users/functions.server";
 import invariant from "tiny-invariant";
+import type { TimelineView } from "~/period/types";
+import type {
+  AgBarSeriesOptions,
+  AgLineSeriesOptions,
+} from "ag-charts-community";
+import type { loader as incomeLoader } from "~/income/route";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const user = await ensureUser(request);
 
+  invariant(params.view, "view param not found");
   invariant(params.accountBookId, "accountBookId not found");
   const link = await ensureAuthorizedForUserAndAccountBookId(
     user,
     params.accountBookId,
   );
 
-  if (!params.range) throw await redirectToLastUsedTimelineRange(user, link);
+  if (!params.range) {
+    throw await redirectToLastUsedTimelineRange(user, link, "totals");
+  }
 
   const range = parseRange(params.range);
   const period = getInitialTimelinePeriod(range);
@@ -82,6 +92,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   );
 
   return serialize({
+    view: params.view as TimelineView,
     period,
     range: params.range,
     timeline,
@@ -94,7 +105,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export const shouldRevalidate = defaultShouldRevalidate;
 
 export default function Route() {
-  const { timeline, average, period, range } = useLoaderData<typeof loader>();
+  const { view, timeline, average, period, range } =
+    useLoaderData<typeof loader>();
+
+  const incomeLoaderData =
+    useRouteLoaderData<typeof incomeLoader>("income/route");
+  invariant(incomeLoaderData, "incomeLoaderData not found");
 
   const navigate = useNavigate();
   const isExpensesGroup = timeline[0].node && isExpensesNode(timeline[0].node);
@@ -126,43 +142,99 @@ export default function Route() {
       : undefined;
   return (
     <>
-      <TimelineSelector className="mt-12" period={period} range={range} />
+      <TimelineSelector
+        className="mt-12"
+        period={period}
+        range={range}
+        view={view}
+      />
       <AgCharts
         className="h-[calc(100vh_-_16rem)] mt-4"
         options={{
           ...defaultChartOptions,
-          theme: {
-            ...defaultChartTheme,
-            palette: {
-              fills: [neutralFillColor],
-            },
-          },
+          theme:
+            view === "totals"
+              ? {
+                  ...defaultChartTheme,
+                  palette: {
+                    fills: [neutralFillColor],
+                  },
+                }
+              : defaultChartTheme,
           series: [
-            {
-              type: "bar",
-              xKey: "date",
-              yKey: "value",
-              yName: "Period",
-              tooltip: tooltipOptions,
-              itemStyler: (params) => {
-                return {
-                  fill:
-                    isExpensesGroup || params.yValue < 0
-                      ? negativeFillColor
-                      : positiveFillColor,
-                };
-              },
-            },
-            {
-              type: "line",
-              xKey: "date",
-              yKey: "average",
-              yName: "Average",
-              marker: { enabled: false },
-              stroke: neutralStrokeColor,
-              lineDash: [6, 4],
-              tooltip: tooltipOptions,
-            },
+            ...(view === "totals"
+              ? [
+                  {
+                    type: "bar",
+                    xKey: "date",
+                    yKey: "total",
+                    yName: "Total",
+                    tooltip: tooltipOptions,
+                    itemStyler: (params) => {
+                      return {
+                        fill:
+                          isExpensesGroup || params.yValue < 0
+                            ? negativeFillColor
+                            : positiveFillColor,
+                      };
+                    },
+                  } as AgBarSeriesOptions,
+                ]
+              : incomeLoaderData.node.nodeType === "accountGroup"
+                ? incomeLoaderData.node.children
+                    .filter((c) =>
+                      timeline.some((t) =>
+                        (t.node.nodeType === "accountGroup"
+                          ? t.node.children
+                          : []
+                        )
+                          .map((tc) => tc.id)
+                          .includes(c.id),
+                      ),
+                    )
+                    .toSorted((a, b) => {
+                      const parentNode = timeline[timeline.length - 1].node;
+                      if (parentNode.nodeType !== "accountGroup") {
+                        return Infinity;
+                      }
+
+                      const childNodeA = parentNode.children.find(
+                        (c) => c.id === a.id,
+                      );
+                      const childNodeB = parentNode.children.find(
+                        (c) => c.id === b.id,
+                      );
+                      const sortOrder =
+                        (childNodeA?.value ?? Infinity) -
+                        (childNodeB?.value ?? Infinity);
+
+                      return isExpensesGroup ? sortOrder : -sortOrder;
+                    })
+                    .map(
+                      (childNode) =>
+                        ({
+                          type: "bar",
+                          xKey: "date",
+                          yKey: childNode.id,
+                          yName: childNode.name,
+                          tooltip: tooltipOptions,
+                        }) as AgBarSeriesOptions,
+                    )
+                : []),
+            ...(view === "totals"
+              ? [
+                  {
+                    type: "line",
+                    xKey: "date",
+                    yKey: "average",
+                    yName: "Average",
+                    marker: { enabled: false },
+                    stroke: neutralStrokeColor,
+                    lineDash: [6, 4],
+                    tooltip: tooltipOptions,
+                  } as AgLineSeriesOptions,
+                ]
+              : []),
           ],
           tooltip: {
             mode: "single",
@@ -172,16 +244,7 @@ export default function Route() {
           },
           listeners: {
             seriesNodeDoubleClick: (event) => {
-              navigate(
-                `../breakdown/${format(
-                  event.datum.date,
-                  period.granularity === "year"
-                    ? "yyyy"
-                    : period.granularity === "quarter"
-                      ? "yyyy-QQQ"
-                      : "yyyy-MM",
-                ).toLowerCase()}`,
-              );
+              navigate(`../../income/${event.yKey}/timeline/${view}/${range}`);
             },
           },
           axes: [
@@ -189,11 +252,20 @@ export default function Route() {
               type: "unit-time",
               position: "bottom",
               label:
-                period.granularity === "quarter"
+                timeline.length === 1
                   ? {
-                      formatter: (params) => `Q${getQuarter(params.value)}`,
+                      formatter: () =>
+                        period.granularity === "month"
+                          ? "Month to Date"
+                          : period.granularity === "quarter"
+                            ? "Quarter to Date"
+                            : "Year to Date",
                     }
-                  : undefined,
+                  : period.granularity === "quarter"
+                    ? {
+                        formatter: (params) => `Q${getQuarter(params.value)}`,
+                      }
+                    : undefined,
             },
             {
               type: "number",
@@ -203,12 +275,22 @@ export default function Route() {
           data: timeline
             .map((i) => ({
               date: parseISO(i.periodDateRange.from),
-              value: i.node?.value ?? 0,
+              total: i.node?.value ?? 0,
+              ...Object.fromEntries(
+                (i.node && i.node.nodeType === "accountGroup"
+                  ? i.node.children
+                  : []
+                ).map((child) => [child.id, child.value]),
+              ),
             }))
-            .map(({ date, value }) => ({
+            .map(({ date, ...values }) => ({
               date,
-              value: isExpensesGroup ? -value : value,
-              average: isExpensesGroup ? -average : average,
+              ...Object.fromEntries(
+                Object.entries(values).map(([key, value]) => [
+                  key,
+                  isExpensesGroup ? -value : value,
+                ]),
+              ),
             })),
         }}
       />
