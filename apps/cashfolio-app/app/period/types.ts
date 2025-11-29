@@ -1,3 +1,5 @@
+export type TimelineView = "totals" | "breakdown";
+
 export type TimelineRange = {
   granularity: Granularity;
   numberOfPeriods: number;

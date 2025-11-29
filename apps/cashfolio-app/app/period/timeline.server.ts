@@ -1,5 +1,5 @@
 import { prisma } from "~/prisma.server";
-import type { TimelineRange } from "./types";
+import type { TimelineRange, TimelineView } from "./types";
 import {
   differenceInMonths,
   differenceInQuarters,
@@ -18,11 +18,16 @@ type NumberOfPeriodsOptions = {
 export async function redirectToLastUsedTimelineRange(
   user: User,
   link: UserAccountBookLink,
+  view?: TimelineView,
 ) {
   const lastUsedTimelineRange =
     getViewPreference(user, timelineRangeKey(link.accountBookId)) ?? "12m";
 
-  return redirect(`../timeline/${lastUsedTimelineRange}`);
+  return redirect(
+    view
+      ? `../timeline/${view}/${lastUsedTimelineRange}`
+      : `../timeline/${lastUsedTimelineRange}`,
+  );
 }
 
 export async function getNumberOfPeriods(

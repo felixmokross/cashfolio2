@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import type { Granularity, Period, TimelineRange } from "./types";
+import type { Granularity, Period, TimelineRange, TimelineView } from "./types";
 import { Field } from "~/platform/forms/fieldset";
 import { Select } from "~/platform/forms/select";
 import { useFetcher, useNavigate } from "react-router";
@@ -73,12 +73,13 @@ export function TimelineSelector({
   className,
   period,
   range,
+  view,
 }: {
   className?: string;
   period: Period;
   range: string;
+  view?: TimelineView;
 }) {
-  const fetcher = useFetcher();
   const navigate = useNavigate();
   const accountBook = useAccountBook();
   return (
@@ -93,7 +94,11 @@ export function TimelineSelector({
                 : e.target.value === "quarter"
                   ? "4q"
                   : "12m";
-            navigate(`../timeline/${newRange}`);
+            navigate(
+              view
+                ? `../timeline/${view}/${newRange}`
+                : `../timeline/${newRange}`,
+            );
 
             saveViewPreference(timelineRangeKey(accountBook.id), newRange);
           }}
@@ -108,19 +113,26 @@ export function TimelineSelector({
           value={range}
           onChange={(e) => {
             const newRange = e.target.value;
-            navigate(`../timeline/${newRange}`);
+            navigate(
+              view
+                ? `../timeline/${view}/${newRange}`
+                : `../timeline/${newRange}`,
+            );
 
             saveViewPreference(timelineRangeKey(accountBook.id), newRange);
           }}
         >
           {period.granularity === "year" ? (
             <>
+              <option value="1y">Year to Date</option>
+              <option value="3y">Last 3 Years</option>
               <option value="5y">Last 5 Years</option>
               <option value="10y">Last 10 Years</option>
               <option value="max-year">Max</option>
             </>
           ) : period.granularity === "quarter" ? (
             <>
+              <option value="1q">Quarter to Date</option>
               <option value="4q">Last 4 Quarters</option>
               <option value="8q">Last 8 Quarters</option>
               <option value="12q">Last 12 Quarters</option>
@@ -129,6 +141,9 @@ export function TimelineSelector({
             </>
           ) : period.granularity === "month" ? (
             <>
+              <option value="1m">Month to Date</option>
+              <option value="3m">Last 3 Months</option>
+              <option value="6m">Last 6 Months</option>
               <option value="12m">Last 12 Months</option>
               <option value="24m">Last 24 Months</option>
               <option value="36m">Last 36 Months</option>
@@ -138,6 +153,19 @@ export function TimelineSelector({
           ) : null}
         </Select>
       </Field>
+      {view && (
+        <Field>
+          <Select
+            value={view}
+            onChange={(e) => {
+              navigate(`../timeline/${e.currentTarget.value}/${range}`);
+            }}
+          >
+            <option value="totals">Totals</option>
+            <option value="breakdown">Breakdown</option>
+          </Select>
+        </Field>
+      )}
     </div>
   );
 }
