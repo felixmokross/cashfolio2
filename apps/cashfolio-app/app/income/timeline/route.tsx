@@ -12,7 +12,7 @@ import { getPeriodDateRangeFromPeriod } from "~/period/functions";
 import { AgCharts } from "ag-charts-react";
 import { getTheme } from "~/theme";
 import { formatMoney } from "~/formatting";
-import { format, getQuarter, parseISO } from "date-fns";
+import { format, getQuarter, getYear, parseISO } from "date-fns";
 import { decrementPeriod } from "~/period/functions";
 import type { IncomeAccountsNode } from "../types";
 import { findSubtreeRootNode, isExpensesNode } from "../functions";
@@ -105,12 +105,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export const shouldRevalidate = defaultShouldRevalidate;
 
 export default function Route() {
-  const { view, timeline, average, period, range } =
+  const { view, average, timeline, period, range } =
     useLoaderData<typeof loader>();
 
   const incomeLoaderData =
     useRouteLoaderData<typeof incomeLoader>("income/route");
   invariant(incomeLoaderData, "incomeLoaderData not found");
+  invariant(
+    incomeLoaderData.node.nodeType === "accountGroup",
+    "Node must be an account group",
+  );
 
   const navigate = useNavigate();
   const isExpensesGroup = timeline[0].node && isExpensesNode(timeline[0].node);
@@ -149,6 +153,7 @@ export default function Route() {
         view={view}
       />
       <AgCharts
+        key={view}
         className="h-[calc(100vh_-_16rem)] mt-4"
         options={{
           ...defaultChartOptions,
@@ -180,47 +185,45 @@ export default function Route() {
                     },
                   } as AgBarSeriesOptions,
                 ]
-              : incomeLoaderData.node.nodeType === "accountGroup"
-                ? incomeLoaderData.node.children
-                    .filter((c) =>
-                      timeline.some((t) =>
-                        (t.node.nodeType === "accountGroup"
-                          ? t.node.children
-                          : []
-                        )
-                          .map((tc) => tc.id)
-                          .includes(c.id),
-                      ),
-                    )
-                    .toSorted((a, b) => {
-                      const parentNode = timeline[timeline.length - 1].node;
-                      if (parentNode.nodeType !== "accountGroup") {
-                        return Infinity;
-                      }
+              : incomeLoaderData.node.children
+                  .filter((c) =>
+                    timeline.some((t) =>
+                      (t.node.nodeType === "accountGroup"
+                        ? t.node.children
+                        : []
+                      )
+                        .map((tc) => tc.id)
+                        .includes(c.id),
+                    ),
+                  )
+                  .toSorted((a, b) => {
+                    const parentNode = timeline[timeline.length - 1].node;
+                    if (parentNode.nodeType !== "accountGroup") {
+                      return Infinity;
+                    }
 
-                      const childNodeA = parentNode.children.find(
-                        (c) => c.id === a.id,
-                      );
-                      const childNodeB = parentNode.children.find(
-                        (c) => c.id === b.id,
-                      );
-                      const sortOrder =
-                        (childNodeA?.value ?? Infinity) -
-                        (childNodeB?.value ?? Infinity);
+                    const childNodeA = parentNode.children.find(
+                      (c) => c.id === a.id,
+                    );
+                    const childNodeB = parentNode.children.find(
+                      (c) => c.id === b.id,
+                    );
+                    const sortOrder =
+                      (childNodeA?.value ?? Infinity) -
+                      (childNodeB?.value ?? Infinity);
 
-                      return isExpensesGroup ? sortOrder : -sortOrder;
-                    })
-                    .map(
-                      (childNode) =>
-                        ({
-                          type: "bar",
-                          xKey: "date",
-                          yKey: childNode.id,
-                          yName: childNode.name,
-                          tooltip: tooltipOptions,
-                        }) as AgBarSeriesOptions,
-                    )
-                : []),
+                    return isExpensesGroup ? sortOrder : -sortOrder;
+                  })
+                  .map(
+                    (childNode) =>
+                      ({
+                        type: "bar",
+                        xKey: "date",
+                        yKey: childNode.id,
+                        yName: childNode.name,
+                        tooltip: tooltipOptions,
+                      }) as AgBarSeriesOptions,
+                  )),
             ...(view === "totals"
               ? [
                   {
@@ -243,9 +246,38 @@ export default function Route() {
             y: (params) => formatMoney(params.value as number),
           },
           listeners: {
-            seriesNodeDoubleClick: (event) => {
-              navigate(`../../income/${event.yKey}/timeline/${view}/${range}`);
-            },
+            seriesNodeDoubleClick:
+              view === "breakdown"
+                ? (event) => {
+                    invariant(
+                      incomeLoaderData.node.nodeType === "accountGroup",
+                      "Node must be an account group",
+                    );
+                    const node = incomeLoaderData.node.children.find(
+                      (c) => c.id === event.yKey,
+                    );
+                    invariant(node, "Node must be found");
+
+                    if (node.nodeType === "accountGroup") {
+                      navigate(
+                        `../../income/${event.yKey}/timeline/${view}/${range}`,
+                      );
+                    } else {
+                      navigate(
+                        `../../accounts/${event.yKey}/${
+                          period.granularity === "year"
+                            ? getYear(event.datum.date)
+                            : period.granularity === "quarter"
+                              ? format(
+                                  event.datum.date,
+                                  "yyyy-QQQ",
+                                ).toLowerCase()
+                              : format(event.datum.date, "yyyy-MM")
+                        }`,
+                      );
+                    }
+                  }
+                : undefined,
           },
           axes: [
             {
@@ -275,6 +307,7 @@ export default function Route() {
           data: timeline
             .map((i) => ({
               date: parseISO(i.periodDateRange.from),
+              average,
               total: i.node?.value ?? 0,
               ...Object.fromEntries(
                 (i.node && i.node.nodeType === "accountGroup"

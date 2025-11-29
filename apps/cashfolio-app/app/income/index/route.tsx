@@ -17,5 +17,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const lastUsedView =
     getViewPreference(user, viewKey(link.accountBookId)) ?? "breakdown";
 
-  return redirect(lastUsedView);
+  return redirect(
+    lastUsedView === "timeline" ? "timeline/totals" : lastUsedView,
+  );
 }

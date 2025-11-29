@@ -157,7 +157,7 @@ export async function getBookings(
     );
   }
 
-  return await getEquityBookings(
+  return await getAccountBookings(
     accountBookId,
     accountId,
     fromDate,
@@ -166,21 +166,21 @@ export async function getBookings(
   );
 }
 
-async function getEquityBookings(
+async function getAccountBookings(
   accountBookId: string,
   accountId: string,
   fromDate: Date | undefined,
   toDate: Date,
   options: GetBookingsOptions & { includeTransactions: true },
 ): Promise<BookingWithTransaction[]>;
-async function getEquityBookings(
+async function getAccountBookings(
   accountBookId: string,
   accountId: string,
   fromDate: Date | undefined,
   toDate: Date,
   options?: GetBookingsOptions & { includeTransactions?: boolean },
 ): Promise<Booking[]>;
-async function getEquityBookings(
+async function getAccountBookings(
   accountBookId: string,
   accountId: string,
   fromDate: Date | undefined,
@@ -204,7 +204,9 @@ async function getEquityBookings(
           { id: "asc" },
         ]
       : { date: "asc" },
-    include: options.includeTransactions ? { transaction: true } : undefined,
+    include: options.includeTransactions
+      ? { transaction: { include: { bookings: true } } }
+      : undefined,
   });
 }
 

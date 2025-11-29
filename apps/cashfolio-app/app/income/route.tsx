@@ -163,7 +163,7 @@ export default function Route() {
               Breakdown
             </NavNavbarItem>
             <NavNavbarItem
-              href={`/${accountBook.id}/income/${node.id}/timeline`}
+              href={`/${accountBook.id}/income/${node.id}/timeline/totals`}
               onClick={() =>
                 saveViewPreference(viewKey(accountBook.id), "timeline")
               }
