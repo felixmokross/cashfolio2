@@ -2,7 +2,10 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { isAfter, subDays } from "date-fns";
 import type { Booking } from "~/.prisma-client/client";
 import { Unit } from "~/.prisma-client/enums";
-import { getAccountBalanceCacheKey } from "~/caching";
+import {
+  getAccountBalanceCacheKey,
+  getHoldingGainLossAccountBalanceCacheKey,
+} from "~/caching";
 import { today } from "~/dates";
 import { redis } from "~/redis.server";
 import { sum } from "~/utils.server";
@@ -96,6 +99,7 @@ export function parseBookings(formData: FormData) {
     currency: String(b.currency ?? ""),
     cryptocurrency: String(b.cryptocurrency ?? ""),
     symbol: String(b.symbol ?? ""),
+    tradeCurrency: String(b.tradeCurrency ?? ""),
     value: String(b.value ?? ""),
   }));
 }
@@ -106,10 +110,23 @@ export async function purgeCachedBalances(
 ) {
   await Promise.all(
     bookings.map(async (b) => {
-      const cacheKey = getAccountBalanceCacheKey(accountBookId, b.accountId);
-      if (await redis.exists(cacheKey)) {
-        await redis.ts.del(cacheKey, b.date.getTime(), "+");
-      }
+      await Promise.all([
+        purgeTimeseriesFromDate(
+          getAccountBalanceCacheKey(accountBookId, b.accountId),
+          b.date,
+        ),
+        // just purging holding gain/loss regardless if this is a holding account – checking this before would be slower
+        purgeTimeseriesFromDate(
+          getHoldingGainLossAccountBalanceCacheKey(accountBookId, b.accountId),
+          b.date,
+        ),
+      ]);
     }),
   );
+}
+
+async function purgeTimeseriesFromDate(key: string, date: Date) {
+  if (await redis.exists(key)) {
+    await redis.ts.del(key, date.getTime(), "+");
+  }
 }

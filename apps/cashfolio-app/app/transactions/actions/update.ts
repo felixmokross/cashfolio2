@@ -60,6 +60,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
           currency: b.currency || null,
           cryptocurrency: b.cryptocurrency || null,
           symbol: b.symbol || null,
+          tradeCurrency: b.tradeCurrency || null,
           value: new Decimal(b.value),
         })),
       },
