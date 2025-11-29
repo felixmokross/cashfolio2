@@ -26,7 +26,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return data({ success: false, errors }, { status: 400 });
   }
 
-  await prisma.transaction.create({
+  const transaction = await prisma.transaction.create({
+    include: { bookings: true },
     data: {
       description,
       bookings: {
@@ -46,12 +47,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     },
   });
 
-  const bookings = bookingFormValues.map((b) => ({
-    date: new Date(b.date),
-    accountId: b.accountId,
-  }));
-
-  await purgeCachedBalances(link.accountBookId, bookings);
+  await purgeCachedBalances(link.accountBookId, [], transaction.bookings);
 
   return data({ success: true, errors: undefined });
 }

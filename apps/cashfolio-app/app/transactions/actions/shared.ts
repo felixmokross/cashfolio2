@@ -1,12 +1,14 @@
 import { Decimal } from "@prisma/client/runtime/library";
-import { isAfter, parseISO, subDays } from "date-fns";
+import { isAfter, min, parseISO, subDays } from "date-fns";
 import type { Booking } from "~/.prisma-client/client";
 import { Unit } from "~/.prisma-client/enums";
 import {
   getAccountBalanceCacheKey,
   getHoldingGainLossAccountBalanceCacheKey,
+  getTransactionGainLossAccountBalanceCacheKey,
 } from "~/caching";
 import { today } from "~/dates";
+import { isMultiUnitTransaction } from "~/income/transaction-gain-loss.server";
 import { redis } from "~/redis.server";
 import { sum } from "~/utils.server";
 
@@ -106,10 +108,11 @@ export function parseBookings(formData: FormData) {
 
 export async function purgeCachedBalances(
   accountBookId: string,
-  bookings: Pick<Booking, "accountId" | "date">[],
+  bookingsBeforeUpdate: Booking[],
+  bookingsAfterUpdate: Booking[],
 ) {
-  await Promise.all(
-    bookings.map(async (b) => {
+  await Promise.all([
+    ...bookingsBeforeUpdate.concat(bookingsAfterUpdate).map(async (b) => {
       await Promise.all([
         purgeTimeseriesFromDate(
           getAccountBalanceCacheKey(accountBookId, b.accountId),
@@ -122,7 +125,20 @@ export async function purgeCachedBalances(
         ),
       ]);
     }),
-  );
+    ...(isMultiUnitTransaction({ bookings: bookingsBeforeUpdate }) ||
+    isMultiUnitTransaction({ bookings: bookingsAfterUpdate })
+      ? [
+          purgeTimeseriesFromDate(
+            getTransactionGainLossAccountBalanceCacheKey(accountBookId),
+            min(
+              bookingsBeforeUpdate
+                .concat(bookingsAfterUpdate)
+                .map((b) => b.date),
+            ),
+          ),
+        ]
+      : []),
+  ]);
 }
 
 async function purgeTimeseriesFromDate(key: string, date: Date) {

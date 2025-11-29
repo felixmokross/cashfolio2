@@ -11,3 +11,9 @@ export function getHoldingGainLossAccountBalanceCacheKey(
 ) {
   return `account-book:${accountBookId}:account:holding-gain-loss-${holdingAccountId}:balance`;
 }
+
+export function getTransactionGainLossAccountBalanceCacheKey(
+  accountBookId: string,
+) {
+  return `account-book:${accountBookId}:account:transaction-gain-loss:balance`;
+}

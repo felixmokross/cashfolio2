@@ -71,9 +71,7 @@ export async function generateTransactionGainLossBookings(
   });
 
   // only consider transactions with bookings in multiple units
-  const multiUnitTransactions = transactions.filter(
-    (t) => new Set(t.bookings.map((b) => getUnitKey(getUnitInfo(b)))).size > 1,
-  );
+  const multiUnitTransactions = transactions.filter(isMultiUnitTransaction);
 
   const bookings = new Array<BookingWithTransaction>(
     multiUnitTransactions.length,
@@ -90,6 +88,15 @@ export async function generateTransactionGainLossBookings(
     .filter((b) => !b.value.isZero())
     .toSorted((a, b) => differenceInDays(b.date, a.date))
     .toReversed();
+}
+
+export function isMultiUnitTransaction(
+  transaction: Pick<TransactionWithBookings, "bookings">,
+) {
+  return (
+    new Set(transaction.bookings.map((b) => getUnitKey(getUnitInfo(b)))).size >
+    1
+  );
 }
 
 export async function generateTransactionGainLossBooking(

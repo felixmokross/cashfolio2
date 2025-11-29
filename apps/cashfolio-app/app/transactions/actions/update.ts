@@ -42,7 +42,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return new Response("Not Found", { status: 404 });
   }
 
-  await prisma.transaction.update({
+  const transaction = await prisma.transaction.update({
+    include: { bookings: true },
     where: {
       id_accountBookId: {
         id: transactionId,
@@ -68,11 +69,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
     },
   });
 
-  const bookingsBeforeAndAfterUpdate = bookingFormValues
-    .map((b) => ({ date: parseISO(b.date), accountId: b.accountId }))
-    .concat(transactionBeforeUpdate.bookings);
-
-  await purgeCachedBalances(link.accountBookId, bookingsBeforeAndAfterUpdate);
+  await purgeCachedBalances(
+    link.accountBookId,
+    transactionBeforeUpdate.bookings,
+    transaction.bookings,
+  );
 
   return data({ success: true });
 }
