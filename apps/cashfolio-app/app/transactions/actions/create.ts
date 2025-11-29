@@ -10,6 +10,7 @@ import invariant from "tiny-invariant";
 import { Unit } from "~/.prisma-client/enums";
 import { Decimal } from "@prisma/client/runtime/library";
 import { ensureAuthorized } from "~/account-books/functions.server";
+import { parseISO } from "date-fns";
 
 export async function action({ request, params }: ActionFunctionArgs) {
   const link = await ensureAuthorized(request, params);
@@ -30,7 +31,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       description,
       bookings: {
         create: bookingFormValues.map((b) => ({
-          date: new Date(b.date),
+          date: parseISO(b.date),
           description: b.description,
           accountId: b.accountId,
           unit: b.unit as Unit,

@@ -1,3 +1,4 @@
+import { parseISO } from "date-fns";
 import { useRouteLoaderData } from "react-router";
 import type { loader as accountBookLoader } from "~/account-books/route";
 
@@ -19,5 +20,5 @@ export function useAccountBook() {
 
 export function useFirstBookingDate() {
   const { firstBookingDate } = useAccountBookLoaderData();
-  return firstBookingDate ? new Date(firstBookingDate) : undefined;
+  return firstBookingDate ? parseISO(firstBookingDate) : undefined;
 }

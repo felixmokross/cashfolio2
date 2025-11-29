@@ -1,5 +1,5 @@
 import { Decimal } from "@prisma/client/runtime/library";
-import { isAfter, subDays } from "date-fns";
+import { isAfter, parseISO, subDays } from "date-fns";
 import type { Booking } from "~/.prisma-client/client";
 import { Unit } from "~/.prisma-client/enums";
 import {
@@ -16,7 +16,7 @@ export function validate(bookings: BookingFormData[]) {
   let hasBookingValueError = false;
   for (let i = 0; i < bookings.length; i++) {
     const b = bookings[i];
-    if (!b.date || isNaN(new Date(b.date).getTime())) {
+    if (!b.date || isNaN(parseISO(b.date).getTime())) {
       errors[`bookings[${i}][date]`] = "Invalid date";
     } else if (isAfter(b.date, subDays(today(), 1))) {
       errors[`bookings[${i}][date]`] = "Date cannot be in the future";

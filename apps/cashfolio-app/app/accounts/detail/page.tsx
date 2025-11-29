@@ -42,6 +42,7 @@ import { getUnitInfo, getUnitLabel, isSameUnit } from "~/units/functions";
 import { Rebook, useRebook } from "~/transactions/rebook";
 import { PeriodSelector } from "~/period/period-selector";
 import { useNavigate } from "react-router";
+import { parseISO } from "date-fns";
 
 export function Page({
   loaderData: {
@@ -122,7 +123,7 @@ export function Page({
         lockedAccountId={account.id}
         defaultDate={
           ledgerRows[0]?.booking.date
-            ? formatISODate(new Date(ledgerRows[0].booking.date))
+            ? formatISODate(parseISO(ledgerRows[0].booking.date))
             : undefined
         }
       />
