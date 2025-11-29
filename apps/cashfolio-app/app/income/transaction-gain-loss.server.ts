@@ -85,7 +85,7 @@ export async function getTransactionGainLoss(
 
 export async function generateTransactionGainLossBookings(
   accountBook: AccountBook,
-  fromDate: Date,
+  fromDate: Date | undefined,
   toDate: Date,
 ) {
   const transactions = await prisma.transaction.findMany({

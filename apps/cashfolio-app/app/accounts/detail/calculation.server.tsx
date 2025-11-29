@@ -2,7 +2,7 @@ import type { BookingWithTransaction, LedgerRow } from "./types";
 import { convert } from "~/fx.server";
 import { redis } from "~/redis.server";
 import { prisma } from "~/prisma.server";
-import { isAfter, isEqual } from "date-fns";
+import { addDays, isAfter, isEqual } from "date-fns";
 import { Decimal } from "@prisma/client/runtime/library";
 import type { AccountBook, Booking } from "~/.prisma-client/client";
 import { Unit as UnitEnum } from "~/.prisma-client/enums";
@@ -18,7 +18,7 @@ import {
   TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
 } from "~/income/transaction-gain-loss.server";
 import {
-  generateHoldingBookingsForAccount,
+  generateHoldingBookingsForAccount as generateHoldingGainLossBookingsForAccount,
   generateHoldingGainLossAccount,
 } from "~/income/holding-gain-loss.server";
 import { getAccountBalanceCacheKey } from "~/caching";
@@ -81,7 +81,7 @@ export async function getBookings(
     if (!baseAccount) {
       throw new Error(`Base account ${baseAccountId} not found`);
     }
-    return await generateHoldingBookingsForAccount(
+    return await generateHoldingGainLossBookingsForAccount(
       accountBook,
       baseAccount,
       fromDate,
@@ -130,28 +130,89 @@ export async function getBalanceCached(
     return new Decimal(cacheEntry.value);
   }
 
-  const bookings = await prisma.booking.findMany({
-    where: {
-      accountBookId,
-      accountId,
-      date: {
-        gt: cacheEntry ? new Date(cacheEntry.timestamp) : undefined,
-        lte: date,
-      },
-    },
-  });
+  const bookings = await getBookingsForBalance(
+    accountBookId,
+    accountId,
+    cacheEntry ? addDays(new Date(cacheEntry.timestamp), 1) : undefined,
+    date,
+  );
 
   const balance = (
     cacheEntry ? new Decimal(cacheEntry.value) : new Decimal(0)
   ).plus(await getBalance(bookings, ledgerUnitInfo));
-  console.log(
-    `Basis date: ${cacheEntry ? new Date(cacheEntry.timestamp) : "none"}`,
-  );
-  console.log(`bookings: ${bookings.length}`);
 
   await redis.ts.add(cacheKey, date.getTime(), balance.toNumber());
 
   return balance;
+}
+
+async function getBookingsForBalance(
+  accountBookId: string,
+  accountId: string,
+  fromDate: Date | undefined,
+  toDate: Date,
+) {
+  if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
+    return await generateTransactionGainLossBookings(
+      await prisma.accountBook.findUniqueOrThrow({
+        where: { id: accountBookId },
+      }),
+      fromDate,
+      toDate,
+    );
+  }
+
+  if (accountId.startsWith("holding-gain-loss-")) {
+    const holdingAccountId = accountId.substring("holding-gain-loss-".length);
+    const holdingAccountWithBookings = await prisma.account.findUniqueOrThrow({
+      where: {
+        id_accountBookId: { id: holdingAccountId, accountBookId },
+      },
+      include: {
+        bookings: {
+          where: { date: { gte: fromDate, lte: toDate } },
+          orderBy: { date: "asc" },
+        },
+      },
+    });
+    if (!fromDate && holdingAccountWithBookings.bookings.length === 0) {
+      return [];
+    }
+
+    return await generateHoldingGainLossBookingsForAccount(
+      await prisma.accountBook.findUniqueOrThrow({
+        where: { id: accountBookId },
+      }),
+      holdingAccountWithBookings,
+      fromDate ?? holdingAccountWithBookings.bookings[0]!.date,
+      toDate,
+    );
+  }
+
+  return await getEquityBookingsForBalance(
+    accountBookId,
+    accountId,
+    fromDate,
+    toDate,
+  );
+}
+
+async function getEquityBookingsForBalance(
+  accountBookId: string,
+  accountId: string,
+  fromDate: Date | undefined,
+  toDate: Date,
+) {
+  return await prisma.booking.findMany({
+    where: {
+      accountBookId,
+      accountId,
+      date: {
+        gte: fromDate,
+        lte: toDate,
+      },
+    },
+  });
 }
 
 async function getTransferClearingBalance(
