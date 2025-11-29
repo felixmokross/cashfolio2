@@ -77,6 +77,7 @@ test("returns correct account balances", async () => {
       accountId: account.id,
       accountBookId: accountBook.id,
     },
+    orderBy: { date: "asc" },
   });
 
   expect(result).toEqual(

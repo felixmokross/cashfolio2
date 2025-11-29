@@ -4,7 +4,7 @@ import { redis } from "~/redis.server";
 import { prisma } from "~/prisma.server";
 import { addDays, isAfter, isEqual } from "date-fns";
 import { Decimal } from "@prisma/client/runtime/library";
-import type { AccountBook, Booking } from "~/.prisma-client/client";
+import type { Booking } from "~/.prisma-client/client";
 import { Unit as UnitEnum } from "~/.prisma-client/enums";
 import { sum } from "~/utils.server";
 import { TRANSFER_CLEARING_ACCOUNT_ID } from "../constants";
@@ -54,59 +54,6 @@ export async function getAccount(accountId: string, accountBookId: string) {
   });
 }
 
-export async function getBookings(
-  accountId: string,
-  accountBook: AccountBook,
-  fromDate: Date,
-  toDate: Date,
-) {
-  if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
-    return await generateTransactionGainLossBookings(
-      accountBook,
-      fromDate,
-      toDate,
-    );
-  }
-
-  if (accountId.startsWith("holding-gain-loss-")) {
-    const baseAccountId = accountId.substring("holding-gain-loss-".length);
-    const baseAccount = await prisma.account.findUnique({
-      where: {
-        id_accountBookId: { id: baseAccountId, accountBookId: accountBook.id },
-      },
-      include: {
-        bookings: { where: { date: { gte: fromDate, lte: toDate } } },
-      },
-    });
-    if (!baseAccount) {
-      throw new Error(`Base account ${baseAccountId} not found`);
-    }
-    return await generateHoldingGainLossBookingsForAccount(
-      accountBook,
-      baseAccount,
-      fromDate,
-      toDate,
-    );
-  }
-
-  return await prisma.booking.findMany({
-    where: {
-      accountId,
-      accountBookId: accountBook.id,
-      AND: [
-        ...(fromDate ? [{ date: { gte: fromDate } }] : []),
-        ...(toDate ? [{ date: { lte: toDate } }] : []),
-      ],
-    },
-    include: {
-      transaction: {
-        include: { bookings: true },
-      },
-    },
-    orderBy: [{ date: "asc" }, { transaction: { createdAt: "asc" } }],
-  });
-}
-
 export async function getBalanceCached(
   accountBookId: string,
   accountId: string,
@@ -130,7 +77,7 @@ export async function getBalanceCached(
     return new Decimal(cacheEntry.value);
   }
 
-  const bookings = await getBookingsForBalance(
+  const bookings = await getBookings(
     accountBookId,
     accountId,
     cacheEntry ? addDays(new Date(cacheEntry.timestamp), 1) : undefined,
@@ -148,11 +95,30 @@ export async function getBalanceCached(
   return balance;
 }
 
-async function getBookingsForBalance(
+type GetBookingsOptions = {
+  includeTransactions?: boolean;
+};
+
+export async function getBookings(
   accountBookId: string,
   accountId: string,
   fromDate: Date | undefined,
   toDate: Date,
+  options: GetBookingsOptions & { includeTransactions: true },
+): Promise<BookingWithTransaction[]>;
+export async function getBookings(
+  accountBookId: string,
+  accountId: string,
+  fromDate: Date | undefined,
+  toDate: Date,
+  options?: GetBookingsOptions & { includeTransactions?: false },
+): Promise<Booking[]>;
+export async function getBookings(
+  accountBookId: string,
+  accountId: string,
+  fromDate: Date | undefined,
+  toDate: Date,
+  options: GetBookingsOptions = {},
 ) {
   if (accountId === TRANSACTION_GAIN_LOSS_ACCOUNT_ID) {
     return await generateTransactionGainLossBookings(
@@ -191,19 +157,35 @@ async function getBookingsForBalance(
     );
   }
 
-  return await getEquityBookingsForBalance(
+  return await getEquityBookings(
     accountBookId,
     accountId,
     fromDate,
     toDate,
+    options,
   );
 }
 
-async function getEquityBookingsForBalance(
+async function getEquityBookings(
   accountBookId: string,
   accountId: string,
   fromDate: Date | undefined,
   toDate: Date,
+  options: GetBookingsOptions & { includeTransactions: true },
+): Promise<BookingWithTransaction[]>;
+async function getEquityBookings(
+  accountBookId: string,
+  accountId: string,
+  fromDate: Date | undefined,
+  toDate: Date,
+  options?: GetBookingsOptions & { includeTransactions?: boolean },
+): Promise<Booking[]>;
+async function getEquityBookings(
+  accountBookId: string,
+  accountId: string,
+  fromDate: Date | undefined,
+  toDate: Date,
+  options: GetBookingsOptions = {},
 ) {
   return await prisma.booking.findMany({
     where: {
@@ -214,6 +196,15 @@ async function getEquityBookingsForBalance(
         lte: toDate,
       },
     },
+    orderBy: options.includeTransactions
+      ? [
+          { date: "asc" },
+          { transaction: { createdAt: "asc" } },
+          { description: "asc" },
+          { id: "asc" },
+        ]
+      : { date: "asc" },
+    include: options.includeTransactions ? { transaction: true } : undefined,
   });
 }
 

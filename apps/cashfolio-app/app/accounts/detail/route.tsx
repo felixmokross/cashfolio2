@@ -47,7 +47,9 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
   const [account, bookingsForPeriod] = await Promise.all([
     getAccount(params.accountId, link.accountBookId),
-    getBookings(params.accountId, accountBook, from, to),
+    getBookings(accountBook.id, params.accountId, from, to, {
+      includeTransactions: true,
+    }),
   ]);
 
   if (!account) {
@@ -58,6 +60,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     link.accountBookId,
     account.id,
   );
+
   const accountGroups = await getAccountGroupsWithPath(
     link.accountBookId,
     account.isActive ? { isActive: true } : undefined,

@@ -1,3 +1,4 @@
+import { today } from "~/dates";
 import { prisma } from "~/prisma.server";
 
 export async function getMinBookingDate(accountBookId: string) {
@@ -7,11 +8,8 @@ export async function getMinBookingDate(accountBookId: string) {
     _min: { date: true },
     where: { accountBookId: accountBookId },
   });
-  if (!minBookingDate) {
-    throw new Error("No bookings found");
-  }
 
-  return minBookingDate;
+  return minBookingDate ?? today();
 }
 
 export async function getMinBookingDateForAccount(
@@ -24,9 +22,6 @@ export async function getMinBookingDateForAccount(
     _min: { date: true },
     where: { accountBookId, accountId },
   });
-  if (!minBookingDate) {
-    throw new Error("No bookings found");
-  }
 
-  return minBookingDate;
+  return minBookingDate ?? (await getMinBookingDate(accountBookId));
 }
