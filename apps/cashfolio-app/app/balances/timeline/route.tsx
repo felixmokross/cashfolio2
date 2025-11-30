@@ -68,7 +68,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   return serialize({
     period,
-    range: params.range,
+    rangeSpecifier: params.range,
+    range,
     balanceSheets,
   });
 }
@@ -97,6 +98,7 @@ export default function Route() {
       <TimelineSelector
         className="mt-12"
         period={loaderData.period}
+        rangeSpecifier={loaderData.rangeSpecifier}
         range={loaderData.range}
       />
       <AgCharts

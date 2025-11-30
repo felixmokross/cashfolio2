@@ -1,12 +1,11 @@
 import {
   useLoaderData,
   useNavigate,
-  useRouteLoaderData,
   type LoaderFunctionArgs,
 } from "react-router";
 import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functions.server";
 import { defaultShouldRevalidate } from "~/revalidation";
-import { serialize } from "~/serialization";
+import { serialize, type Serialize } from "~/serialization";
 import { getIncomeStatement } from "../calculation.server";
 import { getPeriodDateRangeFromPeriod } from "~/period/functions";
 import { AgCharts } from "ag-charts-react";
@@ -34,8 +33,10 @@ import type {
   AgBarSeriesOptions,
   AgLineSeriesOptions,
 } from "ag-charts-community";
-import type { loader as incomeLoader } from "~/income/route";
 import { useAccountBook } from "~/account-books/hooks";
+import { getMinBookingDate } from "~/transactions/functions.server";
+import { mergeById } from "~/utils";
+import type { AccountGroupNode } from "~/account-groups/accounts-tree";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const user = await ensureUser(request);
@@ -66,37 +67,41 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     .map((p) => getPeriodDateRangeFromPeriod(p))
     .toReversed();
 
-  const timeline = await Promise.all(
-    periodDateRanges.map(async (dr) => {
-      const incomeStatement = await getIncomeStatement(
-        link.accountBookId,
-        dr.from,
-        dr.to,
-      );
-
-      let rootNode: IncomeAccountsNode | undefined;
-      if (params.nodeId) {
-        const subtreeRootNode = findSubtreeRootNode(
-          incomeStatement,
-          params.nodeId,
+  const timeline = (
+    await Promise.all(
+      periodDateRanges.map(async (dr) => {
+        const incomeStatement = await getIncomeStatement(
+          link.accountBookId,
+          dr.from,
+          dr.to,
         );
-        rootNode = subtreeRootNode as IncomeAccountsNode;
-      } else {
-        rootNode = incomeStatement;
-      }
 
-      return {
-        periodDateRange: dr,
-        node: rootNode,
-      };
-    }),
-  );
+        let rootNode: IncomeAccountsNode | undefined;
+        if (params.nodeId) {
+          const subtreeRootNode = findSubtreeRootNode(
+            incomeStatement,
+            params.nodeId,
+          );
+          rootNode = subtreeRootNode as IncomeAccountsNode;
+        } else {
+          rootNode = incomeStatement;
+        }
+
+        return {
+          periodDateRange: dr,
+          node: rootNode,
+        };
+      }),
+    )
+  ).filter((item) => !!item.node);
 
   return serialize({
     view: params.view as TimelineView,
     period,
-    range: params.range,
+    rangeSpecifier: params.range,
+    range,
     timeline,
+    minBookingDate: await getMinBookingDate(link.accountBookId),
     average: sum(timeline.map((i) => i.node?.value ?? 0)).dividedBy(
       timeline.length,
     ),
@@ -106,18 +111,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export const shouldRevalidate = defaultShouldRevalidate;
 
 export default function Route() {
-  const { view, average, timeline, period, range } =
-    useLoaderData<typeof loader>();
+  const {
+    view,
+    average,
+    timeline,
+    period,
+    range,
+    rangeSpecifier,
+    minBookingDate,
+  } = useLoaderData<typeof loader>();
 
   const { referenceCurrency } = useAccountBook();
 
-  const incomeLoaderData =
-    useRouteLoaderData<typeof incomeLoader>("income/route");
-  invariant(incomeLoaderData, "incomeLoaderData not found");
-  invariant(
-    incomeLoaderData.node.nodeType === "accountGroup",
-    "Node must be an account group",
-  );
+  invariant(timeline[0].node.nodeType === "accountGroup", "Invalid node type");
 
   const navigate = useNavigate();
   const isExpensesGroup = timeline[0].node && isExpensesNode(timeline[0].node);
@@ -152,8 +158,10 @@ export default function Route() {
       <TimelineSelector
         className="mt-12"
         period={period}
+        rangeSpecifier={rangeSpecifier}
         range={range}
         view={view}
+        minBookingDate={minBookingDate}
       />
       <AgCharts
         key={view}
@@ -194,7 +202,16 @@ export default function Route() {
                     },
                   } as AgBarSeriesOptions,
                 ]
-              : incomeLoaderData.node.children
+              : mergeById(
+                  ...timeline.map(
+                    (i) =>
+                      (
+                        i.node as Serialize<
+                          IncomeAccountsNode & AccountGroupNode
+                        >
+                      ).children,
+                  ),
+                )
                   .filter((c) =>
                     timeline.some((t) =>
                       (t.node.nodeType === "accountGroup"
@@ -255,38 +272,41 @@ export default function Route() {
             y: (params) => formatMoney(params.value as number),
           },
           listeners: {
-            seriesNodeDoubleClick:
-              view === "breakdown"
-                ? (event) => {
-                    invariant(
-                      incomeLoaderData.node.nodeType === "accountGroup",
-                      "Node must be an account group",
-                    );
-                    const node = incomeLoaderData.node.children.find(
-                      (c) => c.id === event.yKey,
-                    );
-                    invariant(node, "Node must be found");
+            seriesNodeDoubleClick: (event) => {
+              const periodSpecifier =
+                period.granularity === "year"
+                  ? getYear(event.datum.date)
+                  : period.granularity === "quarter"
+                    ? format(event.datum.date, "yyyy-QQQ").toLowerCase()
+                    : format(event.datum.date, "yyyy-MM");
+              if (view === "totals") {
+                navigate(`../timeline/breakdown/${periodSpecifier}`);
+                return;
+              }
 
-                    if (node.nodeType === "accountGroup") {
-                      navigate(
-                        `../../income/${event.yKey}/timeline/${view}/${range}`,
-                      );
-                    } else {
-                      navigate(
-                        `../../accounts/${event.yKey}/${
-                          period.granularity === "year"
-                            ? getYear(event.datum.date)
-                            : period.granularity === "quarter"
-                              ? format(
-                                  event.datum.date,
-                                  "yyyy-QQQ",
-                                ).toLowerCase()
-                              : format(event.datum.date, "yyyy-MM")
-                        }`,
-                      );
-                    }
-                  }
-                : undefined,
+              // const node = event.datum.children.find(
+              //   (c: any) => c.id === event.yKey,
+              // );
+
+              invariant(
+                timeline[0].node.nodeType === "accountGroup",
+                "Invalid node type",
+              );
+
+              const node = timeline[0].node.children.find(
+                (c) => c.id === event.yKey,
+              );
+
+              invariant(node, "Node not found");
+
+              if (node.nodeType === "accountGroup") {
+                navigate(
+                  `../../income/${event.yKey}/timeline/breakdown/${rangeSpecifier}`,
+                );
+              } else {
+                navigate(`../../accounts/${event.yKey}/${periodSpecifier}`);
+              }
+            },
           },
           axes: [
             {
