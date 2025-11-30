@@ -12,7 +12,7 @@ const styles = {
     // Focus
     "focus:not-data-focus:outline-hidden data-focus:outline-2 data-focus:outline-offset-2 data-focus:outline-accent-neutral-500",
     // Disabled
-    "data-disabled:opacity-50",
+    "data-disabled:opacity-50 data-disabled:pointer-events-none",
     // Icon
     "*:data-[slot=icon]:-mx-0.5 *:data-[slot=icon]:my-0.5 *:data-[slot=icon]:size-5 *:data-[slot=icon]:shrink-0 *:data-[slot=icon]:self-center *:data-[slot=icon]:text-(--btn-icon) sm:*:data-[slot=icon]:my-1 sm:*:data-[slot=icon]:size-4 forced-colors:[--btn-icon:ButtonText] forced-colors:data-hover:[--btn-icon:ButtonText]",
   ],
@@ -89,6 +89,7 @@ type ButtonProps = (
       variant?: never;
     }
 ) & {
+  disabled?: boolean;
   className?: string;
   children: React.ReactNode;
   ref?: Ref<HTMLButtonElement | HTMLAnchorElement>;
@@ -103,6 +104,7 @@ export function Button({
   className,
   children,
   ref,
+  disabled,
   ...props
 }: ButtonProps) {
   let classes = clsx(
@@ -118,6 +120,7 @@ export function Button({
   return "href" in props ? (
     <Link
       {...props}
+      data-disabled={disabled ? true : undefined}
       className={classes}
       ref={ref as Ref<HTMLAnchorElement> | undefined}
     >
@@ -126,6 +129,7 @@ export function Button({
   ) : (
     <Headless.Button
       {...props}
+      disabled={disabled}
       className={clsx(classes, "cursor-default")}
       ref={ref}
     >

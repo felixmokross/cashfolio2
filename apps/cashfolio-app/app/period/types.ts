@@ -1,9 +1,21 @@
-export type TimelineView = "totals" | "breakdown";
+export type TimelineView = "totals" | "breakdown" | "breakdown-table";
 
-export type TimelineRange = {
-  granularity: Granularity;
-  numberOfPeriods: number;
-};
+export type TimelineRange =
+  | {
+      numberOfPeriods: number;
+      granularity: "year";
+      period?: Omit<YearPeriod, "granularity">;
+    }
+  | {
+      numberOfPeriods: number;
+      granularity: "quarter";
+      period?: Omit<QuarterPeriod, "granularity">;
+    }
+  | {
+      numberOfPeriods: number;
+      granularity: "month";
+      period?: Omit<MonthPeriod, "granularity">;
+    };
 
 export type Granularity = Period["granularity"];
 
