@@ -8,6 +8,9 @@ export const defaultChartTheme: AgChartTheme = {
     fontSize: 14,
     textColor:
       getTheme() === "dark" ? "oklch(98.5% 0 0)" : "oklch(14.1% 0.005 285.823)",
+    foregroundColor:
+      // Doesn't seem to support oklch
+      getTheme() === "dark" ? "#fafafa" : "#09090b",
   },
   overrides: {
     bar: {

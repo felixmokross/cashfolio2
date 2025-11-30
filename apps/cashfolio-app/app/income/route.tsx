@@ -62,6 +62,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const user = await ensureUser(request);
 
   invariant(params.accountBookId, "accountBookId not found");
+
   const link = await ensureAuthorizedForUserAndAccountBookId(
     user,
     params.accountBookId,
@@ -91,7 +92,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const range = parseRange(params.range);
   const period = getInitialTimelinePeriod(range);
-  const n = await getNumberOfPeriods(link.accountBookId, range);
+  const [minBookingDate, n] = await Promise.all([
+    getMinBookingDate(link.accountBookId),
+    getNumberOfPeriods(link.accountBookId, range),
+  ]);
 
   const periods = new Array(n).fill(null);
 
@@ -138,7 +142,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     rangeSpecifier: params.range,
     range,
     timeline,
-    minBookingDate: await getMinBookingDate(link.accountBookId),
+    minBookingDate,
     average: sum(timeline.map((i) => i.node?.value ?? 0)).dividedBy(
       timeline.length,
     ),

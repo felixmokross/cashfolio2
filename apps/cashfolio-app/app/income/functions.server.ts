@@ -21,38 +21,37 @@ export async function getIncome(
   fromDate: Date,
   toDate: Date,
 ): Promise<Income> {
-  const accountBook = await prisma.accountBook.findUniqueOrThrow({
-    where: { id: accountBookId },
-  });
+  const [accountBook, holdingAccounts] = await Promise.all([
+    prisma.accountBook.findUniqueOrThrow({ where: { id: accountBookId } }),
+    getHoldingAccounts(accountBookId),
+  ]);
 
-  const holdingAccounts = await getHoldingAccounts(accountBookId);
-
-  const accounts = await getAccounts(
-    accountBookId,
-    fromDate,
-    toDate,
-    holdingAccounts,
-  );
-  const accountGroups = await getAccountGroups(accountBookId, holdingAccounts);
+  const [accounts, accountGroups] = await Promise.all([
+    getAccounts(accountBookId, fromDate, toDate, holdingAccounts),
+    getAccountGroups(accountBookId, holdingAccounts),
+  ]);
 
   const incomeByAccountId = new Map<string, Decimal>();
-  for (const account of accounts) {
-    const balanceAtStart = await getBalanceCached(
-      accountBookId,
-      account.id,
-      getCurrencyUnitInfo(accountBook.referenceCurrency),
-      subDays(fromDate, 1),
-    );
 
-    const balanceAtEnd = await getBalanceCached(
-      accountBookId,
-      account.id,
-      getCurrencyUnitInfo(accountBook.referenceCurrency),
-      toDate,
-    );
+  await Promise.all(
+    accounts.map(async (account) => {
+      const balanceAtStart = await getBalanceCached(
+        accountBook,
+        account.id,
+        getCurrencyUnitInfo(accountBook.referenceCurrency),
+        subDays(fromDate, 1),
+      );
 
-    incomeByAccountId.set(account.id, balanceAtEnd.sub(balanceAtStart));
-  }
+      const balanceAtEnd = await getBalanceCached(
+        accountBook,
+        account.id,
+        getCurrencyUnitInfo(accountBook.referenceCurrency),
+        toDate,
+      );
+
+      incomeByAccountId.set(account.id, balanceAtEnd.sub(balanceAtStart));
+    }),
+  );
 
   return {
     incomeByAccountId,

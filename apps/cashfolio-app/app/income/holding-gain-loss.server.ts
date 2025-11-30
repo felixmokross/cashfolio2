@@ -37,7 +37,7 @@ export async function generateHoldingBookingsForAccount(
   );
 
   let balance = await getBalanceCached(
-    accountBook.id,
+    accountBook,
     holdingAccount.id,
     holdingAccountUnit,
     initialDate,
@@ -92,7 +92,7 @@ export async function generateHoldingBookingsForAccount(
 
     // TODO test this better, if new balance is set before calculating the FX booking value, it's wrong
     balance = await getBalanceCached(
-      accountBook.id,
+      accountBook,
       holdingAccount.id,
       holdingAccountUnit,
       date,

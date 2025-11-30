@@ -47,7 +47,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
   const [account, bookingsForPeriod] = await Promise.all([
     getAccount(params.accountId, link.accountBookId),
-    getBookings(accountBook.id, params.accountId, from, to, {
+    getBookings(accountBook, params.accountId, from, to, {
       includeTransactions: true,
     }),
   ]);
@@ -82,7 +82,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   const openingBalance =
     from && account.type !== AccountType.EQUITY
       ? await getBalanceCached(
-          accountBook.id,
+          accountBook,
           account.id,
           ledgerUnitInfo,
           subDays(from, 1),
