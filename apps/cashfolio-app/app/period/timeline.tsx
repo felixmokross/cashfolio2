@@ -327,6 +327,9 @@ export function TimelineSelector({
           >
             <option value="totals">Totals</option>
             <option value="breakdown">Breakdown</option>
+            {range.numberOfPeriods === 1 && (
+              <option value="breakdown-table">Breakdown (Table)</option>
+            )}
           </Select>
         </Field>
       )}

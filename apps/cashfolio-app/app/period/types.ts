@@ -1,4 +1,4 @@
-export type TimelineView = "totals" | "breakdown";
+export type TimelineView = "totals" | "breakdown" | "breakdown-table";
 
 export type TimelineRange =
   | {
