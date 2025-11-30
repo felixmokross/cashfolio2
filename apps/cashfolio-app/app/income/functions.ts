@@ -21,9 +21,20 @@ export function findSubtreeRootNode<T extends AccountsNode>(
   }
 }
 
-export function isExpensesNode(node: Serialize<IncomeAccountsNode>): boolean {
+export function isExpensesNode(
+  node: IncomeAccountsNode | Serialize<IncomeAccountsNode>,
+): boolean {
   return node.nodeType === "accountGroup"
     ? node.children.every(isExpensesNode)
     : node.type === AccountType.EQUITY &&
         node.equityAccountSubtype === EquityAccountSubtype.EXPENSE;
+}
+
+export function isIncomeNode(
+  node: IncomeAccountsNode | Serialize<IncomeAccountsNode>,
+): boolean {
+  return node.nodeType === "accountGroup"
+    ? node.children.every(isIncomeNode)
+    : node.type === AccountType.EQUITY &&
+        node.equityAccountSubtype === EquityAccountSubtype.INCOME;
 }
