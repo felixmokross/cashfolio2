@@ -32,23 +32,26 @@ export async function getIncome(
   ]);
 
   const incomeByAccountId = new Map<string, Decimal>();
-  for (const account of accounts) {
-    const balanceAtStart = await getBalanceCached(
-      accountBook,
-      account.id,
-      getCurrencyUnitInfo(accountBook.referenceCurrency),
-      subDays(fromDate, 1),
-    );
 
-    const balanceAtEnd = await getBalanceCached(
-      accountBook,
-      account.id,
-      getCurrencyUnitInfo(accountBook.referenceCurrency),
-      toDate,
-    );
+  await Promise.all(
+    accounts.map(async (account) => {
+      const balanceAtStart = await getBalanceCached(
+        accountBook,
+        account.id,
+        getCurrencyUnitInfo(accountBook.referenceCurrency),
+        subDays(fromDate, 1),
+      );
 
-    incomeByAccountId.set(account.id, balanceAtEnd.sub(balanceAtStart));
-  }
+      const balanceAtEnd = await getBalanceCached(
+        accountBook,
+        account.id,
+        getCurrencyUnitInfo(accountBook.referenceCurrency),
+        toDate,
+      );
+
+      incomeByAccountId.set(account.id, balanceAtEnd.sub(balanceAtStart));
+    }),
+  );
 
   return {
     incomeByAccountId,
