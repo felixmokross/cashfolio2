@@ -116,6 +116,7 @@ export function TimelineSelector({
   rangeSpecifier,
   range,
   view,
+  nodeId,
   minBookingDate,
 }: {
   className?: string;
@@ -123,6 +124,7 @@ export function TimelineSelector({
   rangeSpecifier: string;
   range: TimelineRange;
   view?: TimelineView;
+  nodeId?: string;
   minBookingDate?: string;
 }) {
   const navigate = useNavigate();
@@ -141,7 +143,7 @@ export function TimelineSelector({
                   : "12m";
             navigate(
               view
-                ? `../timeline/${view}/${newRange}`
+                ? `../income/${nodeId}/${newRange}/${view}`
                 : `../timeline/${newRange}`,
             );
 
@@ -160,7 +162,7 @@ export function TimelineSelector({
             const newRange = e.target.value;
             navigate(
               view
-                ? `../timeline/${view}/${newRange}`
+                ? `../income/${nodeId}/${newRange}/${view}`
                 : `../timeline/${newRange}`,
             );
 
@@ -247,7 +249,7 @@ export function TimelineSelector({
                           .padStart(2, "0")}`;
                 navigate(
                   view
-                    ? `../timeline/${view}/${newPeriod}`
+                    ? `../income/${nodeId}/${newPeriod}/${view}`
                     : `../timeline/${newPeriod}`,
                 );
               }}
@@ -272,7 +274,7 @@ export function TimelineSelector({
                   const newPeriod = `${range.period!.year}-q${e.currentTarget.value}`;
                   navigate(
                     view
-                      ? `../timeline/${view}/${newPeriod}`
+                      ? `../income/${nodeId}/${newPeriod}/${view}`
                       : `../timeline/${newPeriod}`,
                   );
                 }}
@@ -292,7 +294,7 @@ export function TimelineSelector({
                   const newPeriod = `${range.period!.year}-${(Number(e.currentTarget.value) + 1).toString().padStart(2, "0")}`;
                   navigate(
                     view
-                      ? `../timeline/${view}/${newPeriod}`
+                      ? `../income/${nodeId}/${newPeriod}/${view}`
                       : `../timeline/${newPeriod}`,
                   );
                 }}
@@ -321,7 +323,7 @@ export function TimelineSelector({
             value={view}
             onChange={(e) => {
               navigate(
-                `../timeline/${e.currentTarget.value}/${rangeSpecifier}`,
+                `../income/${nodeId}/${rangeSpecifier}/${e.currentTarget.value}`,
               );
             }}
           >

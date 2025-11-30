@@ -1,41 +1,72 @@
 import {
-  Outlet,
   redirect,
   useLoaderData,
-  useMatch,
   useNavigate,
   type LoaderFunctionArgs,
 } from "react-router";
-import { AccountType } from "~/.prisma-client/enums";
-import { ensureAuthorized } from "~/account-books/functions.server";
-import { useAccountBook } from "~/account-books/hooks";
+import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functions.server";
+import { defaultShouldRevalidate } from "~/revalidation";
+import { serialize, type Serialize } from "~/serialization";
+import { getIncomeStatement } from "./calculation.server";
+import { getPeriodDateRangeFromPeriod } from "~/period/functions";
+import { AgCharts } from "ag-charts-react";
+import { getTheme } from "~/theme";
+import { formatMoney } from "~/formatting";
+import { format, getQuarter, getYear, parseISO } from "date-fns";
+import { decrementPeriod } from "~/period/functions";
+import type { IncomeAccountsNode } from "./types";
+import { findSubtreeRootNode, isExpensesNode } from "./functions";
+import { sum } from "~/utils.server";
+import { defaultChartOptions, defaultChartTheme } from "~/platform/charts";
 import {
-  getAccountsTree,
-  type AccountGroupNode,
-} from "~/account-groups/accounts-tree";
-import { getAccountGroups } from "~/account-groups/data";
-import { getAccounts } from "~/accounts/functions.server";
+  getInitialTimelinePeriod,
+  parseRange,
+  TimelineSelector,
+} from "~/period/timeline";
+import { getNumberOfPeriods } from "~/period/timeline.server";
+import { ensureUser } from "~/users/functions.server";
+import invariant from "tiny-invariant";
+import type { TimelineView } from "~/period/types";
+import type {
+  AgBarSeriesOptions,
+  AgLineSeriesOptions,
+} from "ag-charts-community";
+import { useAccountBook } from "~/account-books/hooks";
+import { getMinBookingDate } from "~/transactions/functions.server";
+import { mergeById } from "~/utils";
+import type { AccountGroupNode } from "~/account-groups/accounts-tree";
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/platform/table";
+import { IncomeTableRows } from "./table-rows";
+import { getPageTitle } from "~/meta";
 import { Button } from "~/platform/button";
-import { Select } from "~/platform/forms/select";
-import { Heading } from "~/platform/heading";
 import { ChevronUpIcon } from "~/platform/icons/standard";
-import { NavbarSection, NavNavbarItem } from "~/platform/navbar";
+import { Heading } from "~/platform/heading";
 import { Text } from "~/platform/text";
 import { prisma } from "~/prisma.server";
-import { defaultShouldRevalidate } from "~/revalidation";
-import { serialize } from "~/serialization";
-import { findSubtreeRootNode } from "./functions";
-import invariant from "tiny-invariant";
+import { AccountType } from "~/.prisma-client/client";
+import { getViewPreference } from "~/view-preferences/functions.server";
+import { timelineRangeKey } from "~/view-preferences/functions";
 import type { Route } from "./+types/route";
-import { getPageTitle } from "~/meta";
-import { saveViewPreference, viewKey } from "~/view-preferences/functions";
 
 export const meta: Route.MetaFunction = ({ loaderData }) => [
-  { title: getPageTitle(`Income / ${loaderData.node.name}`) },
+  { title: getPageTitle(`Income / ${loaderData.timeline[0].node.name}`) },
 ];
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const link = await ensureAuthorized(request, params);
+  const user = await ensureUser(request);
+
+  invariant(params.accountBookId, "accountBookId not found");
+  const link = await ensureAuthorizedForUserAndAccountBookId(
+    user,
+    params.accountBookId,
+  );
+
   if (!params.nodeId) {
     const equityRootNode = await prisma.accountGroup.findFirstOrThrow({
       where: {
@@ -44,136 +75,369 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         parentGroupId: null,
       },
     });
-    throw redirect(`./${equityRootNode.id}`);
+    throw redirect(`../income/${equityRootNode.id}`);
   }
 
-  const [accountBook, accountGroups] = await Promise.all([
-    prisma.accountBook.findUniqueOrThrow({
-      where: { id: link.accountBookId },
-    }),
-    getAccountGroups(link.accountBookId),
-  ]);
+  if (!params.range) {
+    const lastUsedTimelineRange =
+      getViewPreference(user, timelineRangeKey(link.accountBookId)) ?? "12m";
 
-  const accounts = await getAccounts(accountBook, accountGroups);
-  const equityRootNode = getAccountsTree(accounts, accountGroups).EQUITY;
-  invariant(equityRootNode, "Equity root node not found");
-
-  const netIncomeNode = { ...equityRootNode, name: "Net Income" };
-  const node = findSubtreeRootNode(netIncomeNode, params.nodeId);
-  if (!node) {
-    throw new Response("Not Found", { status: 404 });
+    throw redirect(`../income/${params.nodeId}/${lastUsedTimelineRange}`);
   }
-  const parentAccountGroupId =
-    node.nodeType === "accountGroup" ? node.parentGroupId : node.groupId;
 
-  const parentNode = parentAccountGroupId
-    ? (findSubtreeRootNode(
-        netIncomeNode,
-        parentAccountGroupId,
-      ) as AccountGroupNode)
-    : undefined;
+  if (!params.view) {
+    throw redirect(`../income/${params.nodeId}/${params.range}/totals`);
+  }
+
+  const range = parseRange(params.range);
+  const period = getInitialTimelinePeriod(range);
+  const n = await getNumberOfPeriods(link.accountBookId, range);
+
+  const periods = new Array(n).fill(null);
+
+  periods[0] = period;
+  for (let i = 1; i < n; i++) {
+    periods[i] = decrementPeriod(periods[i - 1]);
+  }
+
+  const periodDateRanges = periods
+    .map((p) => getPeriodDateRangeFromPeriod(p))
+    .toReversed();
+
+  const timeline = (
+    await Promise.all(
+      periodDateRanges.map(async (dr) => {
+        const incomeStatement = await getIncomeStatement(
+          link.accountBookId,
+          dr.from,
+          dr.to,
+        );
+
+        let rootNode: IncomeAccountsNode | undefined;
+        if (params.nodeId) {
+          const subtreeRootNode = findSubtreeRootNode(
+            incomeStatement,
+            params.nodeId,
+          );
+          rootNode = subtreeRootNode as IncomeAccountsNode;
+        } else {
+          rootNode = incomeStatement;
+        }
+
+        return {
+          periodDateRange: dr,
+          node: rootNode,
+        };
+      }),
+    )
+  ).filter((item) => !!item.node);
 
   return serialize({
-    node,
-    parentNode,
-    siblings: parentNode?.children ?? [node],
+    view: params.view as TimelineView,
+    period,
+    rangeSpecifier: params.range,
+    range,
+    timeline,
+    minBookingDate: await getMinBookingDate(link.accountBookId),
+    average: sum(timeline.map((i) => i.node?.value ?? 0)).dividedBy(
+      timeline.length,
+    ),
   });
 }
 
 export const shouldRevalidate = defaultShouldRevalidate;
 
 export default function Route() {
-  const accountBook = useAccountBook();
+  const {
+    view,
+    average,
+    timeline,
+    period,
+    range,
+    rangeSpecifier,
+    minBookingDate,
+  } = useLoaderData<typeof loader>();
+
+  const { referenceCurrency } = useAccountBook();
+
+  invariant(timeline[0].node.nodeType === "accountGroup", "Invalid node type");
+
   const navigate = useNavigate();
-  const { node, parentNode, siblings } = useLoaderData<typeof loader>();
-  const match = useMatch("/:accountBookId/income/:nodeId/:view/*");
+  const isExpensesGroup = timeline[0].node && isExpensesNode(timeline[0].node);
+  const negativeFillColor =
+    getTheme() === "dark"
+      ? "oklch(57.7% 0.245 27.325)"
+      : "oklch(50.5% 0.213 27.518)";
+  const positiveFillColor =
+    getTheme() === "dark"
+      ? "oklch(62.7% 0.194 149.214)"
+      : "oklch(52.7% 0.154 150.069)";
+
+  const neutralFillColor =
+    getTheme() === "dark"
+      ? "oklch(87.1% 0.006 286.286)"
+      : "oklch(55.2% 0.016 285.938)";
+  const neutralStrokeColor =
+    getTheme() === "dark"
+      ? "oklch(96.7% 0.001 286.375)"
+      : "oklch(14.1% 0.005 285.823)";
+
+  const tooltipOptions =
+    period.granularity === "quarter"
+      ? {
+          renderer: (params: any) => ({
+            heading: format(params.datum.date, "QQQ yyyy"),
+          }),
+        }
+      : undefined;
+  const accountBook = useAccountBook();
   return (
     <>
       <div className="flex justify-between items-center gap-8">
         <div className="shrink-0">
-          <Heading>Income</Heading>
+          <Heading>{timeline[0].node.name}</Heading>
           <Text>Reference Currency: {accountBook.referenceCurrency}</Text>
         </div>
-        <div className="flex items-center gap-4 max-w-xl">
-          {parentNode && (
-            <Button
-              hierarchy="secondary"
-              href={`/${accountBook.id}/income/${parentNode.id}/${match?.params.view}/${match?.params["*"]}`}
-            >
-              <ChevronUpIcon />
-              Up
-            </Button>
-          )}
-          <Select
-            value={node.id}
-            disabled={siblings.length <= 1}
-            onChange={(e) => {
-              navigate(
-                `/${accountBook.id}/income/${e.target.value}/${match?.params.view}/${match?.params["*"]}`,
-              );
-            }}
+        <div>
+          <Button
+            disabled={!timeline[0].node.parentGroupId}
+            hierarchy="secondary"
+            href={`../income/${timeline[0].node.parentGroupId}/${rangeSpecifier}/${view}`}
           >
-            {siblings.map((sibling) => (
-              <option key={sibling.id} value={sibling.id}>
-                {sibling.name}
-              </option>
-            ))}
-          </Select>
-          {node.nodeType === "accountGroup" && (
-            <Select
-              value=""
-              onChange={(e) => {
-                const childNode = node.children.find(
-                  (child) => child.id === e.target.value,
-                );
-                invariant(childNode, "Child node must be found");
+            <ChevronUpIcon />
+            Up
+          </Button>
+        </div>
 
-                if (
-                  match?.params.view === "timeline" ||
-                  childNode.nodeType === "accountGroup"
-                ) {
+        <TimelineSelector
+          period={period}
+          rangeSpecifier={rangeSpecifier}
+          range={range}
+          view={view}
+          minBookingDate={minBookingDate}
+          nodeId={timeline[0].node.id}
+        />
+      </div>
+      {view === "breakdown-table" ? (
+        <Table
+          dense
+          bleed
+          striped
+          className="mt-8 [--gutter:--spacing(6)] lg:[--gutter:--spacing(10)]"
+        >
+          <TableHead>
+            <TableRow>
+              <TableHeader>{timeline[0].node.name}</TableHeader>
+              <TableHeader className="text-right w-32">
+                {formatMoney(timeline[0].node.value)}
+              </TableHeader>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            <IncomeTableRows
+              node={timeline[0].node}
+              options={{
+                queryParams: {
+                  from: parseISO(timeline[0].periodDateRange.from),
+                  to: parseISO(timeline[0].periodDateRange.to),
+                },
+              }}
+            />
+          </TableBody>
+        </Table>
+      ) : (
+        <AgCharts
+          key={view}
+          className="h-[calc(100vh_-_13rem)] mt-12"
+          options={{
+            ...defaultChartOptions,
+            title:
+              view === "breakdown" && timeline.length === 1
+                ? {
+                    text: `Total: ${referenceCurrency} ${formatMoney(isExpensesGroup ? -timeline[0].node.value : timeline[0].node.value)}`,
+                  }
+                : undefined,
+            theme:
+              view === "totals"
+                ? {
+                    ...defaultChartTheme,
+                    palette: {
+                      fills: [neutralFillColor],
+                    },
+                  }
+                : defaultChartTheme,
+            series: [
+              ...(view === "totals"
+                ? [
+                    {
+                      type: "bar",
+                      xKey: "date",
+                      yKey: "total",
+                      yName: "Total",
+                      tooltip: tooltipOptions,
+                      itemStyler: (params) => {
+                        return {
+                          fill:
+                            isExpensesGroup || params.yValue < 0
+                              ? negativeFillColor
+                              : positiveFillColor,
+                        };
+                      },
+                    } as AgBarSeriesOptions,
+                  ]
+                : mergeById(
+                    ...timeline.map(
+                      (i) =>
+                        (
+                          i.node as Serialize<
+                            IncomeAccountsNode & AccountGroupNode
+                          >
+                        ).children,
+                    ),
+                  )
+                    .filter((c) =>
+                      timeline.some((t) =>
+                        (t.node.nodeType === "accountGroup"
+                          ? t.node.children
+                          : []
+                        )
+                          .map((tc) => tc.id)
+                          .includes(c.id),
+                      ),
+                    )
+                    .toSorted((a, b) => {
+                      const parentNode = timeline[timeline.length - 1].node;
+                      if (parentNode.nodeType !== "accountGroup") {
+                        return Infinity;
+                      }
+
+                      const childNodeA = parentNode.children.find(
+                        (c) => c.id === a.id,
+                      );
+                      const childNodeB = parentNode.children.find(
+                        (c) => c.id === b.id,
+                      );
+                      const sortOrder =
+                        (childNodeA?.value ?? Infinity) -
+                        (childNodeB?.value ?? Infinity);
+
+                      return isExpensesGroup ? sortOrder : -sortOrder;
+                    })
+                    .map(
+                      (childNode) =>
+                        ({
+                          type: "bar",
+                          xKey: "date",
+                          yKey: childNode.id,
+                          yName: childNode.name,
+                          tooltip: tooltipOptions,
+                        }) as AgBarSeriesOptions,
+                    )),
+              ...(view === "totals"
+                ? [
+                    {
+                      type: "line",
+                      xKey: "date",
+                      yKey: "average",
+                      yName: "Average",
+                      marker: { enabled: false },
+                      stroke: neutralStrokeColor,
+                      lineDash: [6, 4],
+                      tooltip: tooltipOptions,
+                    } as AgLineSeriesOptions,
+                  ]
+                : []),
+            ],
+            tooltip: {
+              mode: "single",
+            },
+            formatter: {
+              y: (params) => formatMoney(params.value as number),
+            },
+            listeners: {
+              seriesNodeDoubleClick: (event) => {
+                const periodSpecifier =
+                  period.granularity === "year"
+                    ? getYear(event.datum.date)
+                    : period.granularity === "quarter"
+                      ? format(event.datum.date, "yyyy-QQQ").toLowerCase()
+                      : format(event.datum.date, "yyyy-MM");
+                if (view === "totals") {
                   navigate(
-                    `/${accountBook.id}/income/${e.target.value}/${match?.params.view}/${match?.params["*"]}`,
+                    `../income/${timeline[0].node.id}/${periodSpecifier}/breakdown`,
+                  );
+                  return;
+                }
+
+                invariant(
+                  timeline[0].node.nodeType === "accountGroup",
+                  "Invalid node type",
+                );
+
+                const node = timeline[0].node.children.find(
+                  (c) => c.id === event.yKey,
+                );
+
+                invariant(node, "Node not found");
+
+                if (node.nodeType === "accountGroup") {
+                  navigate(
+                    `../income/${event.yKey}/${rangeSpecifier}/breakdown`,
                   );
                 } else {
-                  navigate(`/${accountBook.id}/accounts/${e.target.value}`);
+                  navigate(`../accounts/${event.yKey}/${periodSpecifier}`);
                 }
-              }}
-            >
-              <option value="" disabled>
-                [Drill down…]
-              </option>
-              {node.children.map((child) => (
-                <option key={child.id} value={child.id}>
-                  {child.name}
-                </option>
-              ))}
-            </Select>
-          )}
-        </div>
-        <div className="grow-0">
-          <NavbarSection className="-mx-2">
-            <NavNavbarItem
-              data-disabled={node.nodeType === "account" ? true : undefined}
-              href={`/${accountBook.id}/income/${node.id}/breakdown`}
-              onClick={() =>
-                saveViewPreference(viewKey(accountBook.id), "breakdown")
-              }
-            >
-              Breakdown
-            </NavNavbarItem>
-            <NavNavbarItem
-              href={`/${accountBook.id}/income/${node.id}/timeline/totals`}
-              onClick={() =>
-                saveViewPreference(viewKey(accountBook.id), "timeline")
-              }
-            >
-              Timeline
-            </NavNavbarItem>
-          </NavbarSection>
-        </div>
-      </div>
-      <Outlet />
+              },
+            },
+            axes: [
+              {
+                type: "unit-time",
+                position: "bottom",
+                label:
+                  timeline.length === 1
+                    ? {
+                        formatter: () =>
+                          period.granularity === "month"
+                            ? "Month to Date"
+                            : period.granularity === "quarter"
+                              ? "Quarter to Date"
+                              : "Year to Date",
+                      }
+                    : period.granularity === "quarter"
+                      ? {
+                          formatter: (params) => `Q${getQuarter(params.value)}`,
+                        }
+                      : undefined,
+              },
+              {
+                type: "number",
+                position: "left",
+              },
+            ],
+            data: timeline
+              .map((i) => ({
+                date: parseISO(i.periodDateRange.from),
+                average,
+                total: i.node?.value ?? 0,
+                ...Object.fromEntries(
+                  (i.node && i.node.nodeType === "accountGroup"
+                    ? i.node.children
+                    : []
+                  ).map((child) => [child.id, child.value]),
+                ),
+              }))
+              .map(({ date, ...values }) => ({
+                date,
+                ...Object.fromEntries(
+                  Object.entries(values).map(([key, value]) => [
+                    key,
+                    isExpensesGroup ? -value : value,
+                  ]),
+                ),
+              })),
+          }}
+        />
+      )}
     </>
   );
 }
