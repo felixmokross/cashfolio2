@@ -79,25 +79,23 @@ async function getFxExchangeRate(date: Date, targetCurrency: string) {
   const [cacheEntry] = (await redis.exists(key))
     ? await redis.ts.range(key, date.getTime(), date.getTime(), { COUNT: 1 })
     : [];
-  if (!cacheEntry) {
-    console.log(
-      `Fetching FX rates for ${targetCurrency} and ${formatISODate(date)} (base currency ${baseCurrency})...`,
-    );
-    const response = await fetch(
-      `https://api.currencylayer.com/historical?access_key=${process.env.CURRENCYLAYER_API_KEY}&source=${baseCurrency}&currencies=${targetCurrency}&date=${formatISODate(date)}`,
-    );
-    const data = await response.json();
-    if (!data.success) {
-      throw new Error(`FX rates fetch failed: ${data.error?.info}`);
-    }
+  if (cacheEntry) return cacheEntry.value;
 
-    const value = data.quotes[`${baseCurrency}${targetCurrency}`] as number;
-    await redis.ts.add(key, date.getTime(), value);
-
-    return value;
+  console.log(
+    `Fetching FX rates for ${targetCurrency} and ${formatISODate(date)} (base currency ${baseCurrency})...`,
+  );
+  const response = await fetch(
+    `https://api.currencylayer.com/historical?access_key=${process.env.CURRENCYLAYER_API_KEY}&source=${baseCurrency}&currencies=${targetCurrency}&date=${formatISODate(date)}`,
+  );
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error(`FX rates fetch failed: ${data.error?.info}`);
   }
 
-  return cacheEntry.value;
+  const value = data.quotes[`${baseCurrency}${targetCurrency}`] as number;
+  await redis.ts.add(key, date.getTime(), value);
+
+  return value;
 }
 
 async function getCryptocurrencyPrice(date: Date, cryptocurrency: string) {
@@ -105,25 +103,24 @@ async function getCryptocurrencyPrice(date: Date, cryptocurrency: string) {
   const [cacheEntry] = (await redis.exists(key))
     ? await redis.ts.range(key, date.getTime(), date.getTime(), { COUNT: 1 })
     : [];
-  if (!cacheEntry) {
-    console.log(
-      `Fetching cryptocurrency price for ${cryptocurrency} and ${formatISODate(date)} (base currency ${baseCurrency})...`,
-    );
-    const response = await fetch(
-      `http://api.coinlayer.com/${formatISODate(date)}?access_key=${process.env.COINLAYER_API_KEY}&target=${baseCurrency}&symbols=${cryptocurrency}`,
-    );
-    const data = await response.json();
-    if (!data.success) {
-      throw new Error(`Cryptocurrency rates fetch failed: ${data.error?.info}`);
-    }
 
-    const value = data.rates[cryptocurrency] as number;
-    await redis.ts.add(key, date.getTime(), value);
+  if (cacheEntry) return cacheEntry.value;
 
-    return value;
+  console.log(
+    `Fetching cryptocurrency price for ${cryptocurrency} and ${formatISODate(date)} (base currency ${baseCurrency})...`,
+  );
+  const response = await fetch(
+    `http://api.coinlayer.com/${formatISODate(date)}?access_key=${process.env.COINLAYER_API_KEY}&target=${baseCurrency}&symbols=${cryptocurrency}`,
+  );
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error(`Cryptocurrency rates fetch failed: ${data.error?.info}`);
   }
 
-  return cacheEntry.value;
+  const value = data.rates[cryptocurrency] as number;
+  await redis.ts.add(key, date.getTime(), value);
+
+  return value;
 }
 
 const MAX_BACKTRACK_DAYS = 30;
@@ -138,45 +135,43 @@ async function getSecurityPrice(
     ? await redis.ts.range(key, date.getTime(), date.getTime(), { COUNT: 1 })
     : [];
 
+  if (cacheEntry) return cacheEntry.value;
+
   const shortLivedKey = `security:${symbol}:short-lived:${formatISODate(date)}`;
   const shortLivedPriceString = await redis.get(shortLivedKey);
   if (shortLivedPriceString) {
     return Number(shortLivedPriceString);
   }
 
-  if (!cacheEntry) {
-    let price = await fetchSecurityPrice(date, symbol);
-    if (price == null) {
-      if (backtrackCount >= MAX_BACKTRACK_DAYS) {
-        throw new Error(
-          `No security price for ${symbol} on ${formatISODate(
-            date,
-          )} after backtracking ${MAX_BACKTRACK_DAYS} days`,
-        );
-      }
-
-      console.log(
-        `No security price for ${symbol} on ${formatISODate(date)}, backtracking…`,
-      );
-      price = await getSecurityPrice(
-        subDays(date, 1),
-        symbol,
-        backtrackCount + 1,
+  let price = await fetchSecurityPrice(date, symbol);
+  if (price == null) {
+    if (backtrackCount >= MAX_BACKTRACK_DAYS) {
+      throw new Error(
+        `No security price for ${symbol} on ${formatISODate(
+          date,
+        )} after backtracking ${MAX_BACKTRACK_DAYS} days`,
       );
     }
 
-    await redis.set(shortLivedKey, price.toString(), {
-      expiration: { type: "EX", value: 60 * 60 }, // cache for 1 hour
-    });
-
-    if (!isInGracePeriod(date)) {
-      await redis.ts.add(key, date.getTime(), price);
-    }
-
-    return price;
+    console.log(
+      `No security price for ${symbol} on ${formatISODate(date)}, backtracking…`,
+    );
+    price = await getSecurityPrice(
+      subDays(date, 1),
+      symbol,
+      backtrackCount + 1,
+    );
   }
 
-  return cacheEntry.value;
+  await redis.set(shortLivedKey, price.toString(), {
+    expiration: { type: "EX", value: 60 * 60 }, // cache for 1 hour
+  });
+
+  if (!isInGracePeriod(date)) {
+    await redis.ts.add(key, date.getTime(), price);
+  }
+
+  return price;
 }
 
 async function fetchSecurityPrice(date: Date, symbol: string) {
