@@ -118,6 +118,7 @@ export function TimelineSelector({
   view,
   nodeId,
   minBookingDate,
+  isBreakdownAllocationAvailable,
 }: {
   className?: string;
   period: Period;
@@ -126,6 +127,7 @@ export function TimelineSelector({
   view?: TimelineView;
   nodeId?: string;
   minBookingDate?: string;
+  isBreakdownAllocationAvailable?: boolean;
 }) {
   const navigate = useNavigate();
   const accountBook = useAccountBook();
@@ -330,7 +332,14 @@ export function TimelineSelector({
             <option value="totals">Totals</option>
             <option value="breakdown">Breakdown</option>
             {range.numberOfPeriods === 1 && (
-              <option value="breakdown-table">Breakdown (Table)</option>
+              <>
+                <option value="breakdown-table">Breakdown (Table)</option>
+                {isBreakdownAllocationAvailable && (
+                  <option value="breakdown-allocation">
+                    Breakdown (Allocation)
+                  </option>
+                )}
+              </>
             )}
           </Select>
         </Field>

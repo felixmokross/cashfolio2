@@ -20,3 +20,9 @@ export function formatDate(date: string | Date) {
 export function formatISODate(date: Date) {
   return formatISO(date, { representation: "date" });
 }
+
+export const percentageNumberFormat = new Intl.NumberFormat(locale, {
+  style: "percent",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});

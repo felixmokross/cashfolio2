@@ -11,11 +11,11 @@ import { getIncomeStatement } from "./calculation.server";
 import { getPeriodDateRangeFromPeriod } from "~/period/functions";
 import { AgCharts } from "ag-charts-react";
 import { getTheme } from "~/theme";
-import { formatMoney } from "~/formatting";
+import { formatMoney, percentageNumberFormat } from "~/formatting";
 import { format, getQuarter, getYear, parseISO } from "date-fns";
 import { decrementPeriod } from "~/period/functions";
 import type { IncomeAccountsNode } from "./types";
-import { findSubtreeRootNode, isExpensesNode } from "./functions";
+import { findSubtreeRootNode, isExpensesNode, isIncomeNode } from "./functions";
 import { sum } from "~/utils.server";
 import { defaultChartOptions, defaultChartTheme } from "~/platform/charts";
 import {
@@ -26,9 +26,11 @@ import {
 import { getNumberOfPeriods } from "~/period/timeline.server";
 import { ensureUser } from "~/users/functions.server";
 import invariant from "tiny-invariant";
-import type { TimelineView } from "~/period/types";
+import type { MonthPeriod, QuarterPeriod, TimelineView } from "~/period/types";
 import type {
   AgBarSeriesOptions,
+  AgChartOptions,
+  AgDonutSeriesOptions,
   AgLineSeriesOptions,
 } from "ag-charts-community";
 import { useAccountBook } from "~/account-books/hooks";
@@ -136,6 +138,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     )
   ).filter((item) => !!item.node);
 
+  const isExpensesGroup = timeline[0].node && isExpensesNode(timeline[0].node);
+  const isIncomeGroup = timeline[0].node && isIncomeNode(timeline[0].node);
+  const isBreakdownAllocationAvailable = isExpensesGroup || isIncomeGroup;
+
+  if (
+    params.view === "breakdown-allocation" &&
+    !isBreakdownAllocationAvailable
+  ) {
+    throw redirect(`../income/${params.nodeId}/${params.range}/breakdown`);
+  }
+
   return serialize({
     view: params.view as TimelineView,
     period,
@@ -146,6 +159,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     average: sum(timeline.map((i) => i.node?.value ?? 0)).dividedBy(
       timeline.length,
     ),
+    isBreakdownAllocationAvailable,
+    isExpensesGroup,
   });
 }
 
@@ -160,6 +175,8 @@ export default function Route() {
     range,
     rangeSpecifier,
     minBookingDate,
+    isBreakdownAllocationAvailable,
+    isExpensesGroup,
   } = useLoaderData<typeof loader>();
 
   const { referenceCurrency } = useAccountBook();
@@ -167,7 +184,6 @@ export default function Route() {
   invariant(timeline[0].node.nodeType === "accountGroup", "Invalid node type");
 
   const navigate = useNavigate();
-  const isExpensesGroup = timeline[0].node && isExpensesNode(timeline[0].node);
   const negativeFillColor =
     getTheme() === "dark"
       ? "oklch(57.7% 0.245 27.325)"
@@ -220,6 +236,7 @@ export default function Route() {
           view={view}
           minBookingDate={minBookingDate}
           nodeId={timeline[0].node.id}
+          isBreakdownAllocationAvailable={isBreakdownAllocationAvailable}
         />
       </div>
       {view === "breakdown-table" ? (
@@ -249,6 +266,94 @@ export default function Route() {
             />
           </TableBody>
         </Table>
+      ) : view === "breakdown-allocation" ? (
+        <AgCharts
+          className="h-[calc(100vh_-_13rem)] mt-12"
+          options={
+            {
+              ...defaultChartOptions,
+              legend: {
+                position: "right",
+              },
+              series: [
+                {
+                  type: "donut",
+                  angleKey: "value",
+                  calloutLabelKey: "name",
+                  sectorLabelKey: "allocation",
+                  tooltip: {
+                    renderer: (params) => {
+                      return {
+                        title: params.datum.name,
+                        data: [
+                          {
+                            label: "Amount",
+                            value: formatMoney(params.datum.value),
+                          },
+                          {
+                            label: "Allocation",
+                            value: percentageNumberFormat.format(
+                              params.datum.allocation as number,
+                            ),
+                          },
+                        ],
+                      };
+                    },
+                  },
+                  innerLabels: [
+                    {
+                      text: `${referenceCurrency} ${formatMoney(
+                        isExpensesGroup
+                          ? -timeline[0].node.value
+                          : timeline[0].node.value,
+                      )}`,
+                      fontSize: 20,
+                      fontWeight: 600,
+                    },
+                  ],
+                },
+              ],
+              formatter: {
+                angle: (params) => formatMoney(params.value as number),
+                sectorLabel: (params) =>
+                  percentageNumberFormat.format(params.value as number),
+              },
+              listeners: {
+                seriesNodeDoubleClick: (event) => {
+                  invariant(!!range.period, "Range period not found");
+
+                  if (event.datum.nodeType === "accountGroup") {
+                    navigate(
+                      `../income/${event.datum.id}/${rangeSpecifier}/breakdown-allocation`,
+                    );
+                  } else {
+                    const periodSpecifier =
+                      period.granularity === "year"
+                        ? range.period.year.toString()
+                        : period.granularity === "quarter"
+                          ? `${range.period.year}-q${(range.period as QuarterPeriod).quarter}`
+                          : `${range.period.year}-${((range.period as MonthPeriod).month + 1).toString().padStart(2, "0")}`;
+
+                    navigate(
+                      `../accounts/${event.datum.id}/${periodSpecifier}`,
+                    );
+                  }
+                },
+              },
+              data: timeline[0].node.children
+                .map((c) => (isExpensesGroup ? { ...c, value: -c.value } : c))
+                .map((c) => ({
+                  ...c,
+                  allocation:
+                    c.value /
+                    (isExpensesGroup
+                      ? -timeline[0].node.value
+                      : timeline[0].node.value),
+                }))
+                .toSorted((a, b) => b.value - a.value),
+            } as AgChartOptions
+          }
+        />
       ) : (
         <AgCharts
           key={view}

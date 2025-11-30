@@ -7,11 +7,9 @@ import {
 import invariant from "tiny-invariant";
 import { type loader as breakdownLoader } from "../route";
 import { AgCharts } from "ag-charts-react";
-import type { BalancesAccountsNode } from "~/balances/types";
-import type { AccountGroupNode } from "~/account-groups/accounts-tree";
-import { serialize, type Serialize } from "~/serialization";
+import { serialize } from "~/serialization";
 import { defaultChartOptions } from "~/platform/charts";
-import { formatMoney } from "~/formatting";
+import { formatMoney, percentageNumberFormat } from "~/formatting";
 import type { AgChartOptions } from "ag-charts-community";
 import type { Route } from "./+types/route";
 import { sum } from "~/utils";
@@ -24,12 +22,6 @@ export function loader({ params }: Route.LoaderArgs) {
 
   return serialize({ chartType: params.chartType });
 }
-
-const percentageNumberFormat = new Intl.NumberFormat("en-CH", {
-  style: "percent",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 0,
-});
 
 export default function Route() {
   const { chartType } = useLoaderData<typeof loader>();
