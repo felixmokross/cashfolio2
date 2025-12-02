@@ -89,7 +89,9 @@ export async function getBalanceCached(
   ).plus(await getBalance(bookings, ledgerUnitInfo));
 
   if (!isInGracePeriod(date)) {
-    await redis.ts.add(cacheKey, date.getTime(), balance.toNumber());
+    await redis.ts.add(cacheKey, date.getTime(), balance.toNumber(), {
+      ON_DUPLICATE: "LAST",
+    });
   }
 
   return balance;

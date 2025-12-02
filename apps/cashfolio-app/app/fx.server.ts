@@ -93,7 +93,7 @@ async function getFxExchangeRate(date: Date, targetCurrency: string) {
   }
 
   const value = data.quotes[`${baseCurrency}${targetCurrency}`] as number;
-  await redis.ts.add(key, date.getTime(), value);
+  await redis.ts.add(key, date.getTime(), value, { ON_DUPLICATE: "LAST" });
 
   return value;
 }
@@ -118,7 +118,7 @@ async function getCryptocurrencyPrice(date: Date, cryptocurrency: string) {
   }
 
   const value = data.rates[cryptocurrency] as number;
-  await redis.ts.add(key, date.getTime(), value);
+  await redis.ts.add(key, date.getTime(), value, { ON_DUPLICATE: "LAST" });
 
   return value;
 }
@@ -168,7 +168,7 @@ async function getSecurityPrice(
   });
 
   if (!isInGracePeriod(date)) {
-    await redis.ts.add(key, date.getTime(), price);
+    await redis.ts.add(key, date.getTime(), price, { ON_DUPLICATE: "LAST" });
   }
 
   return price;
