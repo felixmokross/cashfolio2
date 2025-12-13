@@ -5,13 +5,15 @@ import {
   AccountsNodeChildrenTableRows,
   type AccountsNodeTableRowOptions,
 } from "~/account-groups/table-rows";
-import type { IncomeAccountsNode } from "~/income/types";
+import type { AccountsNode } from "~/account-groups/accounts-tree";
 
 export function IncomeTableRows({
   node,
+  incomeByNodeId,
   options,
 }: {
-  node: Serialize<IncomeAccountsNode>;
+  node: Serialize<AccountsNode>;
+  incomeByNodeId: Record<string, number>;
   options?: AccountsNodeTableRowOptions;
 }) {
   return (
@@ -23,7 +25,7 @@ export function IncomeTableRows({
       {(node) => (
         <>
           <TableCell className="text-right">
-            {formatMoney(node.value)}
+            {formatMoney(incomeByNodeId[node.id] ?? 0)}
           </TableCell>
         </>
       )}

@@ -5,7 +5,7 @@ import { createClient } from "redis";
 program.command("restore-local").action(async () => {
   console.log("Dropping local database…");
   await exec(
-    `psql -d "${process.env.RESTORE_DB_URL}" -c "DROP DATABASE IF EXISTS ${process.env.RESTORE_DB_NAME}"`,
+    `psql -d "${process.env.RESTORE_DB_URL}" -c "DROP DATABASE IF EXISTS ${process.env.RESTORE_DB_NAME} WITH (FORCE)"`,
   );
   console.log("Creating local database…");
   await exec(

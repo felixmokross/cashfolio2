@@ -13,6 +13,7 @@ import { getViewPreference } from "~/view-preferences/functions.server";
 
 type NumberOfPeriodsOptions = {
   includeOpeningPeriod?: boolean;
+  rollingAveragePeriods?: number;
 };
 
 export async function redirectToLastUsedTimelineRange(
@@ -49,5 +50,11 @@ export async function getNumberOfPeriods(
     maxPeriods++;
   }
 
-  return Math.min(range.numberOfPeriods, maxPeriods);
+  let requestedPeriods = range.numberOfPeriods;
+  if (options.rollingAveragePeriods) {
+    // additional periods needed for rolling average calculation
+    requestedPeriods += options.rollingAveragePeriods - 1;
+  }
+
+  return Math.min(requestedPeriods, maxPeriods);
 }
