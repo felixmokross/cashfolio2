@@ -18,7 +18,6 @@ import { FormattedNumberInput } from "~/platform/forms/formatted-number-input";
 import type { Serialize } from "~/serialization";
 import type { AccountOption } from "~/types";
 import type { action } from "./actions/create";
-import type { TransactionWithBookings } from "./types";
 import { PlusIcon, TrashIcon } from "~/platform/icons/standard";
 import { Input } from "~/platform/forms/input";
 import { Button } from "~/platform/button";
@@ -343,8 +342,13 @@ export function addNewBooking(
   bookings: BookingFormValues[],
   {
     lockedAccount,
+    unitAccount,
     defaultDate,
-  }: { lockedAccount?: AccountOption; defaultDate?: string } = {},
+  }: {
+    lockedAccount?: AccountOption;
+    unitAccount?: AccountOption;
+    defaultDate?: string;
+  } = {},
 ) {
   return [
     ...bookings,
@@ -354,10 +358,11 @@ export function addNewBooking(
       description: "",
       accountId: lockedAccount?.id ?? "",
       isAccountLocked: !!lockedAccount || undefined,
-      unit: lockedAccount?.unit ?? Unit.CURRENCY,
-      currency: lockedAccount?.currency ?? "",
-      cryptocurrency: lockedAccount?.cryptocurrency ?? "",
-      symbol: lockedAccount?.symbol ?? "",
+      unit: lockedAccount?.unit ?? unitAccount?.unit ?? Unit.CURRENCY,
+      currency: lockedAccount?.currency ?? unitAccount?.currency ?? "",
+      cryptocurrency:
+        lockedAccount?.cryptocurrency ?? unitAccount?.cryptocurrency ?? "",
+      symbol: lockedAccount?.symbol ?? unitAccount?.symbol ?? "",
       value: "",
     } as BookingFormValues,
   ];

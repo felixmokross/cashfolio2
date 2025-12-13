@@ -35,6 +35,7 @@ import { Unit } from "~/.prisma-client/enums";
 import { CryptocurrencyCombobox } from "~/components/cryptocurrency-combobox";
 import { formatISO } from "date-fns";
 import invariant from "tiny-invariant";
+import { isSplitTransaction } from "./functions";
 
 export function useEditTransaction() {
   const [isOpen, setIsOpen] = useState(false);
@@ -149,21 +150,20 @@ function TransactionFormGroup({
             lockedAccount: accounts.find((a) => a.id === lockedAccountId),
             defaultDate,
           }),
+          {
+            unitAccount: accounts.find((a) => a.id === lockedAccountId),
+            defaultDate,
+          },
         ),
   );
 
   const requiresSplitMode =
-    bookings.length > 2 ||
-    new Set(
-      bookings
-        .filter(
-          (b) =>
-            (b.unit === Unit.CURRENCY && b.currency) ||
-            (b.unit === Unit.CRYPTOCURRENCY && b.cryptocurrency) ||
-            (b.unit === Unit.SECURITY && b.symbol),
-        )
-        .map((b) => `${b.unit}-${b.currency || b.cryptocurrency || b.symbol}`),
-    ).size > 1;
+    !bookings.every(
+      (b) =>
+        (b.unit === Unit.CURRENCY && b.currency) ||
+        (b.unit === Unit.CRYPTOCURRENCY && b.cryptocurrency) ||
+        (b.unit === Unit.SECURITY && b.symbol),
+    ) || isSplitTransaction(bookings);
 
   useEffect(() => {
     if (requiresSplitMode) {
