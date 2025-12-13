@@ -30,6 +30,7 @@ import {
 import {
   ArrowRightStartOnRectangleIcon,
   EllipsisVerticalIcon,
+  ListBulletIcon,
   PencilSquareIcon,
   PlusCircleIcon,
   TrashIcon,
@@ -43,6 +44,7 @@ import { Rebook, useRebook } from "~/transactions/rebook";
 import { PeriodSelector } from "~/period/period-selector";
 import { useNavigate } from "react-router";
 import { parseISO } from "date-fns";
+import { isSplitTransaction } from "~/transactions/functions";
 
 export function Page({
   loaderData: {
@@ -187,6 +189,16 @@ export function Page({
                 ))}
               </TableCell>
               <TableCell className="truncate">
+                {isSplitTransaction(lr.booking.transaction.bookings) && (
+                  <>
+                    <Badge color="accent-neutral">
+                      <ListBulletIcon
+                        className="size-3"
+                        title="Split Transaction"
+                      />
+                    </Badge>{" "}
+                  </>
+                )}
                 {lr.booking.transaction.description} {lr.booking.description}
               </TableCell>
               {account.type === "EQUITY" && (
