@@ -180,6 +180,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     ),
     rootNode,
     minBookingDate,
+    rollingAveragePeriods,
   });
 }
 
@@ -196,6 +197,7 @@ export default function Route() {
     minBookingDate,
     isBreakdownAllocationAvailable,
     isExpensesGroup,
+    rollingAveragePeriods,
   } = useLoaderData<typeof loader>();
 
   const { referenceCurrency } = useAccountBook();
@@ -457,7 +459,13 @@ export default function Route() {
                       type: "line",
                       xKey: "date",
                       yKey: "totalRollingAverage",
-                      yName: "Average",
+                      yName: `Rolling Average (${rollingAveragePeriods}${
+                        period.granularity === "year"
+                          ? "Y"
+                          : period.granularity === "quarter"
+                            ? "Q"
+                            : "M"
+                      })`,
                       marker: { enabled: false },
                       stroke: neutralStrokeColor,
                       lineDash: [6, 4],
