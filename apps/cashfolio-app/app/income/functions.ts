@@ -1,5 +1,4 @@
 import type { AccountsNode } from "~/account-groups/accounts-tree";
-import type { IncomeAccountsNode } from "./types";
 import type { Serialize } from "~/serialization";
 import { AccountType, EquityAccountSubtype } from "~/.prisma-client/enums";
 
@@ -22,7 +21,7 @@ export function findSubtreeRootNode<T extends AccountsNode>(
 }
 
 export function isExpensesNode(
-  node: IncomeAccountsNode | Serialize<IncomeAccountsNode>,
+  node: AccountsNode | Serialize<AccountsNode>,
 ): boolean {
   return node.nodeType === "accountGroup"
     ? node.children.every(isExpensesNode)
@@ -31,7 +30,7 @@ export function isExpensesNode(
 }
 
 export function isIncomeNode(
-  node: IncomeAccountsNode | Serialize<IncomeAccountsNode>,
+  node: AccountsNode | Serialize<AccountsNode>,
 ): boolean {
   return node.nodeType === "accountGroup"
     ? node.children.every(isIncomeNode)

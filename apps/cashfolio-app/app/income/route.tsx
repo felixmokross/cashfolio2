@@ -6,15 +6,13 @@ import {
 } from "react-router";
 import { ensureAuthorizedForUserAndAccountBookId } from "~/account-books/functions.server";
 import { defaultShouldRevalidate } from "~/revalidation";
-import { serialize, type Serialize } from "~/serialization";
-import { getIncomeStatement } from "./calculation.server";
+import { serialize } from "~/serialization";
+import { getIncomeByNodeId } from "./calculation.server";
 import { getPeriodDateRangeFromPeriod } from "~/period/functions";
 import { AgCharts } from "ag-charts-react";
-import { getTheme } from "~/theme";
 import { formatMoney, percentageNumberFormat } from "~/formatting";
 import { format, getQuarter, getYear, parseISO } from "date-fns";
 import { decrementPeriod } from "~/period/functions";
-import type { IncomeAccountsNode } from "./types";
 import { findSubtreeRootNode, isExpensesNode, isIncomeNode } from "./functions";
 import { sum } from "~/utils.server";
 import { defaultChartOptions, defaultChartTheme } from "~/platform/charts";
@@ -30,13 +28,12 @@ import type { MonthPeriod, QuarterPeriod, TimelineView } from "~/period/types";
 import type {
   AgBarSeriesOptions,
   AgChartOptions,
-  AgDonutSeriesOptions,
   AgLineSeriesOptions,
 } from "ag-charts-community";
 import { useAccountBook } from "~/account-books/hooks";
 import { getMinBookingDate } from "~/transactions/functions.server";
 import { mergeById } from "~/utils";
-import type { AccountGroupNode } from "~/account-groups/accounts-tree";
+import { getAccountsTree } from "~/account-groups/accounts-tree";
 import {
   Table,
   TableBody,
@@ -55,9 +52,11 @@ import { AccountType } from "~/.prisma-client/client";
 import { getViewPreference } from "~/view-preferences/functions.server";
 import { timelineRangeKey } from "~/view-preferences/functions";
 import type { Route } from "./+types/route";
+import { getIncome } from "./functions.server";
+import { getTheme } from "~/theme";
 
 export const meta: Route.MetaFunction = ({ loaderData }) => [
-  { title: getPageTitle(`Income / ${loaderData.timeline[0].node.name}`) },
+  { title: getPageTitle(`Income / ${loaderData.rootNode.name}`) },
 ];
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -93,10 +92,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 
   const range = parseRange(params.range);
+
+  const rollingAveragePeriods =
+    range.granularity === "year" ? 3 : range.granularity === "quarter" ? 8 : 12;
+
   const period = getInitialTimelinePeriod(range);
   const [minBookingDate, n] = await Promise.all([
     getMinBookingDate(link.accountBookId),
-    getNumberOfPeriods(link.accountBookId, range),
+    getNumberOfPeriods(link.accountBookId, range, { rollingAveragePeriods }),
   ]);
 
   const periods = new Array(n).fill(null);
@@ -110,36 +113,47 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     .map((p) => getPeriodDateRangeFromPeriod(p))
     .toReversed();
 
-  const timeline = (
-    await Promise.all(
-      periodDateRanges.map(async (dr) => {
-        const incomeStatement = await getIncomeStatement(
-          link.accountBookId,
-          dr.from,
-          dr.to,
-        );
+  const rawTimeline = await Promise.all(
+    periodDateRanges.map(async (dr) => ({
+      periodDateRange: dr,
+      income: await getIncome(link.accountBookId, dr.from, dr.to),
+    })),
+  );
 
-        let rootNode: IncomeAccountsNode | undefined;
-        if (params.nodeId) {
-          const subtreeRootNode = findSubtreeRootNode(
-            incomeStatement,
-            params.nodeId,
-          );
-          rootNode = subtreeRootNode as IncomeAccountsNode;
-        } else {
-          rootNode = incomeStatement;
-        }
+  const equityRootNode = getAccountsTree(
+    mergeById(...rawTimeline.map((i) => i.income.accounts)),
+    mergeById(...rawTimeline.map((i) => i.income.accountGroups)),
+  ).EQUITY;
+  invariant(equityRootNode, "Equity root node not found");
 
-        return {
-          periodDateRange: dr,
-          node: rootNode,
-        };
-      }),
-    )
-  ).filter((item) => !!item.node);
+  const rootNode = findSubtreeRootNode(equityRootNode, params.nodeId);
+  if (!rootNode) {
+    throw new Response("Not Found", { status: 404 });
+  }
 
-  const isExpensesGroup = timeline[0].node && isExpensesNode(timeline[0].node);
-  const isIncomeGroup = timeline[0].node && isIncomeNode(timeline[0].node);
+  const timeline = rawTimeline
+    .map(({ periodDateRange, income }) => ({
+      periodDateRange,
+      incomeByNodeId: getIncomeByNodeId(income, equityRootNode),
+    }))
+    .map(({ periodDateRange, incomeByNodeId }, index, array) => ({
+      periodDateRange,
+      incomeByNodeId,
+      rollingAverageByNodeId: new Map(
+        [...incomeByNodeId.keys()].map((key) => [
+          key,
+          sum(
+            array
+              .slice(Math.max(0, index - rollingAveragePeriods + 1), index + 1)
+              .map((i) => i.incomeByNodeId.get(key) ?? 0),
+          ).dividedBy(Math.min(rollingAveragePeriods, index + 1)),
+        ]),
+      ),
+    }))
+    .slice(-range.numberOfPeriods);
+
+  const isExpensesGroup = rootNode && isExpensesNode(rootNode);
+  const isIncomeGroup = rootNode && isIncomeNode(rootNode);
   const isBreakdownAllocationAvailable = isExpensesGroup || isIncomeGroup;
 
   if (
@@ -154,13 +168,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     period,
     rangeSpecifier: params.range,
     range,
-    timeline,
-    minBookingDate,
-    average: sum(timeline.map((i) => i.node?.value ?? 0)).dividedBy(
-      timeline.length,
-    ),
     isBreakdownAllocationAvailable,
     isExpensesGroup,
+    timeline: timeline.map(
+      ({ periodDateRange, incomeByNodeId, rollingAverageByNodeId }) => ({
+        periodDateRange,
+        // TODO we should move that to the serialization layer
+        incomeByNodeId: Object.fromEntries(incomeByNodeId),
+        rollingAverageByNodeId: Object.fromEntries(rollingAverageByNodeId),
+      }),
+    ),
+    rootNode,
+    minBookingDate,
+    rollingAveragePeriods,
   });
 }
 
@@ -169,7 +189,7 @@ export const shouldRevalidate = defaultShouldRevalidate;
 export default function Route() {
   const {
     view,
-    average,
+    rootNode,
     timeline,
     period,
     range,
@@ -177,11 +197,10 @@ export default function Route() {
     minBookingDate,
     isBreakdownAllocationAvailable,
     isExpensesGroup,
+    rollingAveragePeriods,
   } = useLoaderData<typeof loader>();
 
   const { referenceCurrency } = useAccountBook();
-
-  invariant(timeline[0].node.nodeType === "accountGroup", "Invalid node type");
 
   const navigate = useNavigate();
   const negativeFillColor =
@@ -211,18 +230,23 @@ export default function Route() {
         }
       : undefined;
   const accountBook = useAccountBook();
+  const parentNodeId =
+    rootNode.nodeType === "accountGroup"
+      ? rootNode.parentGroupId
+      : rootNode.groupId;
+
   return (
     <>
       <div className="flex justify-between items-center gap-8">
         <div className="shrink-0">
-          <Heading>{timeline[0].node.name}</Heading>
+          <Heading>{rootNode.name}</Heading>
           <Text>Reference Currency: {accountBook.referenceCurrency}</Text>
         </div>
         <div>
           <Button
-            disabled={!timeline[0].node.parentGroupId}
+            disabled={!parentNodeId}
             hierarchy="secondary"
-            href={`../income/${timeline[0].node.parentGroupId}/${rangeSpecifier}/${view}`}
+            href={`../income/${parentNodeId}/${rangeSpecifier}/breakdown`}
           >
             <ChevronUpIcon />
             Up
@@ -235,7 +259,7 @@ export default function Route() {
           range={range}
           view={view}
           minBookingDate={minBookingDate}
-          nodeId={timeline[0].node.id}
+          nodeId={rootNode.id}
           isBreakdownAllocationAvailable={isBreakdownAllocationAvailable}
         />
       </div>
@@ -248,15 +272,16 @@ export default function Route() {
         >
           <TableHead>
             <TableRow>
-              <TableHeader>{timeline[0].node.name}</TableHeader>
+              <TableHeader>{rootNode.name}</TableHeader>
               <TableHeader className="text-right w-32">
-                {formatMoney(timeline[0].node.value)}
+                {formatMoney(timeline[0].incomeByNodeId[rootNode.id] ?? 0)}
               </TableHeader>
             </TableRow>
           </TableHead>
           <TableBody>
             <IncomeTableRows
-              node={timeline[0].node}
+              node={rootNode}
+              incomeByNodeId={timeline[0].incomeByNodeId}
               options={{
                 queryParams: {
                   from: parseISO(timeline[0].periodDateRange.from),
@@ -304,8 +329,8 @@ export default function Route() {
                     {
                       text: `${referenceCurrency} ${formatMoney(
                         isExpensesGroup
-                          ? -timeline[0].node.value
-                          : timeline[0].node.value,
+                          ? -timeline[0].incomeByNodeId[rootNode.id]
+                          : timeline[0].incomeByNodeId[rootNode.id],
                       )}`,
                       fontSize: 20,
                       fontWeight: 600,
@@ -340,15 +365,22 @@ export default function Route() {
                   }
                 },
               },
-              data: timeline[0].node.children
-                .map((c) => (isExpensesGroup ? { ...c, value: -c.value } : c))
+              data: (rootNode.nodeType === "accountGroup"
+                ? rootNode.children
+                : []
+              )
+                .map((c) =>
+                  isExpensesGroup
+                    ? { ...c, value: -timeline[0].incomeByNodeId[c.id] }
+                    : { ...c, value: timeline[0].incomeByNodeId[c.id] },
+                )
                 .map((c) => ({
                   ...c,
                   allocation:
                     c.value /
                     (isExpensesGroup
-                      ? -timeline[0].node.value
-                      : timeline[0].node.value),
+                      ? -timeline[0].incomeByNodeId[rootNode.id]
+                      : timeline[0].incomeByNodeId[rootNode.id]),
                 }))
                 .toSorted((a, b) => b.value - a.value),
             } as AgChartOptions
@@ -363,7 +395,7 @@ export default function Route() {
             title:
               view === "breakdown" && timeline.length === 1
                 ? {
-                    text: `Total: ${referenceCurrency} ${formatMoney(isExpensesGroup ? -timeline[0].node.value : timeline[0].node.value)}`,
+                    text: `Total: ${referenceCurrency} ${formatMoney(isExpensesGroup ? -timeline[0].incomeByNodeId[rootNode.id] : timeline[0].incomeByNodeId[rootNode.id])}`,
                   }
                 : undefined,
             theme:
@@ -394,41 +426,19 @@ export default function Route() {
                       },
                     } as AgBarSeriesOptions,
                   ]
-                : mergeById(
-                    ...timeline.map(
-                      (i) =>
-                        (
-                          i.node as Serialize<
-                            IncomeAccountsNode & AccountGroupNode
-                          >
-                        ).children,
-                    ),
+                : (rootNode.nodeType === "accountGroup"
+                    ? rootNode.children
+                    : []
                   )
-                    .filter((c) =>
-                      timeline.some((t) =>
-                        (t.node.nodeType === "accountGroup"
-                          ? t.node.children
-                          : []
-                        )
-                          .map((tc) => tc.id)
-                          .includes(c.id),
-                      ),
-                    )
                     .toSorted((a, b) => {
-                      const parentNode = timeline[timeline.length - 1].node;
-                      if (parentNode.nodeType !== "accountGroup") {
+                      if (rootNode.nodeType !== "accountGroup") {
                         return Infinity;
                       }
 
-                      const childNodeA = parentNode.children.find(
-                        (c) => c.id === a.id,
-                      );
-                      const childNodeB = parentNode.children.find(
-                        (c) => c.id === b.id,
-                      );
+                      const lastItem = timeline[timeline.length - 1];
                       const sortOrder =
-                        (childNodeA?.value ?? Infinity) -
-                        (childNodeB?.value ?? Infinity);
+                        (lastItem.rollingAverageByNodeId[b.id] ?? Infinity) -
+                        (lastItem.rollingAverageByNodeId[a.id] ?? Infinity);
 
                       return isExpensesGroup ? sortOrder : -sortOrder;
                     })
@@ -439,6 +449,7 @@ export default function Route() {
                           xKey: "date",
                           yKey: childNode.id,
                           yName: childNode.name,
+                          stacked: true,
                           tooltip: tooltipOptions,
                         }) as AgBarSeriesOptions,
                     )),
@@ -447,19 +458,23 @@ export default function Route() {
                     {
                       type: "line",
                       xKey: "date",
-                      yKey: "average",
-                      yName: "Average",
+                      yKey: "totalRollingAverage",
+                      yName: `Rolling Average (${rollingAveragePeriods}${
+                        period.granularity === "year"
+                          ? "Y"
+                          : period.granularity === "quarter"
+                            ? "Q"
+                            : "M"
+                      })`,
                       marker: { enabled: false },
                       stroke: neutralStrokeColor,
                       lineDash: [6, 4],
                       tooltip: tooltipOptions,
+                      interpolation: { type: "smooth" },
                     } as AgLineSeriesOptions,
                   ]
                 : []),
             ],
-            tooltip: {
-              mode: "single",
-            },
             formatter: {
               y: (params) => formatMoney(params.value as number),
             },
@@ -472,30 +487,17 @@ export default function Route() {
                       ? format(event.datum.date, "yyyy-QQQ").toLowerCase()
                       : format(event.datum.date, "yyyy-MM");
                 if (view === "totals") {
-                  navigate(
-                    `../income/${timeline[0].node.id}/${periodSpecifier}/breakdown`,
-                  );
+                  if (rootNode.nodeType === "accountGroup") {
+                    navigate(
+                      `../income/${rootNode.id}/${periodSpecifier}/breakdown`,
+                    );
+                  } else {
+                    navigate(`../accounts/${rootNode.id}/${periodSpecifier}`);
+                  }
                   return;
                 }
 
-                invariant(
-                  timeline[0].node.nodeType === "accountGroup",
-                  "Invalid node type",
-                );
-
-                const node = timeline[0].node.children.find(
-                  (c) => c.id === event.yKey,
-                );
-
-                invariant(node, "Node not found");
-
-                if (node.nodeType === "accountGroup") {
-                  navigate(
-                    `../income/${event.yKey}/${rangeSpecifier}/breakdown`,
-                  );
-                } else {
-                  navigate(`../accounts/${event.yKey}/${periodSpecifier}`);
-                }
+                navigate(`../income/${event.yKey}/${rangeSpecifier}/totals`);
               },
             },
             axes: [
@@ -526,13 +528,18 @@ export default function Route() {
             data: timeline
               .map((i) => ({
                 date: parseISO(i.periodDateRange.from),
-                average,
-                total: i.node?.value ?? 0,
+                total: -(i.incomeByNodeId[rootNode.id] ?? 0),
+                totalRollingAverage: -(
+                  i.rollingAverageByNodeId[rootNode.id] ?? 0
+                ),
                 ...Object.fromEntries(
-                  (i.node && i.node.nodeType === "accountGroup"
-                    ? i.node.children
+                  (rootNode.nodeType === "accountGroup"
+                    ? rootNode.children
                     : []
-                  ).map((child) => [child.id, child.value]),
+                  ).map((child) => [
+                    child.id,
+                    -(i.incomeByNodeId[child.id] ?? 0),
+                  ]),
                 ),
               }))
               .map(({ date, ...values }) => ({

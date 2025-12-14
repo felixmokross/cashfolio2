@@ -1,56 +1,30 @@
 import { sum } from "~/utils.server";
-import type { IncomeAccountsNode } from "./types";
-import {
-  getAccountsTree,
-  type AccountsNode,
-} from "~/account-groups/accounts-tree";
+import type { Income } from "./types";
+import { type AccountsNode } from "~/account-groups/accounts-tree";
 import { Decimal } from "@prisma/client/runtime/library";
-import { getIncome } from "./functions.server";
 
-export async function getIncomeStatement(
-  accountBookId: string,
-  fromDate: Date,
-  toDate: Date,
-) {
-  const incomeData = await getIncome(accountBookId, fromDate, toDate);
+export function getIncomeByNodeId(
+  income: Income,
+  equityRootNode: AccountsNode,
+): Map<string, Decimal> {
+  const incomeByNodeId = new Map<string, Decimal>();
 
-  const equityRootNode = getAccountsTree(
-    incomeData.accounts,
-    incomeData.accountGroups,
-  ).EQUITY;
+  populateAccountGroupIncome(equityRootNode);
 
-  if (!equityRootNode) {
-    throw new Error("No equity account group found");
+  return incomeByNodeId;
+
+  function populateAccountGroupIncome(node: AccountsNode) {
+    incomeByNodeId.set(
+      node.id,
+      node.nodeType === "account"
+        ? (income.incomeByAccountId.get(node.id) ?? new Decimal(0))
+        : sum(
+            node.children.map((child) => {
+              populateAccountGroupIncome(child);
+
+              return incomeByNodeId.get(child.id) ?? new Decimal(0);
+            }),
+          ),
+    );
   }
-
-  const netIncomeNode = { ...equityRootNode, name: "Net Income" };
-
-  function withIncomeData(node: AccountsNode): IncomeAccountsNode {
-    if (node.nodeType === "accountGroup") {
-      const children = node.children
-        .map(withIncomeData)
-        .filter((child) => !child.value.isZero())
-
-        .toSorted((a, b) => b.value.minus(a.value).toNumber())
-        .toSorted(
-          (a, b) =>
-            (a.nodeType === "accountGroup" && a.sortOrder != null
-              ? a.sortOrder
-              : Infinity) -
-            (b.nodeType === "accountGroup" && b.sortOrder != null
-              ? b.sortOrder
-              : Infinity),
-        );
-      return { ...node, children, value: sum(children.map((c) => c.value)) };
-    }
-
-    return {
-      ...node,
-      value: (
-        incomeData.incomeByAccountId.get(node.id) ?? new Decimal(0)
-      ).negated(),
-    };
-  }
-
-  return withIncomeData(netIncomeNode);
 }

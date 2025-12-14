@@ -22,4 +22,7 @@ export const defaultChartTheme: AgChartTheme = {
 export const defaultChartOptions: AgChartOptions = {
   background: { visible: false },
   theme: defaultChartTheme,
+  legend: {
+    preventHidingAll: true,
+  },
 };
