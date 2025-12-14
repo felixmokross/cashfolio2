@@ -26,10 +26,8 @@ import { ensureUser } from "~/users/functions.server";
 import invariant from "tiny-invariant";
 import type { MonthPeriod, QuarterPeriod, TimelineView } from "~/period/types";
 import type {
-  AgAreaSeriesOptions,
   AgBarSeriesOptions,
   AgChartOptions,
-  AgDonutSeriesOptions,
   AgLineSeriesOptions,
 } from "ag-charts-community";
 import { useAccountBook } from "~/account-books/hooks";
@@ -230,7 +228,10 @@ export default function Route() {
         }
       : undefined;
   const accountBook = useAccountBook();
-  invariant(rootNode.nodeType === "accountGroup", "Invalid node type");
+  const parentNodeId =
+    rootNode.nodeType === "accountGroup"
+      ? rootNode.parentGroupId
+      : rootNode.groupId;
 
   return (
     <>
@@ -241,9 +242,9 @@ export default function Route() {
         </div>
         <div>
           <Button
-            disabled={!rootNode.parentGroupId}
+            disabled={!parentNodeId}
             hierarchy="secondary"
-            href={`../income/${rootNode.parentGroupId}/${rangeSpecifier}/${view}`}
+            href={`../income/${parentNodeId}/${rangeSpecifier}/breakdown`}
           >
             <ChevronUpIcon />
             Up
@@ -362,7 +363,10 @@ export default function Route() {
                   }
                 },
               },
-              data: rootNode.children
+              data: (rootNode.nodeType === "accountGroup"
+                ? rootNode.children
+                : []
+              )
                 .map((c) =>
                   isExpensesGroup
                     ? { ...c, value: -timeline[0].incomeByNodeId[c.id] }
@@ -420,7 +424,10 @@ export default function Route() {
                       },
                     } as AgBarSeriesOptions,
                   ]
-                : rootNode.children
+                : (rootNode.nodeType === "accountGroup"
+                    ? rootNode.children
+                    : []
+                  )
                     .toSorted((a, b) => {
                       if (rootNode.nodeType !== "accountGroup") {
                         return Infinity;
@@ -428,8 +435,8 @@ export default function Route() {
 
                       const lastItem = timeline[timeline.length - 1];
                       const sortOrder =
-                        (lastItem.rollingAverageByNodeId[a.id] ?? Infinity) -
-                        (lastItem.rollingAverageByNodeId[b.id] ?? Infinity);
+                        (lastItem.rollingAverageByNodeId[b.id] ?? Infinity) -
+                        (lastItem.rollingAverageByNodeId[a.id] ?? Infinity);
 
                       return isExpensesGroup ? sortOrder : -sortOrder;
                     })
@@ -440,6 +447,7 @@ export default function Route() {
                           xKey: "date",
                           yKey: childNode.id,
                           yName: childNode.name,
+                          stacked: true,
                           tooltip: tooltipOptions,
                         }) as AgBarSeriesOptions,
                     )),
@@ -448,19 +456,17 @@ export default function Route() {
                     {
                       type: "line",
                       xKey: "date",
-                      yKey: "average",
+                      yKey: "totalRollingAverage",
                       yName: "Average",
                       marker: { enabled: false },
                       stroke: neutralStrokeColor,
                       lineDash: [6, 4],
                       tooltip: tooltipOptions,
+                      interpolation: { type: "smooth" },
                     } as AgLineSeriesOptions,
                   ]
                 : []),
             ],
-            tooltip: {
-              mode: "single",
-            },
             formatter: {
               y: (params) => formatMoney(params.value as number),
             },
@@ -473,28 +479,17 @@ export default function Route() {
                       ? format(event.datum.date, "yyyy-QQQ").toLowerCase()
                       : format(event.datum.date, "yyyy-MM");
                 if (view === "totals") {
-                  navigate(
-                    `../income/${rootNode.id}/${periodSpecifier}/breakdown`,
-                  );
+                  if (rootNode.nodeType === "accountGroup") {
+                    navigate(
+                      `../income/${rootNode.id}/${periodSpecifier}/breakdown`,
+                    );
+                  } else {
+                    navigate(`../accounts/${rootNode.id}/${periodSpecifier}`);
+                  }
                   return;
                 }
 
-                invariant(
-                  rootNode.nodeType === "accountGroup",
-                  "Invalid node type",
-                );
-
-                const node = rootNode.children.find((c) => c.id === event.yKey);
-
-                invariant(node, "Node not found");
-
-                if (node.nodeType === "accountGroup") {
-                  navigate(
-                    `../income/${event.yKey}/${rangeSpecifier}/breakdown`,
-                  );
-                } else {
-                  navigate(`../accounts/${event.yKey}/${periodSpecifier}`);
-                }
+                navigate(`../income/${event.yKey}/${rangeSpecifier}/totals`);
               },
             },
             axes: [
@@ -533,12 +528,9 @@ export default function Route() {
                   (rootNode.nodeType === "accountGroup"
                     ? rootNode.children
                     : []
-                  ).flatMap((child) => [
-                    [child.id, -(i.incomeByNodeId[child.id] ?? 0)],
-                    [
-                      `${child.id}-rollingAverage`,
-                      -(i.rollingAverageByNodeId[child.id] ?? 0),
-                    ],
+                  ).map((child) => [
+                    child.id,
+                    -(i.incomeByNodeId[child.id] ?? 0),
                   ]),
                 ),
               }))
