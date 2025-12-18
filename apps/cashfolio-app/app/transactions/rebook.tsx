@@ -141,11 +141,18 @@ export function Rebook({
                     value={b.cryptocurrency || ""}
                   />
                 ) : b.unit === Unit.SECURITY ? (
-                  <input
-                    type="hidden"
-                    name={`bookings[${index}][symbol]`}
-                    value={b.symbol || ""}
-                  />
+                  <>
+                    <input
+                      type="hidden"
+                      name={`bookings[${index}][symbol]`}
+                      value={b.symbol || ""}
+                    />
+                    <input
+                      type="hidden"
+                      name={`bookings[${index}][tradeCurrency]`}
+                      value={b.tradeCurrency || ""}
+                    />
+                  </>
                 ) : null}
                 <input
                   type="hidden"
