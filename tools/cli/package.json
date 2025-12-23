@@ -8,7 +8,7 @@
     "typecheck": "tsc"
   },
   "devDependencies": {
-    "@types/node": "^20.19.27",
+    "@types/node": "^24.10.4",
     "commander": "^13.1.0",
     "dotenv": "^17.2.3",
     "redis": "^5.10.0",
