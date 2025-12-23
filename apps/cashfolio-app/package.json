@@ -9,6 +9,7 @@
     "typecheck": "react-router typegen && tsc",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
+    "prisma:generate": "DATABASE_URL=dummy prisma generate",
     "test": "DATABASE_URL='postgresql://postgres:postgres@localhost:5433/cashfolio?schema=public' REDIS_URL='redis://admin:admin@localhost:6380' vitest"
   },
   "dependencies": {
