@@ -161,10 +161,9 @@ export default function Route() {
                 navigate(`../breakdown/${formatISODate(event.datum.date)}`);
               },
             },
-            axes: [
-              {
+            axes: {
+              x: {
                 type: "time",
-                position: "bottom",
                 label:
                   loaderData.period.granularity === "quarter"
                     ? {
@@ -172,11 +171,7 @@ export default function Route() {
                       }
                     : undefined,
               },
-              {
-                type: "number",
-                position: "left",
-              },
-            ],
+            },
             data: loaderData.balanceSheets.map(
               ({ periodDateRange, balanceSheet }) => ({
                 date: parseISO(periodDateRange.to),

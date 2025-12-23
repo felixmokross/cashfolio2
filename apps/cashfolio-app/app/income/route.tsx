@@ -500,10 +500,9 @@ export default function Route() {
                 navigate(`../income/${event.yKey}/${rangeSpecifier}/totals`);
               },
             },
-            axes: [
-              {
+            axes: {
+              x: {
                 type: "unit-time",
-                position: "bottom",
                 label:
                   timeline.length === 1
                     ? {
@@ -520,11 +519,7 @@ export default function Route() {
                         }
                       : undefined,
               },
-              {
-                type: "number",
-                position: "left",
-              },
-            ],
+            },
             data: timeline
               .map((i) => ({
                 date: parseISO(i.periodDateRange.from),
