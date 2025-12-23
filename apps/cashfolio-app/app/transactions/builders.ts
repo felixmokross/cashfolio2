@@ -1,4 +1,4 @@
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import type { Booking, Transaction } from "../.prisma-client/client";
 import { Unit } from "../.prisma-client/enums";
 import type { TransactionWithBookings } from "./types";

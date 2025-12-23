@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { sum } from "./utils.server";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 
 describe("sum", () => {
   test("returns the sum of the passed values", () => {

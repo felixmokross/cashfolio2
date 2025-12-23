@@ -13,7 +13,7 @@ import {
 import { generateTransactionGainLossAccount } from "./transaction-gain-loss.server";
 import { getCurrencyUnitInfo } from "~/units/functions";
 import { getBalanceCached } from "~/accounts/detail/calculation.server";
-import type { Decimal } from "@prisma/client/runtime/library";
+import type { Decimal } from "@prisma/client-runtime-utils";
 import { subDays } from "date-fns";
 
 export async function getIncome(

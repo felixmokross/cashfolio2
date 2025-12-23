@@ -3,7 +3,7 @@ import { buildAccountBook } from "~/account-books/builders";
 import { getBalanceSheet } from "./functions.server";
 import { buildAccountGroup } from "~/account-groups/builders";
 import { AccountType } from "~/.prisma-client/enums";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { buildAccount } from "~/accounts/builders";
 import { prisma } from "~/prisma.server";
 import {

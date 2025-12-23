@@ -8,7 +8,7 @@ import {
   generateTransactionGainLossBookings,
   TRANSACTION_GAIN_LOSS_ACCOUNT_ID,
 } from "./transaction-gain-loss.server";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import {
   AccountType,
   Unit,

@@ -1,5 +1,5 @@
 import { createId } from "@paralleldrive/cuid2";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { parseISO } from "date-fns";
 import { beforeEach } from "vitest";
 import { AccountType, type AccountBook } from "~/.prisma-client/client";

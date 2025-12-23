@@ -1,4 +1,4 @@
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { isAfter, min, parseISO, subDays } from "date-fns";
 import type { Booking } from "~/.prisma-client/client";
 import { Unit } from "~/.prisma-client/enums";

@@ -8,7 +8,7 @@ import {
 import { data, type ActionFunctionArgs } from "react-router";
 import invariant from "tiny-invariant";
 import { Unit } from "~/.prisma-client/enums";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { ensureAuthorized } from "~/account-books/functions.server";
 import { parseISO } from "date-fns";
 

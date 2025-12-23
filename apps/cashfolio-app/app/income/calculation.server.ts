@@ -1,7 +1,7 @@
 import { sum } from "~/utils.server";
 import type { Income } from "./types";
 import { type AccountsNode } from "~/account-groups/accounts-tree";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 
 export function getIncomeByNodeId(
   income: Income,

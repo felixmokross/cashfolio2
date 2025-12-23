@@ -3,7 +3,7 @@ import { convert, isInGracePeriod } from "~/fx.server";
 import { redis } from "~/redis.server";
 import { prisma } from "~/prisma.server";
 import { addDays, isAfter, isEqual } from "date-fns";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import type { AccountBook, Booking } from "~/.prisma-client/client";
 import { Unit as UnitEnum } from "~/.prisma-client/enums";
 import { sum } from "~/utils.server";
