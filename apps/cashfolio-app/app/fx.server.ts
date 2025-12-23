@@ -2,7 +2,7 @@ import { Unit as UnitEnum } from "./.prisma-client/enums";
 import { formatISODate } from "./formatting";
 import { redis } from "~/redis.server";
 import { isAfter, subDays } from "date-fns";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { getUnitLabel, isSameUnit } from "./units/functions";
 import type { UnitInfo } from "./units/types";
 import { today } from "./dates";

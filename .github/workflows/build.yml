@@ -73,7 +73,7 @@ jobs:
       - name: Install dependencies
         run: pnpm --filter cashfolio-app install
       - name: Generate Prisma Client
-        run: pnpm --filter cashfolio-app exec prisma generate
+        run: pnpm --filter cashfolio-app prisma:generate
       - name: Run typecheck in cashfolio-app
         run: pnpm --filter cashfolio-app typecheck
 
@@ -88,7 +88,7 @@ jobs:
       - name: Install dependencies
         run: pnpm --filter cashfolio-app --filter cli install
       - name: Generate Prisma Client
-        run: pnpm --filter cashfolio-app exec prisma generate
+        run: pnpm --filter cashfolio-app prisma:generate
       - name: Run unit tests
         run: pnpm --filter cli start test
 

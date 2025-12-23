@@ -1,3 +1,4 @@
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "~/.prisma-client/client";
 import invariant from "tiny-invariant";
 
@@ -32,9 +33,13 @@ function getClient() {
   // that this only runs once per server restart and won't automatically be
   // re-run per request like everything else is. So if you need to change
   // something in this file, you'll need to manually restart the server.
-  const client = new PrismaClient({
-    datasources: { db: { url: databaseUrl.toString() } },
+
+  const adapter = new PrismaPg({
+    connectionString: databaseUrl.toString(),
   });
+
+  const client = new PrismaClient({ adapter });
+
   // connect eagerly
   client.$connect();
 

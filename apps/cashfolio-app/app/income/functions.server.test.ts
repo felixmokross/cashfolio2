@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { getIncome } from "./functions.server";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { AccountType } from "~/.prisma-client/enums";
 import { redis } from "~/redis.server";
 import {

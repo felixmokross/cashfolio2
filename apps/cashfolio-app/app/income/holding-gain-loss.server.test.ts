@@ -3,7 +3,7 @@ import { prisma } from "~/prisma.server";
 import { generateHoldingBookingsForAccount } from "./holding-gain-loss.server";
 import { AccountType, Unit } from "~/.prisma-client/enums";
 import { redis } from "~/redis.server";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import type { Booking } from "~/.prisma-client/client";
 import { getCurrencyUnitInfo } from "~/units/functions";
 import { createTestAccount, testAccountBook } from "test-setup";

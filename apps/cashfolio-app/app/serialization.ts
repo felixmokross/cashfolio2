@@ -1,4 +1,4 @@
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 
 export type Serialize<T> =
   // Turn Decimal into string

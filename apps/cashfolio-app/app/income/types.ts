@@ -1,4 +1,4 @@
-import type { Decimal } from "@prisma/client/runtime/library";
+import type { Decimal } from "@prisma/client-runtime-utils";
 import type { Account, AccountGroup, Prisma } from "~/.prisma-client/client";
 import type { AccountsNode } from "~/account-groups/accounts-tree";
 

@@ -1,4 +1,4 @@
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client-runtime-utils";
 import { AccountType, Unit } from "~/.prisma-client/enums";
 import { cryptocurrencies } from "~/cryptocurrencies";
 import { currencies } from "~/currencies";
