@@ -1,5 +1,8 @@
 import { describe, expect, test } from "vitest";
-import { normalizeSimpleDraft } from "./-page-transaction-utils";
+import {
+  createCopySimpleTransactionInitialValues,
+  normalizeSimpleDraft,
+} from "./-page-transaction-utils";
 
 describe("normalizeSimpleDraft", () => {
   const fallback = {
@@ -38,5 +41,24 @@ describe("normalizeSimpleDraft", () => {
     });
 
     expect(result.date).toBe(fallback.date.toISOString());
+  });
+});
+
+describe("createCopySimpleTransactionInitialValues", () => {
+  test("keeps simple transaction fields while removing the source date", () => {
+    const result = createCopySimpleTransactionInitialValues({
+      date: new Date("2026-01-15T00:00:00.000Z"),
+      description: "Salary",
+      counterAccountId: "income-1",
+      amount: 100,
+      direction: "DEBIT",
+    });
+
+    expect(result).toEqual({
+      description: "Salary",
+      counterAccountId: "income-1",
+      amount: 100,
+      direction: "DEBIT",
+    });
   });
 });

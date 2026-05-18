@@ -1,5 +1,9 @@
 import { describe, expect, test } from "vitest";
-import { createTransactionFormInitialValues } from "./edit-transaction-modal-values";
+import { Unit } from "@/.prisma-client/enums";
+import {
+  createCopyTransactionInitialValues,
+  createTransactionFormInitialValues,
+} from "./edit-transaction-modal-values";
 
 describe("createTransactionFormInitialValues", () => {
   test("supports split editing without a current account", () => {
@@ -25,5 +29,67 @@ describe("createTransactionFormInitialValues", () => {
       "cash",
       "bank",
     ]);
+  });
+
+  test("keeps the add-transaction date default when copied bookings have no dates", () => {
+    const result = createTransactionFormInitialValues({
+      initialValues: {
+        description: "Copied transfer",
+        bookings: [
+          { account: "cash", description: "Cash leg" },
+          { account: "bank", description: "Bank leg" },
+        ],
+      },
+    });
+
+    expect(result.date).toBeUndefined();
+  });
+});
+
+describe("createCopyTransactionInitialValues", () => {
+  test("preserves copied booking details and ordering while removing dates", () => {
+    const result = createCopyTransactionInitialValues({
+      description: "Copy me",
+      bookings: [
+        {
+          date: "2026-01-10T00:00:00.000Z",
+          account: "cash",
+          description: "Cash leg",
+          unit: Unit.CURRENCY,
+          currency: "CHF",
+          debit: 12,
+        },
+        {
+          date: "2026-01-11T00:00:00.000Z",
+          account: "expense",
+          description: "Expense leg",
+          unit: Unit.SECURITY,
+          symbol: "VT",
+          tradeCurrency: "USD",
+          credit: 12,
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      description: "Copy me",
+      bookings: [
+        {
+          account: "cash",
+          description: "Cash leg",
+          unit: Unit.CURRENCY,
+          currency: "CHF",
+          debit: 12,
+        },
+        {
+          account: "expense",
+          description: "Expense leg",
+          unit: Unit.SECURITY,
+          symbol: "VT",
+          tradeCurrency: "USD",
+          credit: 12,
+        },
+      ],
+    });
   });
 });

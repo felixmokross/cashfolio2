@@ -33,7 +33,7 @@ import { useUserLocale } from "@/user-locale-context";
 export type SimpleTransactionDirection = "DEBIT" | "CREDIT";
 
 export type SimpleTransactionInitialValues = {
-  date: Date;
+  date?: Date;
   description: string;
   counterAccountId: string;
   amount: number;
@@ -54,6 +54,21 @@ function getForcedDirection(
   if (isIncomeAccount(account)) return "DEBIT";
   if (isExpenseAccount(account)) return "CREDIT";
   return null;
+}
+
+export function createSimpleTransactionFormInitialValues(args: {
+  initialValues?: SimpleTransactionInitialValues;
+  today: Date;
+}) {
+  return {
+    date: args.initialValues?.date ?? args.today,
+    description: args.initialValues?.description ?? "",
+    counterAccountId: args.initialValues?.counterAccountId ?? "",
+    amount:
+      args.initialValues?.amount ?? (undefined as string | number | undefined),
+    direction:
+      args.initialValues?.direction ?? ("DEBIT" as SimpleTransactionDirection),
+  };
 }
 
 export function SimpleTransactionModal({
@@ -99,15 +114,10 @@ export function SimpleTransactionModal({
 
   const form = useForm({
     mode: "controlled",
-    initialValues: {
-      date: initialValues?.date ?? today,
-      description: initialValues?.description ?? "",
-      counterAccountId: initialValues?.counterAccountId ?? "",
-      amount:
-        initialValues?.amount ?? (undefined as string | number | undefined),
-      direction:
-        initialValues?.direction ?? ("DEBIT" as SimpleTransactionDirection),
-    },
+    initialValues: createSimpleTransactionFormInitialValues({
+      initialValues,
+      today,
+    }),
     validate: {
       date: (value) => {
         const date = normalizeDateInputValue(value);

@@ -59,6 +59,10 @@ export type TransactionsPageViewProps = {
   isCreateSubmitting: boolean;
   isEditSubmitting: boolean;
   isRebookSubmitting: boolean;
+  createTransactionInitialValues?: {
+    description?: string;
+    bookings?: Omit<BookingValues, "key">[];
+  };
   editingTransactionData?: {
     id: string;
     description?: string;
@@ -102,6 +106,7 @@ export function TransactionsPageView({
   isCreateSubmitting,
   isEditSubmitting,
   isRebookSubmitting,
+  createTransactionInitialValues,
   editingTransactionData,
   deletingTransaction,
   rebooking,
@@ -169,6 +174,7 @@ export function TransactionsPageView({
         withCloseButton={!isCreateSubmitting}
       >
         <EditTransactionModal
+          initialValues={createTransactionInitialValues}
           submitLabel="Create"
           accounts={accountOptions}
           accountBookStartDate={accountBookStartDate}

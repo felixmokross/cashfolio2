@@ -1,4 +1,5 @@
 import type { TransformedFormValues } from "@/components/edit-account-modal";
+import type { SimpleTransactionInitialValues } from "@/components/simple-transaction-modal";
 import {
   archiveAccount,
   deleteAccount,
@@ -49,6 +50,9 @@ export type LedgerMutationState = {
   setEditModalOpened: (opened: boolean) => void;
   setCreateSplitInitialValues: (
     values: SplitModalInitialValues | undefined,
+  ) => void;
+  setCreateSimpleInitialValues: (
+    values: SimpleTransactionInitialValues | undefined,
   ) => void;
   setDeletingTransaction: (
     value: { id: string; description: string } | undefined,
@@ -110,6 +114,7 @@ export function createLedgerMutationActions(args: {
         },
       });
       args.state.setSimpleModalOpened(false);
+      args.state.setCreateSimpleInitialValues(undefined);
       args.pendingScrollRef.current = transaction.id;
       reloadSimpleTransactionPeriod(args, values);
     },

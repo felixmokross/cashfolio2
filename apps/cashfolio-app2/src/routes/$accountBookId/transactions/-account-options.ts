@@ -12,7 +12,7 @@ import type { TransactionsAccountOptionSource } from "./-page-types";
 
 type EditingTransactionData =
   | {
-      bookings?: { account: string | null }[];
+      bookings?: { account?: string | null }[];
     }
   | undefined;
 

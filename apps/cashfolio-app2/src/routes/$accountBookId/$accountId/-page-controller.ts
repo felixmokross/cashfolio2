@@ -1,7 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
 import { AccountType, EquityAccountSubtype } from "@/.prisma-client/enums";
 import type { TransformedFormValues } from "@/components/edit-account-modal";
-import type { SimpleTransactionDraftValues } from "@/components/simple-transaction-modal";
+import type {
+  SimpleTransactionDraftValues,
+  SimpleTransactionInitialValues,
+} from "@/components/simple-transaction-modal";
+import { createCopyTransactionInitialValues } from "@/components/edit-transaction-modal-values";
 import { createAccountBookUnitUsage } from "@/shared/account-book-unit-usage";
 import {
   getSystemManagedAccountSubtypeMessage,
@@ -19,6 +23,7 @@ import {
   createSplitInitialValuesFromSimpleDraft,
   createUpdateTransactionPayloadFromSimpleValues,
 } from "./-page-edit-flow";
+import { createCopySimpleTransactionInitialValues } from "./-page-transaction-utils";
 import type { loadLedgerPageData } from "./-page-loader";
 import {
   createLedgerAccountMutationActions,
@@ -72,6 +77,9 @@ export function useLedgerPageController(args: {
   const [createSplitInitialValues, setCreateSplitInitialValues] = useState<
     SplitModalInitialValues | undefined
   >();
+  const [createSimpleInitialValues, setCreateSimpleInitialValues] = useState<
+    SimpleTransactionInitialValues | undefined
+  >();
   const [editMode, setEditMode] = useState<EditMode>("SPLIT");
   const [editingTransactionId, setEditingTransactionId] = useState<
     string | undefined
@@ -101,8 +109,9 @@ export function useLedgerPageController(args: {
   } = useLedgerAccountOptions({
     account,
     accounts,
-    editingTransactionData,
-    editingSimpleInitialValues,
+    editingTransactionData: editingTransactionData ?? createSplitInitialValues,
+    editingSimpleInitialValues:
+      editingSimpleInitialValues ?? createSimpleInitialValues,
   });
 
   const actions = createLedgerMutationActions({
@@ -120,6 +129,7 @@ export function useLedgerPageController(args: {
       setSimpleModalOpened,
       setEditModalOpened,
       setCreateSplitInitialValues,
+      setCreateSimpleInitialValues,
       setDeletingTransaction,
       setRebookModalOpened,
     },
@@ -150,6 +160,7 @@ export function useLedgerPageController(args: {
       }),
     );
     setSimpleModalOpened(false);
+    setCreateSimpleInitialValues(undefined);
     setModalOpened(true);
   };
 
@@ -228,6 +239,38 @@ export function useLedgerPageController(args: {
     setRebookModalOpened(true);
   }, []);
 
+  const handleCopyClick = useCallback(
+    async (transactionId: string) => {
+      const data = await actions.getTransaction({
+        data: { transactionId, accountBookId: args.accountBookId },
+      });
+      const simpleEditState = deriveSimpleTransactionEditState({
+        transaction: data,
+        currentAccountId: account.id,
+      });
+
+      setCreateSplitInitialValues(undefined);
+      setCreateSimpleInitialValues(undefined);
+
+      if (
+        simpleEditState.eligible &&
+        simpleTransactionDisabledReason === null
+      ) {
+        setCreateSimpleInitialValues(
+          createCopySimpleTransactionInitialValues(
+            simpleEditState.initialValues,
+          ),
+        );
+        setSimpleModalOpened(true);
+        return;
+      }
+
+      setCreateSplitInitialValues(createCopyTransactionInitialValues(data));
+      setModalOpened(true);
+    },
+    [account.id, actions, args.accountBookId, simpleTransactionDisabledReason],
+  );
+
   const { hasCompleteBookingUnit, rebookTargetAccountOptions } =
     useLedgerRebookFlow({
       rebooking,
@@ -267,6 +310,7 @@ export function useLedgerPageController(args: {
     isExpense,
     onEditClick: handleEditClick,
     onRebookClick: handleRebookClick,
+    onCopyClick: handleCopyClick,
     onDeleteClick: handleDeleteClick,
   });
 
@@ -362,6 +406,7 @@ export function useLedgerPageController(args: {
     isRebookSubmitting,
     editMode,
     createSplitInitialValues,
+    createSimpleInitialValues,
     editingTransactionData,
     editingSimpleInitialValues,
     deletingTransaction,
@@ -387,13 +432,17 @@ export function useLedgerPageController(args: {
     onConfirmDeleteAccount: accountActions.handleDeleteAccount,
     onAddTransactionClick: () => {
       setCreateSplitInitialValues(undefined);
+      setCreateSimpleInitialValues(undefined);
       if (simpleTransactionDisabledReason) {
         setModalOpened(true);
         return;
       }
       setSimpleModalOpened(true);
     },
-    onCloseSimpleModal: () => setSimpleModalOpened(false),
+    onCloseSimpleModal: () => {
+      setSimpleModalOpened(false);
+      setCreateSimpleInitialValues(undefined);
+    },
     onSimpleSubmittingChange: setIsSimpleSubmitting,
     onSwitchCreateToSplit: handleSwitchCreateToSplit,
     onSubmitCreateSimpleTransaction: actions.handleCreateSimpleTransaction,

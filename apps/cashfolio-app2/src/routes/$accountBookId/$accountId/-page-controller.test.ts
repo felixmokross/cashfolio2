@@ -95,6 +95,7 @@ describe("createLedgerMutationActions", () => {
       setSimpleModalOpened: vi.fn(),
       setEditModalOpened: vi.fn(),
       setCreateSplitInitialValues: vi.fn(),
+      setCreateSimpleInitialValues: vi.fn(),
       setDeletingTransaction: vi.fn((value) => {
         deletingTransaction = value;
       }),
@@ -195,6 +196,7 @@ describe("createLedgerMutationActions", () => {
       setSimpleModalOpened: vi.fn(),
       setEditModalOpened: vi.fn(),
       setCreateSplitInitialValues: vi.fn(),
+      setCreateSimpleInitialValues: vi.fn(),
       setDeletingTransaction: vi.fn(),
       setRebookModalOpened: vi.fn(),
     };
@@ -258,6 +260,7 @@ describe("createLedgerMutationActions", () => {
       setSimpleModalOpened: vi.fn(),
       setEditModalOpened: vi.fn(),
       setCreateSplitInitialValues: vi.fn(),
+      setCreateSimpleInitialValues: vi.fn(),
       setDeletingTransaction: vi.fn(),
       setRebookModalOpened: vi.fn(),
     };
@@ -344,6 +347,7 @@ describe("createLedgerMutationActions", () => {
       setSimpleModalOpened: vi.fn(),
       setEditModalOpened: vi.fn(),
       setCreateSplitInitialValues: vi.fn(),
+      setCreateSimpleInitialValues: vi.fn(),
       setDeletingTransaction: vi.fn(),
       setRebookModalOpened: vi.fn(),
     };
@@ -432,6 +436,7 @@ describe("createLedgerMutationActions", () => {
       setSimpleModalOpened: vi.fn(),
       setEditModalOpened: vi.fn(),
       setCreateSplitInitialValues: vi.fn(),
+      setCreateSimpleInitialValues: vi.fn(),
       setDeletingTransaction: vi.fn((value) => {
         deletingTransaction = value;
       }),

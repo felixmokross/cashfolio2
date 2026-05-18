@@ -249,6 +249,9 @@ function LedgerPageStoryHarness({
       setRebooking(args);
       setRebookModalOpened(true);
     },
+    onCopyClick: () => {
+      setSplitModalOpened(true);
+    },
     onDeleteClick: (transactionId, description) => {
       setDeletingTransaction({ id: transactionId, description });
     },

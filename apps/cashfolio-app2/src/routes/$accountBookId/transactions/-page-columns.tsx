@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { ActionIcon, Group, Tooltip } from "@mantine/core";
 import {
+  IconCopy,
   IconPencil,
   IconSquareArrowRight,
   IconTrash,
@@ -34,6 +35,7 @@ export function useTransactionsColumnDefs(args: {
       tradeCurrency: string | null;
     };
   }) => void;
+  onCopyClick: (transactionId: string) => void;
   onDeleteClick: (transactionId: string, description: string) => void;
 }): ColDef<TransactionsRow>[] {
   const {
@@ -42,6 +44,7 @@ export function useTransactionsColumnDefs(args: {
     referenceCurrency,
     onEditClick,
     onRebookClick,
+    onCopyClick,
     onDeleteClick,
   } = args;
 
@@ -150,7 +153,7 @@ export function useTransactionsColumnDefs(args: {
       {
         colId: "actions",
         headerName: "",
-        width: 120,
+        width: 150,
         sortable: false,
         filter: false,
         resizable: false,
@@ -181,6 +184,28 @@ export function useTransactionsColumnDefs(args: {
                     aria-label="Edit"
                   >
                     <IconPencil size={16} />
+                  </ActionIcon>
+                </span>
+              </Tooltip>
+              <Tooltip
+                label={
+                  isOpeningBalancesTransaction
+                    ? OPENING_BALANCES_MANAGEMENT_MESSAGE
+                    : "Copy"
+                }
+              >
+                <span style={{ display: "inline-flex" }}>
+                  <ActionIcon
+                    variant="subtle"
+                    size="sm"
+                    disabled={isOpeningBalancesTransaction}
+                    onClick={() => {
+                      if (isOpeningBalancesTransaction) return;
+                      onCopyClick(data.transactionId);
+                    }}
+                    aria-label="Copy"
+                  >
+                    <IconCopy size={16} />
                   </ActionIcon>
                 </span>
               </Tooltip>
@@ -249,6 +274,7 @@ export function useTransactionsColumnDefs(args: {
     ];
   }, [
     accountBookId,
+    onCopyClick,
     onDeleteClick,
     onEditClick,
     onRebookClick,

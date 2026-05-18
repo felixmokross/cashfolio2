@@ -28,6 +28,7 @@ import {
   SimpleTransactionModal,
   type SimpleTransactionDirection,
   type SimpleTransactionDraftValues,
+  type SimpleTransactionInitialValues,
 } from "@/components/simple-transaction-modal";
 import { SplitButton } from "@/components/split-button";
 import { TopPageHeader } from "@/components/top-page-header";
@@ -113,6 +114,7 @@ export type LedgerPageViewProps = {
   isEditSubmitting: boolean;
   isRebookSubmitting: boolean;
   editMode: EditMode;
+  createSimpleInitialValues?: SimpleTransactionInitialValues;
   createSplitInitialValues?: SplitModalInitialValues;
   editingTransactionData?: {
     id: string;
@@ -202,6 +204,7 @@ export function LedgerPageView({
   isEditSubmitting,
   isRebookSubmitting,
   editMode,
+  createSimpleInitialValues,
   createSplitInitialValues,
   editingTransactionData,
   editingSimpleInitialValues,
@@ -377,8 +380,14 @@ export function LedgerPageView({
       >
         <SimpleTransactionModal
           currentAccount={{ id: account.id, label: currentAccountLabel }}
-          accounts={simpleCounterAccountOptions}
+          accounts={
+            createSimpleInitialValues
+              ? editSimpleCounterAccountOptions
+              : simpleCounterAccountOptions
+          }
+          initialValues={createSimpleInitialValues}
           accountBookStartDate={accountBookStartDate}
+          submitLabel="Create"
           onSwitchToSplit={onSwitchCreateToSplit}
           onClose={() => {
             if (isSimpleSubmitting) return;
@@ -404,7 +413,9 @@ export function LedgerPageView({
         <EditTransactionModal
           initialValues={createSplitInitialValues}
           submitLabel="Create"
-          accounts={accountOptions}
+          accounts={
+            createSplitInitialValues ? editAccountOptions : accountOptions
+          }
           currentAccountId={account.id}
           accountBookStartDate={accountBookStartDate}
           unitUsage={unitUsage}
