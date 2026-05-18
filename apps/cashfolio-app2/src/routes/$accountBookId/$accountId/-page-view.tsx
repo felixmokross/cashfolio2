@@ -116,6 +116,7 @@ export type LedgerPageViewProps = {
   editMode: EditMode;
   createSimpleInitialValues?: SimpleTransactionInitialValues;
   createSplitInitialValues?: SplitModalInitialValues;
+  createSplitDateAutoFocus?: boolean;
   editingTransactionData?: {
     id: string;
     description?: string;
@@ -206,6 +207,7 @@ export function LedgerPageView({
   editMode,
   createSimpleInitialValues,
   createSplitInitialValues,
+  createSplitDateAutoFocus,
   editingTransactionData,
   editingSimpleInitialValues,
   deletingAccount,
@@ -387,6 +389,7 @@ export function LedgerPageView({
           }
           initialValues={createSimpleInitialValues}
           accountBookStartDate={accountBookStartDate}
+          autoFocusDate={!!createSimpleInitialValues}
           submitLabel="Create"
           onSwitchToSplit={onSwitchCreateToSplit}
           onClose={() => {
@@ -419,6 +422,7 @@ export function LedgerPageView({
           currentAccountId={account.id}
           accountBookStartDate={accountBookStartDate}
           unitUsage={unitUsage}
+          autoFocusDate={createSplitDateAutoFocus}
           onClose={() => {
             if (isCreateSplitSubmitting) return;
             onCloseSplitModal();

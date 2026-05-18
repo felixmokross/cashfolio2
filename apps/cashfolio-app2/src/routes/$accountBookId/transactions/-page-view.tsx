@@ -175,6 +175,7 @@ export function TransactionsPageView({
       >
         <EditTransactionModal
           initialValues={createTransactionInitialValues}
+          autoFocusDate={!!createTransactionInitialValues}
           submitLabel="Create"
           accounts={accountOptions}
           accountBookStartDate={accountBookStartDate}

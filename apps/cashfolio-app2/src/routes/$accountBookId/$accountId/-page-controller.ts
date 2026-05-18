@@ -37,6 +37,7 @@ import {
   type RebookingState,
   type SimpleTransactionValues,
   type SplitModalInitialValues,
+  type TransactionMutationValues,
 } from "./-page-view";
 
 type LedgerPageLoaderData = Awaited<ReturnType<typeof loadLedgerPageData>>;
@@ -77,6 +78,8 @@ export function useLedgerPageController(args: {
   const [createSplitInitialValues, setCreateSplitInitialValues] = useState<
     SplitModalInitialValues | undefined
   >();
+  const [createSplitInitialValuesSource, setCreateSplitInitialValuesSource] =
+    useState<"COPY" | "DRAFT" | undefined>();
   const [createSimpleInitialValues, setCreateSimpleInitialValues] = useState<
     SimpleTransactionInitialValues | undefined
   >();
@@ -161,6 +164,7 @@ export function useLedgerPageController(args: {
     );
     setSimpleModalOpened(false);
     setCreateSimpleInitialValues(undefined);
+    setCreateSplitInitialValuesSource("DRAFT");
     setModalOpened(true);
   };
 
@@ -250,6 +254,7 @@ export function useLedgerPageController(args: {
       });
 
       setCreateSplitInitialValues(undefined);
+      setCreateSplitInitialValuesSource(undefined);
       setCreateSimpleInitialValues(undefined);
 
       if (
@@ -266,6 +271,7 @@ export function useLedgerPageController(args: {
       }
 
       setCreateSplitInitialValues(createCopyTransactionInitialValues(data));
+      setCreateSplitInitialValuesSource("COPY");
       setModalOpened(true);
     },
     [account.id, actions, args.accountBookId, simpleTransactionDisabledReason],
@@ -406,6 +412,7 @@ export function useLedgerPageController(args: {
     isRebookSubmitting,
     editMode,
     createSplitInitialValues,
+    createSplitDateAutoFocus: createSplitInitialValuesSource === "COPY",
     createSimpleInitialValues,
     editingTransactionData,
     editingSimpleInitialValues,
@@ -432,6 +439,7 @@ export function useLedgerPageController(args: {
     onConfirmDeleteAccount: accountActions.handleDeleteAccount,
     onAddTransactionClick: () => {
       setCreateSplitInitialValues(undefined);
+      setCreateSplitInitialValuesSource(undefined);
       setCreateSimpleInitialValues(undefined);
       if (simpleTransactionDisabledReason) {
         setModalOpened(true);
@@ -449,9 +457,13 @@ export function useLedgerPageController(args: {
     onCloseSplitModal: () => {
       setModalOpened(false);
       setCreateSplitInitialValues(undefined);
+      setCreateSplitInitialValuesSource(undefined);
     },
     onCreateSplitSubmittingChange: setIsCreateSplitSubmitting,
-    onSubmitCreateTransaction: actions.handleCreateTransaction,
+    onSubmitCreateTransaction: async (values: TransactionMutationValues) => {
+      await actions.handleCreateTransaction(values);
+      setCreateSplitInitialValuesSource(undefined);
+    },
     onCloseEditModal: () => setEditModalOpened(false),
     onEditSubmittingChange: setIsEditSubmitting,
     onEditModalExitTransitionEnd: () => {

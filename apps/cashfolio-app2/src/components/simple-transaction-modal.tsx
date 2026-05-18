@@ -61,7 +61,7 @@ export function createSimpleTransactionFormInitialValues(args: {
   today: Date;
 }) {
   return {
-    date: args.initialValues?.date ?? args.today,
+    date: args.initialValues ? args.initialValues.date : args.today,
     description: args.initialValues?.description ?? "",
     counterAccountId: args.initialValues?.counterAccountId ?? "",
     amount:
@@ -76,6 +76,7 @@ export function SimpleTransactionModal({
   accounts,
   accountBookStartDate,
   initialValues,
+  autoFocusDate,
   submitLabel,
   onSwitchToSplit,
   onClose,
@@ -89,6 +90,7 @@ export function SimpleTransactionModal({
   accounts: AccountOption[];
   accountBookStartDate: Date;
   initialValues?: SimpleTransactionInitialValues;
+  autoFocusDate?: boolean;
   submitLabel?: string;
   onSwitchToSplit?: (draft: SimpleTransactionDraftValues) => void;
   onClose: () => void;
@@ -217,6 +219,7 @@ export function SimpleTransactionModal({
             w={180}
             minDate={accountBookStartDay}
             disabled={isSubmitting}
+            autoFocus={autoFocusDate}
             {...form.getInputProps("date")}
           />
           <TextInput
