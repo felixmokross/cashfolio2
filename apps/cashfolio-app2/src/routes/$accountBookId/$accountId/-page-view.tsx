@@ -31,6 +31,7 @@ import {
   type SimpleTransactionInitialValues,
 } from "@/components/simple-transaction-modal";
 import { SplitButton } from "@/components/split-button";
+import { getTransactionCreateDialogText } from "@/components/transaction-create-dialog-text";
 import { TopPageHeader } from "@/components/top-page-header";
 import { PageShell } from "@/components/page-shell";
 import type { ReactNode } from "react";
@@ -262,6 +263,12 @@ export function LedgerPageView({
   onConfirmDeleteTransaction,
 }: LedgerPageViewProps) {
   const accountKindBadge = getLedgerAccountKindBadgeProps(account);
+  const simpleCreateDialogText = getTransactionCreateDialogText(
+    !!createSimpleInitialValues,
+  );
+  const splitCreateDialogText = getTransactionCreateDialogText(
+    !!createSplitDateAutoFocus,
+  );
 
   return (
     <PageShell>
@@ -374,7 +381,7 @@ export function LedgerPageView({
           if (isSimpleSubmitting) return;
           onCloseSimpleModal();
         }}
-        title="Add Transaction"
+        title={simpleCreateDialogText.title}
         size="xl"
         closeOnEscape={!isSimpleSubmitting}
         closeOnClickOutside={!isSimpleSubmitting}
@@ -390,7 +397,7 @@ export function LedgerPageView({
           initialValues={createSimpleInitialValues}
           accountBookStartDate={accountBookStartDate}
           autoFocusDate={!!createSimpleInitialValues}
-          submitLabel="Create"
+          submitLabel={simpleCreateDialogText.submitLabel}
           onSwitchToSplit={onSwitchCreateToSplit}
           onClose={() => {
             if (isSimpleSubmitting) return;
@@ -407,7 +414,7 @@ export function LedgerPageView({
           if (isCreateSplitSubmitting) return;
           onCloseSplitModal();
         }}
-        title="Add Transaction"
+        title={splitCreateDialogText.title}
         size="100%"
         closeOnEscape={!isCreateSplitSubmitting}
         closeOnClickOutside={!isCreateSplitSubmitting}
@@ -415,7 +422,7 @@ export function LedgerPageView({
       >
         <EditTransactionModal
           initialValues={createSplitInitialValues}
-          submitLabel="Create"
+          submitLabel={splitCreateDialogText.submitLabel}
           accounts={
             createSplitInitialValues ? editAccountOptions : accountOptions
           }

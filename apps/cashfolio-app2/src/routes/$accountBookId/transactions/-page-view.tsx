@@ -8,6 +8,7 @@ import {
   type AccountOption,
   type BookingValues,
 } from "@/components/edit-transaction-modal";
+import { getTransactionCreateDialogText } from "@/components/transaction-create-dialog-text";
 import {
   RebookBookingModal,
   type RebookTargetOption,
@@ -132,6 +133,10 @@ export function TransactionsPageView({
   onCloseDeleteModal,
   onConfirmDeleteTransaction,
 }: TransactionsPageViewProps) {
+  const createDialogText = getTransactionCreateDialogText(
+    !!createTransactionInitialValues,
+  );
+
   return (
     <PageShell>
       <TopPageHeader
@@ -167,7 +172,7 @@ export function TransactionsPageView({
           if (isCreateSubmitting) return;
           onCloseCreateModal();
         }}
-        title="Add Transaction"
+        title={createDialogText.title}
         size="100%"
         closeOnEscape={!isCreateSubmitting}
         closeOnClickOutside={!isCreateSubmitting}
@@ -176,7 +181,7 @@ export function TransactionsPageView({
         <EditTransactionModal
           initialValues={createTransactionInitialValues}
           autoFocusDate={!!createTransactionInitialValues}
-          submitLabel="Create"
+          submitLabel={createDialogText.submitLabel}
           accounts={accountOptions}
           accountBookStartDate={accountBookStartDate}
           onClose={() => {
