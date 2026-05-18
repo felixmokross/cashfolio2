@@ -168,12 +168,12 @@ function UserActionsCell({
 }) {
   return (
     <Group gap={4} wrap="nowrap" h="100%" align="center">
-      <Tooltip label="Manage roles">
+      <Tooltip label="Manage Roles">
         <ActionIcon
           variant="subtle"
           size="sm"
           onClick={() => onManageRoles(user)}
-          aria-label="Manage roles"
+          aria-label="Manage Roles"
         >
           <IconUserCog size={16} />
         </ActionIcon>
@@ -475,7 +475,7 @@ export function AdminUsersPageView({
           if (isSubmitting) return;
           setManagingUser(null);
         }}
-        title="Manage roles"
+        title="Manage Roles"
         size="md"
         closeOnEscape={!isSubmitting}
         closeOnClickOutside={!isSubmitting}

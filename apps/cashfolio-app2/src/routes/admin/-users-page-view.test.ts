@@ -128,7 +128,7 @@ describe("AdminUsersPageView", () => {
     expect(markup).toContain('data-testid="admin-user-roles-cell"');
     expect(markup).toContain('data-empty="true"');
     expect(markup).toContain("01.01.2026, 00:00");
-    expect(markup).toContain("Manage roles");
+    expect(markup).toContain("Manage Roles");
     expect(markup).toContain("Delete");
     expect(markup).toContain("disabled");
   });
