@@ -370,6 +370,12 @@ export const deleteAdminUser = createServerFn({ method: "POST" })
     }
 
     const identity = await loadLogtoIdentity(targetUser);
+    if (identity.status === "unavailable") {
+      throw new Error(
+        "Cannot delete user because the Logto identity is unavailable.",
+      );
+    }
+
     if (
       !isDeleteConfirmationMatch({
         confirmation: data.confirmation,
@@ -383,5 +389,6 @@ export const deleteAdminUser = createServerFn({ method: "POST" })
     await deleteUserAccountData({
       externalId: targetUser.externalId,
       accountBookLinks: targetUser.accountBookLinks as LinkedAccountBook[],
+      deleteLogtoFirst: true,
     });
   });

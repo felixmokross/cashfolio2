@@ -444,6 +444,9 @@ describe("admin users server functions", () => {
     expect(deleteBookScopedRedisDataForAccountBooks).toHaveBeenCalledWith([
       "private-book",
     ]);
+    expect(deleteLogtoUser.mock.invocationCallOrder[0]).toBeLessThan(
+      deleteBookScopedRedisDataForAccountBooks.mock.invocationCallOrder[0],
+    );
     expect(tx.user.deleteMany).toHaveBeenCalledWith({
       where: { externalId: "logto-target" },
     });
@@ -483,6 +486,44 @@ describe("admin users server functions", () => {
     });
     expect(tx.accountBook.deleteMany).not.toHaveBeenCalled();
     expect(deleteLogtoUser).toHaveBeenCalledWith("missing-logto-user");
+  });
+
+  it("rejects deletion when the Logto identity is unavailable", async () => {
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const error = new Error("Logto unavailable");
+    getLogtoUser.mockRejectedValueOnce(error);
+    prisma.user.findUnique.mockResolvedValueOnce({
+      ...createUser({
+        id: "target-user",
+        externalId: "unavailable-logto-user",
+        roles: [],
+        accountBookCount: 0,
+      }),
+      accountBookLinks: [],
+    });
+
+    await expect(
+      deleteAdminUser({
+        data: {
+          userId: "target-user",
+          confirmation: "unavailable-logto-user",
+        },
+      }),
+    ).rejects.toThrow(
+      "Cannot delete user because the Logto identity is unavailable.",
+    );
+
+    expect(deleteLogtoUser).not.toHaveBeenCalled();
+    expect(deleteBookScopedRedisDataForAccountBooks).not.toHaveBeenCalled();
+    expect(tx.user.deleteMany).not.toHaveBeenCalled();
+    expect(consoleWarn).toHaveBeenCalledWith(
+      "Failed to load Logto user identity.",
+      {
+        error,
+        externalId: "unavailable-logto-user",
+      },
+    );
+    consoleWarn.mockRestore();
   });
 
   it("rejects deleting the current admin", async () => {

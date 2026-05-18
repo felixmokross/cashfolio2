@@ -101,18 +101,26 @@ export async function deleteApplicationUserData(args: {
 export async function deleteUserAccountData(args: {
   externalId: string;
   accountBookLinks: LinkedAccountBook[];
+  deleteLogtoFirst?: boolean;
 }): Promise<void> {
   const plan = planAccountDeletionFromLinks(args.accountBookLinks);
   const accountBookIdsToDelete = plan.accountBooksToDelete.map(
     (accountBook) => accountBook.id,
   );
 
+  if (args.deleteLogtoFirst) {
+    await deleteLogtoUser(args.externalId);
+  }
+
   await deleteBookScopedRedisDataForAccountBooks(accountBookIdsToDelete);
   await deleteApplicationUserData({
     externalId: args.externalId,
     accountBookIdsToDelete,
   });
-  await deleteLogtoUser(args.externalId);
+
+  if (!args.deleteLogtoFirst) {
+    await deleteLogtoUser(args.externalId);
+  }
 }
 
 export async function deleteAuthenticatedAccount(): Promise<void> {
