@@ -7,6 +7,7 @@ import { ensureSameOriginRequest } from "@/security/same-origin.server";
 import {
   planAccountDeletionFromLinks,
   type AccountDeletionPreview,
+  type LinkedAccountBook,
 } from "./account-deletion-plan";
 import { deleteBookScopedRedisDataForAccountBooks } from "./account-deletion-redis";
 
@@ -97,18 +98,32 @@ export async function deleteApplicationUserData(args: {
   });
 }
 
-export async function deleteAuthenticatedAccount(): Promise<void> {
-  const context = await ensureAuthenticated();
-  const externalId = getAuthenticatedExternalId(context);
-  const user = await getUserAccountBookLinks(externalId);
-  const plan = planAccountDeletionFromLinks(user?.accountBookLinks ?? []);
+export async function deleteUserAccountData(args: {
+  externalId: string;
+  accountBookLinks: LinkedAccountBook[];
+}): Promise<void> {
+  const plan = planAccountDeletionFromLinks(args.accountBookLinks);
   const accountBookIdsToDelete = plan.accountBooksToDelete.map(
     (accountBook) => accountBook.id,
   );
 
   await deleteBookScopedRedisDataForAccountBooks(accountBookIdsToDelete);
-  await deleteApplicationUserData({ externalId, accountBookIdsToDelete });
-  await deleteLogtoUser(externalId);
+  await deleteApplicationUserData({
+    externalId: args.externalId,
+    accountBookIdsToDelete,
+  });
+  await deleteLogtoUser(args.externalId);
+}
+
+export async function deleteAuthenticatedAccount(): Promise<void> {
+  const context = await ensureAuthenticated();
+  const externalId = getAuthenticatedExternalId(context);
+  const user = await getUserAccountBookLinks(externalId);
+
+  await deleteUserAccountData({
+    externalId,
+    accountBookLinks: user?.accountBookLinks ?? [],
+  });
 }
 
 export async function handleAccountDeletionRequest(

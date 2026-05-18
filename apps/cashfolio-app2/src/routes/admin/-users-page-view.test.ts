@@ -62,7 +62,10 @@ vi.mock("@/components/data-grid", () => ({
     ),
 }));
 
-import { AdminUsersPageView } from "./-users-page-view";
+import {
+  AdminUsersPageView,
+  isDeleteUserConfirmationMatch,
+} from "./-users-page-view";
 
 const users: AdminUserListItem[] = [
   {
@@ -75,6 +78,7 @@ const users: AdminUserListItem[] = [
     identityStatus: "available",
     roles: [UserRole.ADMIN],
     accountBookCount: 2,
+    isCurrentUser: true,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-02T00:00:00.000Z",
   },
@@ -88,6 +92,7 @@ const users: AdminUserListItem[] = [
     identityStatus: "missing",
     roles: [],
     accountBookCount: 0,
+    isCurrentUser: false,
     createdAt: "2026-01-03T00:00:00.000Z",
     updatedAt: "2026-01-04T00:00:00.000Z",
   },
@@ -102,6 +107,7 @@ describe("AdminUsersPageView", () => {
         createElement(AdminUsersPageView, {
           users,
           onSubmitRoles: vi.fn(),
+          onDeleteUser: vi.fn(),
         }),
       ),
     );
@@ -123,5 +129,25 @@ describe("AdminUsersPageView", () => {
     expect(markup).toContain('data-empty="true"');
     expect(markup).toContain("01.01.2026, 00:00");
     expect(markup).toContain("Manage roles");
+    expect(markup).toContain("Delete");
+    expect(markup).toContain("disabled");
+  });
+
+  it("matches delete confirmation by email when available", () => {
+    expect(
+      isDeleteUserConfirmationMatch({
+        confirmation: " ada@example.test ",
+        user: users[0],
+      }),
+    ).toBe(true);
+  });
+
+  it("matches delete confirmation by external id for missing identities", () => {
+    expect(
+      isDeleteUserConfirmationMatch({
+        confirmation: "logto-missing",
+        user: users[1],
+      }),
+    ).toBe(true);
   });
 });

@@ -13,6 +13,8 @@ import {
   requireArrayField,
   requireStringField,
 } from "./input-validation";
+import { deleteUserAccountData } from "./account-deletion.server";
+import type { LinkedAccountBook } from "./account-deletion-plan";
 
 type LogtoIdentityStatus = "available" | "missing" | "unavailable";
 
@@ -26,6 +28,7 @@ export type AdminUserListItem = {
   identityStatus: LogtoIdentityStatus;
   roles: UserRole[];
   accountBookCount: number;
+  isCurrentUser: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -44,6 +47,11 @@ type AdminUserRecord = {
 type UpdateAdminUserRolesInput = {
   userId: string;
   roles: UserRole[];
+};
+
+type DeleteAdminUserInput = {
+  userId: string;
+  confirmation: string;
 };
 
 const USER_ROLES = new Set<string>(Object.values(UserRole));
@@ -123,6 +131,7 @@ async function loadLogtoIdentity(user: AdminUserRecord) {
 async function toAdminUserListItem(
   user: AdminUserRecord,
   identity?: LogtoIdentityResult,
+  isCurrentUser = false,
 ): Promise<AdminUserListItem> {
   const resolvedIdentity = identity ?? (await loadLogtoIdentity(user));
 
@@ -136,6 +145,7 @@ async function toAdminUserListItem(
     identityStatus: resolvedIdentity.status,
     roles: user.roles,
     accountBookCount: user._count.accountBookLinks,
+    isCurrentUser,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
@@ -193,9 +203,33 @@ export function validateUpdateAdminUserRolesInput(
   return { userId, roles };
 }
 
+export function validateDeleteAdminUserInput(
+  data: unknown,
+): DeleteAdminUserInput {
+  assertRecord(data);
+
+  return {
+    userId: requireStringField(data, "userId", "User id is required."),
+    confirmation: requireStringField(
+      data,
+      "confirmation",
+      "Confirmation is required.",
+    ),
+  };
+}
+
+function isDeleteConfirmationMatch(args: {
+  confirmation: string;
+  externalId: string;
+  email: string | null;
+}): boolean {
+  const confirmation = args.confirmation.trim();
+  return confirmation === args.externalId || confirmation === args.email;
+}
+
 export const getAdminUsers = createServerFn({ method: "GET" }).handler(
   async (): Promise<AdminUserListItem[]> => {
-    await ensureUserHasRole(UserRole.ADMIN);
+    const currentUser = await ensureUserHasRole(UserRole.ADMIN);
 
     const users = await prisma.user.findMany({
       orderBy: { createdAt: "desc" },
@@ -216,7 +250,11 @@ export const getAdminUsers = createServerFn({ method: "GET" }).handler(
     const identities = await loadLogtoIdentities(users);
     return await Promise.all(
       users.map((user) =>
-        toAdminUserListItem(user, identities.get(user.externalId)),
+        toAdminUserListItem(
+          user,
+          identities.get(user.externalId),
+          user.id === currentUser.id,
+        ),
       ),
     );
   },
@@ -279,4 +317,71 @@ export const updateAdminUserRoles = createServerFn({ method: "POST" })
     });
 
     return await toAdminUserListItem(updatedUser);
+  });
+
+export const deleteAdminUser = createServerFn({ method: "POST" })
+  .inputValidator(validateDeleteAdminUserInput)
+  .handler(async ({ data }): Promise<void> => {
+    ensureSameOriginRequestFromServerContext();
+    const currentAdmin = await ensureUserHasRole(UserRole.ADMIN);
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: data.userId },
+      select: {
+        id: true,
+        externalId: true,
+        roles: true,
+        createdAt: true,
+        updatedAt: true,
+        accountBookLinks: {
+          select: {
+            accountBook: {
+              select: {
+                id: true,
+                name: true,
+                _count: {
+                  select: {
+                    userLinks: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: {
+            accountBook: {
+              name: "asc",
+            },
+          },
+        },
+        _count: {
+          select: {
+            accountBookLinks: true,
+          },
+        },
+      },
+    });
+
+    if (!targetUser) {
+      throw new Error("User not found.");
+    }
+
+    if (targetUser.id === currentAdmin.id) {
+      throw new Error("You cannot delete yourself.");
+    }
+
+    const identity = await loadLogtoIdentity(targetUser);
+    if (
+      !isDeleteConfirmationMatch({
+        confirmation: data.confirmation,
+        externalId: targetUser.externalId,
+        email: identity.email,
+      })
+    ) {
+      throw new Error("Confirmation does not match the user.");
+    }
+
+    await deleteUserAccountData({
+      externalId: targetUser.externalId,
+      accountBookLinks: targetUser.accountBookLinks as LinkedAccountBook[],
+    });
   });

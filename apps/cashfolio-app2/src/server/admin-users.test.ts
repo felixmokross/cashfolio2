@@ -26,12 +26,24 @@ const ensureUser = vi.hoisted(() => vi.fn());
 const ensureSameOriginRequestFromServerContext = vi.hoisted(() => vi.fn());
 const getLogtoUser = vi.hoisted(() => vi.fn());
 const getLogtoUsers = vi.hoisted(() => vi.fn());
+const deleteLogtoUser = vi.hoisted(() => vi.fn());
+const deleteBookScopedRedisDataForAccountBooks = vi.hoisted(() => vi.fn());
+const tx = vi.hoisted(() => ({
+  user: {
+    deleteMany: vi.fn(),
+  },
+  accountBook: {
+    deleteMany: vi.fn(),
+  },
+}));
 const prisma = vi.hoisted(() => ({
   user: {
     count: vi.fn(),
     findMany: vi.fn(),
+    findUnique: vi.fn(),
     update: vi.fn(),
   },
+  $transaction: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-start", () => ({
@@ -48,6 +60,7 @@ vi.mock("../users/functions.server", () => ({
 }));
 
 vi.mock("../auth/logto-management.server", () => ({
+  deleteLogtoUser,
   getLogtoUser,
   getLogtoUsers,
 }));
@@ -56,11 +69,17 @@ vi.mock("../prisma.server", () => ({
   prisma,
 }));
 
+vi.mock("./account-deletion-redis", () => ({
+  deleteBookScopedRedisDataForAccountBooks,
+}));
+
 import {
+  deleteAdminUser,
   ensureAdminAccess,
   getAdminUsers,
   getCurrentUserCanAccessAdmin,
   updateAdminUserRoles,
+  validateDeleteAdminUserInput,
   validateUpdateAdminUserRolesInput,
 } from "./admin-users";
 
@@ -79,6 +98,22 @@ function createUser(args: {
     updatedAt: new Date("2026-01-02T00:00:00.000Z"),
     _count: {
       accountBookLinks: args.accountBookCount,
+    },
+  };
+}
+
+function createAccountBookLink(args: {
+  id: string;
+  name: string;
+  userLinkCount: number;
+}) {
+  return {
+    accountBook: {
+      id: args.id,
+      name: args.name,
+      _count: {
+        userLinks: args.userLinkCount,
+      },
     },
   };
 }
@@ -118,6 +153,7 @@ describe("admin users server functions", () => {
       );
     });
     prisma.user.findMany.mockResolvedValue([]);
+    prisma.user.findUnique.mockResolvedValue(null);
     prisma.user.count.mockResolvedValue(1);
     prisma.user.update.mockImplementation(async ({ data, where }) =>
       createUser({
@@ -127,9 +163,18 @@ describe("admin users server functions", () => {
         accountBookCount: 2,
       }),
     );
+    prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+    tx.user.deleteMany.mockResolvedValue({ count: 1 });
+    tx.accountBook.deleteMany.mockResolvedValue({ count: 1 });
+    deleteBookScopedRedisDataForAccountBooks.mockResolvedValue(undefined);
+    deleteLogtoUser.mockResolvedValue(undefined);
   });
 
   it("lists all database users with account-book counts", async () => {
+    ensureUserHasRole.mockResolvedValueOnce({
+      id: "user-1",
+      roles: [UserRole.ADMIN],
+    });
     prisma.user.findMany.mockResolvedValueOnce([
       createUser({
         id: "user-1",
@@ -156,6 +201,7 @@ describe("admin users server functions", () => {
         identityStatus: "available",
         roles: [UserRole.ADMIN],
         accountBookCount: 3,
+        isCurrentUser: true,
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-02T00:00:00.000Z",
       },
@@ -169,6 +215,7 @@ describe("admin users server functions", () => {
         identityStatus: "available",
         roles: [],
         accountBookCount: 0,
+        isCurrentUser: false,
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-02T00:00:00.000Z",
       },
@@ -318,6 +365,15 @@ describe("admin users server functions", () => {
     ).toThrow("Roles contain an unsupported value.");
   });
 
+  it("rejects invalid delete input", () => {
+    expect(() =>
+      validateDeleteAdminUserInput({
+        userId: "user-1",
+        confirmation: "",
+      }),
+    ).toThrow("Confirmation is required.");
+  });
+
   it("rejects removing the current admin's Admin role", async () => {
     await expect(
       updateAdminUserRoles({
@@ -350,5 +406,167 @@ describe("admin users server functions", () => {
       },
     });
     expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("deletes another user and reuses account deletion cleanup", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce({
+      ...createUser({
+        id: "target-user",
+        externalId: "logto-target",
+        roles: [],
+        accountBookCount: 2,
+      }),
+      accountBookLinks: [
+        createAccountBookLink({
+          id: "private-book",
+          name: "Private Book",
+          userLinkCount: 1,
+        }),
+        createAccountBookLink({
+          id: "shared-book",
+          name: "Shared Book",
+          userLinkCount: 2,
+        }),
+      ],
+    });
+
+    await expect(
+      deleteAdminUser({
+        data: {
+          userId: "target-user",
+          confirmation: "logto-target@example.test",
+        },
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(ensureSameOriginRequestFromServerContext).toHaveBeenCalledTimes(1);
+    expect(ensureUserHasRole).toHaveBeenCalledWith(UserRole.ADMIN);
+    expect(deleteBookScopedRedisDataForAccountBooks).toHaveBeenCalledWith([
+      "private-book",
+    ]);
+    expect(tx.user.deleteMany).toHaveBeenCalledWith({
+      where: { externalId: "logto-target" },
+    });
+    expect(tx.accountBook.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ["private-book"] },
+        userLinks: { none: {} },
+      },
+    });
+    expect(deleteLogtoUser).toHaveBeenCalledWith("logto-target");
+  });
+
+  it("deletes a database user when the Logto identity is missing", async () => {
+    getLogtoUser.mockResolvedValueOnce(null);
+    prisma.user.findUnique.mockResolvedValueOnce({
+      ...createUser({
+        id: "target-user",
+        externalId: "missing-logto-user",
+        roles: [],
+        accountBookCount: 0,
+      }),
+      accountBookLinks: [],
+    });
+
+    await expect(
+      deleteAdminUser({
+        data: {
+          userId: "target-user",
+          confirmation: "missing-logto-user",
+        },
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(deleteBookScopedRedisDataForAccountBooks).toHaveBeenCalledWith([]);
+    expect(tx.user.deleteMany).toHaveBeenCalledWith({
+      where: { externalId: "missing-logto-user" },
+    });
+    expect(tx.accountBook.deleteMany).not.toHaveBeenCalled();
+    expect(deleteLogtoUser).toHaveBeenCalledWith("missing-logto-user");
+  });
+
+  it("rejects deleting the current admin", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce({
+      ...createUser({
+        id: "admin-user",
+        externalId: "logto-admin",
+        roles: [UserRole.ADMIN],
+        accountBookCount: 0,
+      }),
+      accountBookLinks: [],
+    });
+
+    await expect(
+      deleteAdminUser({
+        data: {
+          userId: "admin-user",
+          confirmation: "logto-admin@example.test",
+        },
+      }),
+    ).rejects.toThrow("You cannot delete yourself.");
+
+    expect(deleteBookScopedRedisDataForAccountBooks).not.toHaveBeenCalled();
+    expect(tx.user.deleteMany).not.toHaveBeenCalled();
+    expect(deleteLogtoUser).not.toHaveBeenCalled();
+  });
+
+  it("rejects a delete confirmation that does not match email or external id", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce({
+      ...createUser({
+        id: "target-user",
+        externalId: "logto-target",
+        roles: [],
+        accountBookCount: 0,
+      }),
+      accountBookLinks: [],
+    });
+
+    await expect(
+      deleteAdminUser({
+        data: {
+          userId: "target-user",
+          confirmation: "wrong@example.test",
+        },
+      }),
+    ).rejects.toThrow("Confirmation does not match the user.");
+
+    expect(deleteBookScopedRedisDataForAccountBooks).not.toHaveBeenCalled();
+    expect(tx.user.deleteMany).not.toHaveBeenCalled();
+    expect(deleteLogtoUser).not.toHaveBeenCalled();
+  });
+
+  it("rejects admin deletion before database lookup when same-origin check fails", async () => {
+    const error = new Error("Invalid origin");
+    ensureSameOriginRequestFromServerContext.mockImplementationOnce(() => {
+      throw error;
+    });
+
+    await expect(
+      deleteAdminUser({
+        data: {
+          userId: "target-user",
+          confirmation: "target@example.test",
+        },
+      }),
+    ).rejects.toBe(error);
+
+    expect(ensureUserHasRole).not.toHaveBeenCalled();
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("rejects admin deletion for non-admin users", async () => {
+    const error = new Response("Forbidden", { status: 403 });
+    ensureUserHasRole.mockRejectedValueOnce(error);
+
+    await expect(
+      deleteAdminUser({
+        data: {
+          userId: "target-user",
+          confirmation: "target@example.test",
+        },
+      }),
+    ).rejects.toBe(error);
+
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 });
