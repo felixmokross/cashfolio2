@@ -219,7 +219,7 @@ export function SimpleTransactionModal({
             w={180}
             minDate={accountBookStartDay}
             disabled={isSubmitting}
-            autoFocus={autoFocusDate}
+            data-autofocus={autoFocusDate || undefined}
             {...form.getInputProps("date")}
           />
           <TextInput

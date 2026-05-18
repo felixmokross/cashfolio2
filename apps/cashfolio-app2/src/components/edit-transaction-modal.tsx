@@ -262,7 +262,7 @@ export function EditTransactionModal({
             }
             disabled={isSubmitting}
             minDate={accountBookStartDay}
-            autoFocus={autoFocusDate}
+            data-autofocus={autoFocusDate || undefined}
             {...form.getInputProps("date")}
           />
           <TextInput
