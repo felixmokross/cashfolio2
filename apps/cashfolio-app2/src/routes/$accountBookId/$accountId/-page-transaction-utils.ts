@@ -24,6 +24,13 @@ export type SimpleTransactionEditInitialValues = {
   direction: SimpleTransactionDirection;
 };
 
+export function createCopySimpleTransactionInitialValues(
+  initialValues: SimpleTransactionEditInitialValues,
+): Omit<SimpleTransactionEditInitialValues, "date"> & { date?: Date } {
+  const { date: _date, ...initialValuesWithoutDate } = initialValues;
+  return initialValuesWithoutDate;
+}
+
 export function buildSimpleTransactionValues(args: {
   values: SimpleTransactionValues;
   currentAccount: { id: string } & BookingUnitFieldsSource;

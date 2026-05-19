@@ -47,6 +47,7 @@ export function EditTransactionModal({
   accountBookStartDate,
   unitUsage,
   currentAccountId,
+  autoFocusDate,
   onClose,
   onSubmittingChange,
   onSubmit,
@@ -60,6 +61,7 @@ export function EditTransactionModal({
   accountBookStartDate: Date;
   unitUsage?: AccountBookUnitUsage;
   currentAccountId?: string;
+  autoFocusDate?: boolean;
   onClose: () => void;
   onSubmittingChange?: (isSubmitting: boolean) => void;
   onSubmit: (values: {
@@ -260,6 +262,7 @@ export function EditTransactionModal({
             }
             disabled={isSubmitting}
             minDate={accountBookStartDay}
+            data-autofocus={autoFocusDate || undefined}
             {...form.getInputProps("date")}
           />
           <TextInput

@@ -9,13 +9,12 @@ import {
 import {
   createCurrentAccountLabel,
   getSimpleTransactionDisabledReason,
-  type SimpleTransactionEditInitialValues,
 } from "./-page-data";
 import type { LedgerAccount, LedgerAccountOptionSource } from "./-page-types";
 
 type EditingTransactionData =
   | {
-      bookings?: { account: string | null }[];
+      bookings?: { account?: string | null }[];
     }
   | undefined;
 
@@ -23,7 +22,7 @@ export function useLedgerAccountOptions(args: {
   account: LedgerAccount;
   accounts: LedgerAccountOptionSource[];
   editingTransactionData: EditingTransactionData;
-  editingSimpleInitialValues: SimpleTransactionEditInitialValues | undefined;
+  editingSimpleInitialValues: { counterAccountId: string } | undefined;
 }) {
   const allAccountOptions = useMemo<AccountOption[]>(
     () =>

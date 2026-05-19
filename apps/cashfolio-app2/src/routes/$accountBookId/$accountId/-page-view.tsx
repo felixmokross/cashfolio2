@@ -28,8 +28,10 @@ import {
   SimpleTransactionModal,
   type SimpleTransactionDirection,
   type SimpleTransactionDraftValues,
+  type SimpleTransactionInitialValues,
 } from "@/components/simple-transaction-modal";
 import { SplitButton } from "@/components/split-button";
+import { getTransactionCreateDialogText } from "@/components/transaction-create-dialog-text";
 import { TopPageHeader } from "@/components/top-page-header";
 import { PageShell } from "@/components/page-shell";
 import type { ReactNode } from "react";
@@ -113,7 +115,10 @@ export type LedgerPageViewProps = {
   isEditSubmitting: boolean;
   isRebookSubmitting: boolean;
   editMode: EditMode;
+  createSimpleInitialValues?: SimpleTransactionInitialValues;
   createSplitInitialValues?: SplitModalInitialValues;
+  createSplitIsCopy?: boolean;
+  createSplitDateAutoFocus?: boolean;
   editingTransactionData?: {
     id: string;
     description?: string;
@@ -152,6 +157,7 @@ export type LedgerPageViewProps = {
   onConfirmDeleteAccount: () => Promise<void>;
   onAddTransactionClick: () => void;
   onCloseSimpleModal: () => void;
+  onSimpleModalExitTransitionEnd: () => void;
   onSimpleSubmittingChange: (isSubmitting: boolean) => void;
   onSwitchCreateToSplit: (draft: SimpleTransactionDraftValues) => void;
   onSubmitCreateSimpleTransaction: (
@@ -202,7 +208,10 @@ export function LedgerPageView({
   isEditSubmitting,
   isRebookSubmitting,
   editMode,
+  createSimpleInitialValues,
   createSplitInitialValues,
+  createSplitIsCopy,
+  createSplitDateAutoFocus,
   editingTransactionData,
   editingSimpleInitialValues,
   deletingAccount,
@@ -237,6 +246,7 @@ export function LedgerPageView({
   onConfirmDeleteAccount,
   onAddTransactionClick,
   onCloseSimpleModal,
+  onSimpleModalExitTransitionEnd,
   onSimpleSubmittingChange,
   onSwitchCreateToSplit,
   onSubmitCreateSimpleTransaction,
@@ -257,6 +267,11 @@ export function LedgerPageView({
   onConfirmDeleteTransaction,
 }: LedgerPageViewProps) {
   const accountKindBadge = getLedgerAccountKindBadgeProps(account);
+  const simpleCreateDialogText = getTransactionCreateDialogText(
+    !!createSimpleInitialValues,
+  );
+  const splitCreateDialogText =
+    getTransactionCreateDialogText(!!createSplitIsCopy);
 
   return (
     <PageShell>
@@ -369,16 +384,24 @@ export function LedgerPageView({
           if (isSimpleSubmitting) return;
           onCloseSimpleModal();
         }}
-        title="Add Transaction"
+        title={simpleCreateDialogText.title}
         size="xl"
         closeOnEscape={!isSimpleSubmitting}
         closeOnClickOutside={!isSimpleSubmitting}
         withCloseButton={!isSimpleSubmitting}
+        onExitTransitionEnd={onSimpleModalExitTransitionEnd}
       >
         <SimpleTransactionModal
           currentAccount={{ id: account.id, label: currentAccountLabel }}
-          accounts={simpleCounterAccountOptions}
+          accounts={
+            createSimpleInitialValues
+              ? editSimpleCounterAccountOptions
+              : simpleCounterAccountOptions
+          }
+          initialValues={createSimpleInitialValues}
           accountBookStartDate={accountBookStartDate}
+          autoFocusDate={!!createSimpleInitialValues}
+          submitLabel={simpleCreateDialogText.submitLabel}
           onSwitchToSplit={onSwitchCreateToSplit}
           onClose={() => {
             if (isSimpleSubmitting) return;
@@ -395,7 +418,7 @@ export function LedgerPageView({
           if (isCreateSplitSubmitting) return;
           onCloseSplitModal();
         }}
-        title="Add Transaction"
+        title={splitCreateDialogText.title}
         size="100%"
         closeOnEscape={!isCreateSplitSubmitting}
         closeOnClickOutside={!isCreateSplitSubmitting}
@@ -403,11 +426,14 @@ export function LedgerPageView({
       >
         <EditTransactionModal
           initialValues={createSplitInitialValues}
-          submitLabel="Create"
-          accounts={accountOptions}
+          submitLabel={splitCreateDialogText.submitLabel}
+          accounts={
+            createSplitInitialValues ? editAccountOptions : accountOptions
+          }
           currentAccountId={account.id}
           accountBookStartDate={accountBookStartDate}
           unitUsage={unitUsage}
+          autoFocusDate={createSplitDateAutoFocus}
           onClose={() => {
             if (isCreateSplitSubmitting) return;
             onCloseSplitModal();

@@ -33,7 +33,7 @@ import { useUserLocale } from "@/user-locale-context";
 export type SimpleTransactionDirection = "DEBIT" | "CREDIT";
 
 export type SimpleTransactionInitialValues = {
-  date: Date;
+  date?: Date;
   description: string;
   counterAccountId: string;
   amount: number;
@@ -56,11 +56,29 @@ function getForcedDirection(
   return null;
 }
 
+export function createSimpleTransactionFormInitialValues(args: {
+  initialValues?: SimpleTransactionInitialValues;
+  today: Date;
+}) {
+  return {
+    // Copy flows pass initial values without a date so the user must choose
+    // the target date explicitly instead of accepting today's default.
+    date: args.initialValues ? args.initialValues.date : args.today,
+    description: args.initialValues?.description ?? "",
+    counterAccountId: args.initialValues?.counterAccountId ?? "",
+    amount:
+      args.initialValues?.amount ?? (undefined as string | number | undefined),
+    direction:
+      args.initialValues?.direction ?? ("DEBIT" as SimpleTransactionDirection),
+  };
+}
+
 export function SimpleTransactionModal({
   currentAccount,
   accounts,
   accountBookStartDate,
   initialValues,
+  autoFocusDate,
   submitLabel,
   onSwitchToSplit,
   onClose,
@@ -74,6 +92,7 @@ export function SimpleTransactionModal({
   accounts: AccountOption[];
   accountBookStartDate: Date;
   initialValues?: SimpleTransactionInitialValues;
+  autoFocusDate?: boolean;
   submitLabel?: string;
   onSwitchToSplit?: (draft: SimpleTransactionDraftValues) => void;
   onClose: () => void;
@@ -99,15 +118,10 @@ export function SimpleTransactionModal({
 
   const form = useForm({
     mode: "controlled",
-    initialValues: {
-      date: initialValues?.date ?? today,
-      description: initialValues?.description ?? "",
-      counterAccountId: initialValues?.counterAccountId ?? "",
-      amount:
-        initialValues?.amount ?? (undefined as string | number | undefined),
-      direction:
-        initialValues?.direction ?? ("DEBIT" as SimpleTransactionDirection),
-    },
+    initialValues: createSimpleTransactionFormInitialValues({
+      initialValues,
+      today,
+    }),
     validate: {
       date: (value) => {
         const date = normalizeDateInputValue(value);
@@ -207,6 +221,7 @@ export function SimpleTransactionModal({
             w={180}
             minDate={accountBookStartDay}
             disabled={isSubmitting}
+            data-autofocus={autoFocusDate || undefined}
             {...form.getInputProps("date")}
           />
           <TextInput

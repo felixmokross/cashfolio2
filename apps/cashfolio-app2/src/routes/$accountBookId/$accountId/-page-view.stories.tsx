@@ -249,6 +249,9 @@ function LedgerPageStoryHarness({
       setRebooking(args);
       setRebookModalOpened(true);
     },
+    onCopyClick: () => {
+      setSplitModalOpened(true);
+    },
     onDeleteClick: (transactionId, description) => {
       setDeletingTransaction({ id: transactionId, description });
     },
@@ -454,6 +457,7 @@ function LedgerPageStoryHarness({
           setSimpleModalOpened(true);
         }}
         onCloseSimpleModal={() => setSimpleModalOpened(false)}
+        onSimpleModalExitTransitionEnd={() => undefined}
         onSimpleSubmittingChange={setIsSimpleSubmitting}
         onSwitchCreateToSplit={() => {
           setSimpleModalOpened(false);

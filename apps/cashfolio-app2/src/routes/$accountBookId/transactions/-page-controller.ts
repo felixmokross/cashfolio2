@@ -6,6 +6,7 @@ import {
   rebookBooking,
   updateTransaction,
 } from "@/server/transactions";
+import { createCopyTransactionInitialValues } from "@/components/edit-transaction-modal-values";
 import {
   getBookingPeriodValue,
   getLatestBookingDate,
@@ -41,6 +42,8 @@ export function useTransactionsPageController(args: {
   const [editingTransactionData, setEditingTransactionData] = useState<
     Awaited<ReturnType<typeof getTransaction>> | undefined
   >();
+  const [createTransactionInitialValues, setCreateTransactionInitialValues] =
+    useState<TransactionsPageViewProps["createTransactionInitialValues"]>();
   const [deletingTransaction, setDeletingTransaction] = useState<
     { id: string; description: string } | undefined
   >();
@@ -55,7 +58,8 @@ export function useTransactionsPageController(args: {
     rebookTargetAccountOptions,
   } = useTransactionsAccountOptions({
     accounts: args.loaderData.accounts,
-    editingTransactionData,
+    editingTransactionData:
+      editingTransactionData ?? createTransactionInitialValues,
     rebooking,
   });
 
@@ -77,6 +81,7 @@ export function useTransactionsPageController(args: {
     });
 
     setCreateModalOpened(false);
+    setCreateTransactionInitialValues(undefined);
     args.pendingScrollRef.current = transaction.id;
     reloadTransactionPeriod(values);
   };
@@ -119,6 +124,19 @@ export function useTransactionsPageController(args: {
     setRebooking(nextRebooking);
     setRebookModalOpened(true);
   }, []);
+
+  const handleCopyClick = useCallback(
+    async (transactionId: string) => {
+      const data = await getTransaction({
+        data: { transactionId, accountBookId: args.accountBookId },
+      });
+      setCreateTransactionInitialValues(
+        createCopyTransactionInitialValues(data),
+      );
+      setCreateModalOpened(true);
+    },
+    [args.accountBookId],
+  );
 
   const handleRebookBooking = async (values: { targetAccountId: string }) => {
     if (!rebooking) return;
@@ -163,6 +181,7 @@ export function useTransactionsPageController(args: {
     referenceCurrency: args.loaderData.referenceCurrency,
     onEditClick: handleEditClick,
     onRebookClick: handleRebookClick,
+    onCopyClick: handleCopyClick,
     onDeleteClick: handleDeleteClick,
   });
 
@@ -175,16 +194,25 @@ export function useTransactionsPageController(args: {
     isCreateSubmitting,
     isEditSubmitting,
     isRebookSubmitting,
+    createTransactionInitialValues,
     editingTransactionData,
     deletingTransaction,
     rebooking,
     rebookModalOpened,
     hasCompleteBookingUnit,
-    accountOptions: activeAccountOptions,
+    accountOptions: createTransactionInitialValues
+      ? editAccountOptions
+      : activeAccountOptions,
     editAccountOptions,
     rebookTargetAccountOptions,
-    onAddTransactionClick: () => setCreateModalOpened(true),
-    onCloseCreateModal: () => setCreateModalOpened(false),
+    onAddTransactionClick: () => {
+      setCreateTransactionInitialValues(undefined);
+      setCreateModalOpened(true);
+    },
+    onCloseCreateModal: () => {
+      setCreateModalOpened(false);
+      setCreateTransactionInitialValues(undefined);
+    },
     onCreateSubmittingChange: setIsCreateSubmitting,
     onSubmitCreateTransaction: handleCreateTransaction,
     onCloseEditModal: () => setEditModalOpened(false),

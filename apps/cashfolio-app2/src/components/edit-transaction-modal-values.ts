@@ -15,15 +15,15 @@ export function createTransactionFormInitialValues(args: {
   currentAccountId?: string;
   currentAccount?: AccountOption;
 }): TransactionFormValues {
+  const initialBookingDates =
+    args.initialValues?.bookings
+      ?.map((booking) => booking.date)
+      .filter(
+        (date): date is NonNullable<BookingValues["date"]> => date != null,
+      ) ?? [];
+
   return {
-    date:
-      args.initialValues?.bookings && args.initialValues.bookings.length > 0
-        ? min(
-            args.initialValues.bookings
-              .map((d) => d.date as string)
-              .filter((d) => !!d),
-          )
-        : undefined,
+    date: initialBookingDates.length > 0 ? min(initialBookingDates) : undefined,
     description: args.initialValues?.description,
     bookings: args.initialValues?.bookings?.map((b) => ({
       ...b,
@@ -40,6 +40,22 @@ export function createTransactionFormInitialValues(args: {
       } as BookingValues,
       { key: createId() } as BookingValues,
     ],
+  };
+}
+
+export function createCopyTransactionInitialValues(args: {
+  description?: string;
+  bookings?: Omit<BookingValues, "key">[];
+}): {
+  description?: string;
+  bookings?: Omit<BookingValues, "key">[];
+} {
+  return {
+    description: args.description,
+    bookings: args.bookings?.map((booking) => {
+      const { date: _date, ...bookingWithoutDate } = booking;
+      return bookingWithoutDate;
+    }),
   };
 }
 
