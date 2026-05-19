@@ -15,7 +15,6 @@ import {
 import {
   loadLogtoIdentities,
   loadLogtoIdentity,
-  type AdminUserRecord,
   type LogtoIdentityResult,
   type LogtoIdentityStatus,
 } from "./admin-user-identities.server";
@@ -38,6 +37,17 @@ export type AdminUserListItem = {
 type UpdateAdminUserRolesInput = {
   userId: string;
   roles: UserRole[];
+};
+
+type AdminUserRecord = {
+  id: string;
+  externalId: string;
+  roles: UserRole[];
+  createdAt: Date;
+  updatedAt: Date;
+  _count: {
+    accountBookLinks: number;
+  };
 };
 
 const USER_ROLES = new Set<string>(Object.values(UserRole));

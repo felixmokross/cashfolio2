@@ -1,7 +1,6 @@
 import { UserRole } from "../.prisma-client/enums";
 import { prisma } from "../prisma.server";
 import { deleteUserAccountData } from "./account-deletion.server";
-import type { LinkedAccountBook } from "./account-deletion-plan";
 import { loadLogtoIdentity } from "./admin-user-identities.server";
 
 export type DeleteAdminUserInput = {
@@ -49,8 +48,6 @@ export async function deleteAdminUserById(args: {
       id: true,
       externalId: true,
       roles: true,
-      createdAt: true,
-      updatedAt: true,
       accountBookLinks: {
         select: {
           accountBook: {
@@ -69,11 +66,6 @@ export async function deleteAdminUserById(args: {
           accountBook: {
             name: "asc",
           },
-        },
-      },
-      _count: {
-        select: {
-          accountBookLinks: true,
         },
       },
     },
@@ -111,7 +103,7 @@ export async function deleteAdminUserById(args: {
 
   await deleteUserAccountData({
     externalId: targetUser.externalId,
-    accountBookLinks: targetUser.accountBookLinks as LinkedAccountBook[],
+    accountBookLinks: targetUser.accountBookLinks,
     deleteLogtoFirst: true,
   });
 }

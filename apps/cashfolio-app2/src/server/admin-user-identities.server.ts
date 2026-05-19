@@ -3,19 +3,11 @@ import {
   getLogtoUsers,
   type LogtoManagementUser,
 } from "../auth/logto-management.server";
-import type { UserRole } from "../.prisma-client/enums";
 
 export type LogtoIdentityStatus = "available" | "missing" | "unavailable";
 
-export type AdminUserRecord = {
-  id: string;
+type LogtoIdentityUser = {
   externalId: string;
-  roles: UserRole[];
-  createdAt: Date;
-  updatedAt: Date;
-  _count: {
-    accountBookLinks: number;
-  };
 };
 
 export type LogtoIdentityResult =
@@ -34,7 +26,7 @@ export type LogtoIdentityResult =
       avatarUrl: null;
     };
 
-function getUnavailableIdentity(user: AdminUserRecord): LogtoIdentityResult {
+function getUnavailableIdentity(user: LogtoIdentityUser): LogtoIdentityResult {
   return {
     status: "unavailable",
     displayName: user.externalId,
@@ -45,7 +37,7 @@ function getUnavailableIdentity(user: AdminUserRecord): LogtoIdentityResult {
 }
 
 function getLogtoIdentityResult(
-  user: AdminUserRecord,
+  user: LogtoIdentityUser,
   logtoUser: LogtoManagementUser | null | undefined,
 ): LogtoIdentityResult {
   if (!logtoUser) {
@@ -79,7 +71,7 @@ function logLogtoIdentityFailure(
   console.warn(message, { ...context, error });
 }
 
-export async function loadLogtoIdentity(user: AdminUserRecord) {
+export async function loadLogtoIdentity(user: LogtoIdentityUser) {
   try {
     return getLogtoIdentityResult(user, await getLogtoUser(user.externalId));
   } catch (error) {
@@ -91,7 +83,7 @@ export async function loadLogtoIdentity(user: AdminUserRecord) {
 }
 
 export async function loadLogtoIdentities(
-  users: AdminUserRecord[],
+  users: LogtoIdentityUser[],
 ): Promise<Map<string, LogtoIdentityResult>> {
   if (users.length === 0) {
     return new Map();
