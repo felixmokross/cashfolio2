@@ -1,10 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { UserRole } from "../.prisma-client/enums";
-import {
-  getLogtoUser,
-  getLogtoUsers,
-  type LogtoManagementUser,
-} from "../auth/logto-management.server";
 import { prisma } from "../prisma.server";
 import { ensureSameOriginRequestFromServerContext } from "../security/same-origin.server";
 import { ensureUser, ensureUserHasRole } from "../users/functions.server";
@@ -13,10 +8,17 @@ import {
   requireArrayField,
   requireStringField,
 } from "./input-validation";
-import { deleteUserAccountData } from "./account-deletion.server";
-import type { LinkedAccountBook } from "./account-deletion-plan";
-
-type LogtoIdentityStatus = "available" | "missing" | "unavailable";
+import {
+  deleteAdminUserById,
+  type DeleteAdminUserInput,
+} from "./admin-user-deletion.server";
+import {
+  loadLogtoIdentities,
+  loadLogtoIdentity,
+  type AdminUserRecord,
+  type LogtoIdentityResult,
+  type LogtoIdentityStatus,
+} from "./admin-user-identities.server";
 
 export type AdminUserListItem = {
   id: string;
@@ -33,100 +35,12 @@ export type AdminUserListItem = {
   updatedAt: string;
 };
 
-type AdminUserRecord = {
-  id: string;
-  externalId: string;
-  roles: UserRole[];
-  createdAt: Date;
-  updatedAt: Date;
-  _count: {
-    accountBookLinks: number;
-  };
-};
-
 type UpdateAdminUserRolesInput = {
   userId: string;
   roles: UserRole[];
 };
 
-type DeleteAdminUserInput = {
-  userId: string;
-  confirmation: string;
-};
-
 const USER_ROLES = new Set<string>(Object.values(UserRole));
-
-type LogtoIdentityResult =
-  | {
-      status: "available";
-      displayName: string;
-      email: string | null;
-      username: string | null;
-      avatarUrl: string | null;
-    }
-  | {
-      status: "missing" | "unavailable";
-      displayName: string;
-      email: null;
-      username: null;
-      avatarUrl: null;
-    };
-
-function getUnavailableIdentity(user: AdminUserRecord): LogtoIdentityResult {
-  return {
-    status: "unavailable",
-    displayName: user.externalId,
-    email: null,
-    username: null,
-    avatarUrl: null,
-  };
-}
-
-function getLogtoIdentityResult(
-  user: AdminUserRecord,
-  logtoUser: LogtoManagementUser | null | undefined,
-): LogtoIdentityResult {
-  if (!logtoUser) {
-    return {
-      status: "missing",
-      displayName: user.externalId,
-      email: null,
-      username: null,
-      avatarUrl: null,
-    };
-  }
-
-  return {
-    status: "available",
-    displayName:
-      logtoUser.name ??
-      logtoUser.primaryEmail ??
-      logtoUser.username ??
-      user.externalId,
-    email: logtoUser.primaryEmail,
-    username: logtoUser.username,
-    avatarUrl: logtoUser.avatar,
-  };
-}
-
-function logLogtoIdentityFailure(
-  message: string,
-  error: unknown,
-  context: Record<string, unknown>,
-) {
-  console.warn(message, { ...context, error });
-}
-
-async function loadLogtoIdentity(user: AdminUserRecord) {
-  try {
-    return getLogtoIdentityResult(user, await getLogtoUser(user.externalId));
-  } catch (error) {
-    logLogtoIdentityFailure("Failed to load Logto user identity.", error, {
-      externalId: user.externalId,
-    });
-    return getUnavailableIdentity(user);
-  }
-}
 
 async function toAdminUserListItem(
   user: AdminUserRecord,
@@ -149,37 +63,6 @@ async function toAdminUserListItem(
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
-}
-
-async function loadLogtoIdentities(
-  users: AdminUserRecord[],
-): Promise<Map<string, LogtoIdentityResult>> {
-  if (users.length === 0) {
-    return new Map();
-  }
-
-  try {
-    const logtoUsersById = await getLogtoUsers(
-      users.map((user) => user.externalId),
-    );
-
-    return new Map(
-      users.map((user) => [
-        user.externalId,
-        getLogtoIdentityResult(user, logtoUsersById.get(user.externalId)),
-      ]),
-    );
-  } catch (error) {
-    logLogtoIdentityFailure(
-      "Failed to load Logto user identities for Admin Users.",
-      error,
-      { userCount: users.length },
-    );
-
-    return new Map(
-      users.map((user) => [user.externalId, getUnavailableIdentity(user)]),
-    );
-  }
 }
 
 export function validateUpdateAdminUserRolesInput(
@@ -216,16 +99,6 @@ export function validateDeleteAdminUserInput(
       "Confirmation is required.",
     ),
   };
-}
-
-function isDeleteConfirmationMatch(args: {
-  confirmation: string;
-  externalId: string;
-  email: string | null;
-}): boolean {
-  const confirmation = args.confirmation.trim();
-  const requiredConfirmation = args.email ?? args.externalId;
-  return confirmation === requiredConfirmation;
 }
 
 export const getAdminUsers = createServerFn({ method: "GET" }).handler(
@@ -330,83 +203,8 @@ export const deleteAdminUser = createServerFn({ method: "POST" })
     ensureSameOriginRequestFromServerContext();
     const currentAdmin = await ensureUserHasRole(UserRole.ADMIN);
 
-    const targetUser = await prisma.user.findUnique({
-      where: { id: data.userId },
-      select: {
-        id: true,
-        externalId: true,
-        roles: true,
-        createdAt: true,
-        updatedAt: true,
-        accountBookLinks: {
-          select: {
-            accountBook: {
-              select: {
-                id: true,
-                name: true,
-                _count: {
-                  select: {
-                    userLinks: true,
-                  },
-                },
-              },
-            },
-          },
-          orderBy: {
-            accountBook: {
-              name: "asc",
-            },
-          },
-        },
-        _count: {
-          select: {
-            accountBookLinks: true,
-          },
-        },
-      },
-    });
-
-    if (!targetUser) {
-      throw new Error("User not found.");
-    }
-
-    if (targetUser.id === currentAdmin.id) {
-      throw new Error("You cannot delete yourself.");
-    }
-
-    if (targetUser.roles.includes(UserRole.ADMIN)) {
-      const remainingAdminCount = await prisma.user.count({
-        where: {
-          id: { not: targetUser.id },
-          roles: { has: UserRole.ADMIN },
-        },
-      });
-
-      if (remainingAdminCount === 0) {
-        throw new Error("At least one Admin user is required.");
-      }
-    }
-
-    const identity = await loadLogtoIdentity(targetUser);
-    if (identity.status === "unavailable") {
-      throw new Error(
-        "Cannot delete user because the Logto identity is unavailable.",
-      );
-    }
-
-    if (
-      !isDeleteConfirmationMatch({
-        confirmation: data.confirmation,
-        externalId: targetUser.externalId,
-        email: identity.email,
-      })
-    ) {
-      throw new Error("Confirmation does not match the user.");
-    }
-
-    await deleteUserAccountData({
-      externalId: targetUser.externalId,
-      accountBookLinks: targetUser.accountBookLinks as LinkedAccountBook[],
-      deleteLogtoFirst: true,
+    await deleteAdminUserById({
+      currentAdminId: currentAdmin.id,
+      data,
     });
   });
