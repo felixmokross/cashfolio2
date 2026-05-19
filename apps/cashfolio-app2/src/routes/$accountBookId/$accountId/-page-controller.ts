@@ -263,6 +263,7 @@ export function useLedgerPageController(args: {
         simpleEditState.eligible &&
         simpleTransactionDisabledReason === null
       ) {
+        setCreateSplitInitialValuesSource("COPY");
         setCreateSimpleInitialValues(
           createCopySimpleTransactionInitialValues(
             simpleEditState.initialValues,
@@ -452,10 +453,16 @@ export function useLedgerPageController(args: {
     onCloseSimpleModal: () => {
       setSimpleModalOpened(false);
       setCreateSimpleInitialValues(undefined);
+      setCreateSplitInitialValuesSource(undefined);
     },
     onSimpleSubmittingChange: setIsSimpleSubmitting,
     onSwitchCreateToSplit: handleSwitchCreateToSplit,
-    onSubmitCreateSimpleTransaction: actions.handleCreateSimpleTransaction,
+    onSubmitCreateSimpleTransaction: async (
+      values: SimpleTransactionValues,
+    ) => {
+      await actions.handleCreateSimpleTransaction(values);
+      setCreateSplitInitialValuesSource(undefined);
+    },
     onCloseSplitModal: () => {
       setModalOpened(false);
       setCreateSplitInitialValues(undefined);
