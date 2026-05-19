@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { UserRole } from "@/.prisma-client/enums";
 import type { AdminUserListItem } from "@/server/admin-users";
+import { isDeleteUserConfirmationMatch } from "./-users-page-utils";
 
 vi.mock("@/components/data-grid", () => ({
   DataGrid: ({
@@ -62,10 +63,7 @@ vi.mock("@/components/data-grid", () => ({
     ),
 }));
 
-import {
-  AdminUsersPageView,
-  isDeleteUserConfirmationMatch,
-} from "./-users-page-view";
+import { AdminUsersPageView } from "./-users-page-view";
 
 const users: AdminUserListItem[] = [
   {
