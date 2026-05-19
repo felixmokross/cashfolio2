@@ -42,7 +42,11 @@ function AdminUsersPage() {
               confirmation,
             },
           });
-          await router.invalidate();
+          void router.invalidate().catch((error) => {
+            console.warn("Failed to refresh Admin Users after deleting user.", {
+              error,
+            });
+          });
         }}
       />
     </Suspense>

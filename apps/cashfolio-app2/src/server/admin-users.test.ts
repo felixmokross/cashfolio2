@@ -488,6 +488,40 @@ describe("admin users server functions", () => {
     expect(deleteLogtoUser).toHaveBeenCalledWith("missing-logto-user");
   });
 
+  it("deletes a Logto user without email by confirming the external id", async () => {
+    getLogtoUser.mockResolvedValueOnce({
+      id: "logto-no-email",
+      username: "no-email-username",
+      primaryEmail: null,
+      name: "No Email",
+      avatar: null,
+      lastSignInAt: null,
+    });
+    prisma.user.findUnique.mockResolvedValueOnce({
+      ...createUser({
+        id: "target-user",
+        externalId: "logto-no-email",
+        roles: [],
+        accountBookCount: 0,
+      }),
+      accountBookLinks: [],
+    });
+
+    await expect(
+      deleteAdminUser({
+        data: {
+          userId: "target-user",
+          confirmation: "logto-no-email",
+        },
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(tx.user.deleteMany).toHaveBeenCalledWith({
+      where: { externalId: "logto-no-email" },
+    });
+    expect(deleteLogtoUser).toHaveBeenCalledWith("logto-no-email");
+  });
+
   it("rejects deletion when the Logto identity is unavailable", async () => {
     const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const error = new Error("Logto unavailable");
@@ -551,7 +585,32 @@ describe("admin users server functions", () => {
     expect(deleteLogtoUser).not.toHaveBeenCalled();
   });
 
-  it("rejects a delete confirmation that does not match email or external id", async () => {
+  it("rejects an external-id confirmation when the Logto email is available", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce({
+      ...createUser({
+        id: "target-user",
+        externalId: "logto-target",
+        roles: [],
+        accountBookCount: 0,
+      }),
+      accountBookLinks: [],
+    });
+
+    await expect(
+      deleteAdminUser({
+        data: {
+          userId: "target-user",
+          confirmation: "logto-target",
+        },
+      }),
+    ).rejects.toThrow("Confirmation does not match the user.");
+
+    expect(deleteBookScopedRedisDataForAccountBooks).not.toHaveBeenCalled();
+    expect(tx.user.deleteMany).not.toHaveBeenCalled();
+    expect(deleteLogtoUser).not.toHaveBeenCalled();
+  });
+
+  it("rejects a delete confirmation that does not match the required value", async () => {
     prisma.user.findUnique.mockResolvedValueOnce({
       ...createUser({
         id: "target-user",

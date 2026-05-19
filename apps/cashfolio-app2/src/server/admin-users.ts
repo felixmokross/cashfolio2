@@ -224,7 +224,8 @@ function isDeleteConfirmationMatch(args: {
   email: string | null;
 }): boolean {
   const confirmation = args.confirmation.trim();
-  return confirmation === args.externalId || confirmation === args.email;
+  const requiredConfirmation = args.email ?? args.externalId;
+  return confirmation === requiredConfirmation;
 }
 
 export const getAdminUsers = createServerFn({ method: "GET" }).handler(
