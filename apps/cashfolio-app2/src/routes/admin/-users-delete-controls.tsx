@@ -50,16 +50,18 @@ export function DeleteUserAction({
     <Tooltip
       label={user.isCurrentUser ? "You cannot delete yourself" : "Delete"}
     >
-      <ActionIcon
-        aria-label="Delete"
-        color="red"
-        disabled={user.isCurrentUser}
-        onClick={() => onDeleteUser(user)}
-        size="sm"
-        variant="subtle"
-      >
-        <IconTrash size={16} />
-      </ActionIcon>
+      <span>
+        <ActionIcon
+          aria-label="Delete"
+          color="red"
+          disabled={user.isCurrentUser}
+          onClick={() => onDeleteUser(user)}
+          size="sm"
+          variant="subtle"
+        >
+          <IconTrash size={16} />
+        </ActionIcon>
+      </span>
     </Tooltip>
   );
 }
