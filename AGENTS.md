@@ -13,6 +13,7 @@ file and the linked docs are for `apps/cashfolio-app2`.
 ## Repository-wide Guidelines
 
 - Use `pnpm` as package manager.
+- Use Node 24 for local development, CI, and application runtime.
 - Keep changes focused and minimal; avoid unrelated refactors.
 - Keep docs in sync when introducing new patterns or conventions.
 - TanStack Start route filenames often contain `$` (for route params). In shell
