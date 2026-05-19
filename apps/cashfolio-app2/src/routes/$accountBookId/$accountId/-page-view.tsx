@@ -117,6 +117,7 @@ export type LedgerPageViewProps = {
   editMode: EditMode;
   createSimpleInitialValues?: SimpleTransactionInitialValues;
   createSplitInitialValues?: SplitModalInitialValues;
+  createSplitIsCopy?: boolean;
   createSplitDateAutoFocus?: boolean;
   editingTransactionData?: {
     id: string;
@@ -156,6 +157,7 @@ export type LedgerPageViewProps = {
   onConfirmDeleteAccount: () => Promise<void>;
   onAddTransactionClick: () => void;
   onCloseSimpleModal: () => void;
+  onSimpleModalExitTransitionEnd: () => void;
   onSimpleSubmittingChange: (isSubmitting: boolean) => void;
   onSwitchCreateToSplit: (draft: SimpleTransactionDraftValues) => void;
   onSubmitCreateSimpleTransaction: (
@@ -208,6 +210,7 @@ export function LedgerPageView({
   editMode,
   createSimpleInitialValues,
   createSplitInitialValues,
+  createSplitIsCopy,
   createSplitDateAutoFocus,
   editingTransactionData,
   editingSimpleInitialValues,
@@ -243,6 +246,7 @@ export function LedgerPageView({
   onConfirmDeleteAccount,
   onAddTransactionClick,
   onCloseSimpleModal,
+  onSimpleModalExitTransitionEnd,
   onSimpleSubmittingChange,
   onSwitchCreateToSplit,
   onSubmitCreateSimpleTransaction,
@@ -266,9 +270,8 @@ export function LedgerPageView({
   const simpleCreateDialogText = getTransactionCreateDialogText(
     !!createSimpleInitialValues,
   );
-  const splitCreateDialogText = getTransactionCreateDialogText(
-    !!createSplitDateAutoFocus,
-  );
+  const splitCreateDialogText =
+    getTransactionCreateDialogText(!!createSplitIsCopy);
 
   return (
     <PageShell>
@@ -386,6 +389,7 @@ export function LedgerPageView({
         closeOnEscape={!isSimpleSubmitting}
         closeOnClickOutside={!isSimpleSubmitting}
         withCloseButton={!isSimpleSubmitting}
+        onExitTransitionEnd={onSimpleModalExitTransitionEnd}
       >
         <SimpleTransactionModal
           currentAccount={{ id: account.id, label: currentAccountLabel }}

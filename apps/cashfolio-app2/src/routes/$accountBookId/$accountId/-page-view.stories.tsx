@@ -457,6 +457,7 @@ function LedgerPageStoryHarness({
           setSimpleModalOpened(true);
         }}
         onCloseSimpleModal={() => setSimpleModalOpened(false)}
+        onSimpleModalExitTransitionEnd={() => undefined}
         onSimpleSubmittingChange={setIsSimpleSubmitting}
         onSwitchCreateToSplit={() => {
           setSimpleModalOpened(false);

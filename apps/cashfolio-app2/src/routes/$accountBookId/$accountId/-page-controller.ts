@@ -148,6 +148,10 @@ export function useLedgerPageController(args: {
   };
 
   const handleSwitchCreateToSplit = (draft: SimpleTransactionDraftValues) => {
+    const nextCreateSplitInitialValuesSource = createSimpleInitialValues
+      ? "COPY"
+      : "DRAFT";
+    setCreateSplitInitialValuesSource(nextCreateSplitInitialValuesSource);
     setCreateSplitInitialValues(
       createSplitInitialValuesFromSimpleDraft({
         draft,
@@ -163,10 +167,6 @@ export function useLedgerPageController(args: {
       }),
     );
     setSimpleModalOpened(false);
-    setCreateSplitInitialValuesSource(
-      createSimpleInitialValues ? "COPY" : "DRAFT",
-    );
-    setCreateSimpleInitialValues(undefined);
     setModalOpened(true);
   };
 
@@ -415,6 +415,7 @@ export function useLedgerPageController(args: {
     isRebookSubmitting,
     editMode,
     createSplitInitialValues,
+    createSplitIsCopy: createSplitInitialValuesSource === "COPY",
     createSplitDateAutoFocus: createSplitInitialValuesSource === "COPY",
     createSimpleInitialValues,
     editingTransactionData,
@@ -452,8 +453,12 @@ export function useLedgerPageController(args: {
     },
     onCloseSimpleModal: () => {
       setSimpleModalOpened(false);
+    },
+    onSimpleModalExitTransitionEnd: () => {
       setCreateSimpleInitialValues(undefined);
-      setCreateSplitInitialValuesSource(undefined);
+      if (!modalOpened) {
+        setCreateSplitInitialValuesSource(undefined);
+      }
     },
     onSimpleSubmittingChange: setIsSimpleSubmitting,
     onSwitchCreateToSplit: handleSwitchCreateToSplit,
