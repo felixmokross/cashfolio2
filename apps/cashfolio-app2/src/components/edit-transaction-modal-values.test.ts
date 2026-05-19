@@ -31,7 +31,7 @@ describe("createTransactionFormInitialValues", () => {
     ]);
   });
 
-  test("keeps the add-transaction date default when copied bookings have no dates", () => {
+  test("keeps the split date empty when copied bookings have no dates", () => {
     const result = createTransactionFormInitialValues({
       initialValues: {
         description: "Copied transfer",
