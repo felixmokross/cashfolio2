@@ -356,6 +356,21 @@ describe("admin users server functions", () => {
     );
   });
 
+  it("marks the current admin when updating their own roles", async () => {
+    await expect(
+      updateAdminUserRoles({
+        data: {
+          userId: "admin-user",
+          roles: [UserRole.ADMIN],
+        },
+      }),
+    ).resolves.toMatchObject({
+      id: "admin-user",
+      roles: [UserRole.ADMIN],
+      isCurrentUser: true,
+    });
+  });
+
   it("rejects invalid role values", () => {
     expect(() =>
       validateUpdateAdminUserRolesInput({
@@ -580,6 +595,39 @@ describe("admin users server functions", () => {
       }),
     ).rejects.toThrow("You cannot delete yourself.");
 
+    expect(deleteBookScopedRedisDataForAccountBooks).not.toHaveBeenCalled();
+    expect(tx.user.deleteMany).not.toHaveBeenCalled();
+    expect(deleteLogtoUser).not.toHaveBeenCalled();
+  });
+
+  it("rejects deleting the final Admin user", async () => {
+    prisma.user.count.mockResolvedValueOnce(0);
+    prisma.user.findUnique.mockResolvedValueOnce({
+      ...createUser({
+        id: "last-admin",
+        externalId: "logto-last-admin",
+        roles: [UserRole.ADMIN],
+        accountBookCount: 0,
+      }),
+      accountBookLinks: [],
+    });
+
+    await expect(
+      deleteAdminUser({
+        data: {
+          userId: "last-admin",
+          confirmation: "logto-last-admin@example.test",
+        },
+      }),
+    ).rejects.toThrow("At least one Admin user is required.");
+
+    expect(prisma.user.count).toHaveBeenCalledWith({
+      where: {
+        id: { not: "last-admin" },
+        roles: { has: UserRole.ADMIN },
+      },
+    });
+    expect(getLogtoUser).not.toHaveBeenCalled();
     expect(deleteBookScopedRedisDataForAccountBooks).not.toHaveBeenCalled();
     expect(tx.user.deleteMany).not.toHaveBeenCalled();
     expect(deleteLogtoUser).not.toHaveBeenCalled();

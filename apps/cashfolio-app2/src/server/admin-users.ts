@@ -317,7 +317,11 @@ export const updateAdminUserRoles = createServerFn({ method: "POST" })
       },
     });
 
-    return await toAdminUserListItem(updatedUser);
+    return await toAdminUserListItem(
+      updatedUser,
+      undefined,
+      updatedUser.id === currentAdmin.id,
+    );
   });
 
 export const deleteAdminUser = createServerFn({ method: "POST" })
@@ -368,6 +372,19 @@ export const deleteAdminUser = createServerFn({ method: "POST" })
 
     if (targetUser.id === currentAdmin.id) {
       throw new Error("You cannot delete yourself.");
+    }
+
+    if (targetUser.roles.includes(UserRole.ADMIN)) {
+      const remainingAdminCount = await prisma.user.count({
+        where: {
+          id: { not: targetUser.id },
+          roles: { has: UserRole.ADMIN },
+        },
+      });
+
+      if (remainingAdminCount === 0) {
+        throw new Error("At least one Admin user is required.");
+      }
     }
 
     const identity = await loadLogtoIdentity(targetUser);
