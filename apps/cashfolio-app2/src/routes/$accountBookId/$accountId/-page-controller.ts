@@ -163,8 +163,10 @@ export function useLedgerPageController(args: {
       }),
     );
     setSimpleModalOpened(false);
+    setCreateSplitInitialValuesSource(
+      createSimpleInitialValues ? "COPY" : "DRAFT",
+    );
     setCreateSimpleInitialValues(undefined);
-    setCreateSplitInitialValuesSource("DRAFT");
     setModalOpened(true);
   };
 
