@@ -159,6 +159,7 @@ export function TransactionsPageView({
       />
 
       <DataGrid
+        className="transactions-master-grid"
         containerStyle={{ flex: 1, minHeight: 0 }}
         rowData={rows}
         columnDefs={columnDefs}
@@ -171,7 +172,7 @@ export function TransactionsPageView({
         masterDetail
         detailRowAutoHeight
         detailCellRenderer={({ data }: { data?: TransactionsRow }) => (
-          <div style={{ padding: 12, width: "100%" }}>
+          <div style={{ width: "100%" }}>
             <DataGrid
               domLayout="autoHeight"
               rowData={data?.bookings ?? []}
