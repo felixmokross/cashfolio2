@@ -5,6 +5,7 @@ import { IconTrash, IconX } from "@tabler/icons-react";
 import { Unit } from "../.prisma-client/enums";
 import type { AccountBookUnitUsage } from "../shared/account-book-unit-usage";
 import {
+  getUnitIdentifier,
   isExpenseAccount,
   isIncomeAccount,
   isOpeningBalancesAccount,
@@ -26,6 +27,8 @@ import {
   buildCurrencySelectData,
 } from "./unit-select-options";
 
+type AmountField = "debit" | "credit";
+
 export function isEditableCell(params: CellClassParams) {
   const { colDef, node } = params;
   if (node.rowPinned || !params.data) return false;
@@ -39,6 +42,64 @@ export function isEditableCell(params: CellClassParams) {
   }
 
   return true;
+}
+
+function getValidFooterUnitIdentifier(booking: BookingValues): string | null {
+  if (!booking.unit) return null;
+
+  if (booking.unit === Unit.CURRENCY && !booking.currency) return null;
+  if (booking.unit === Unit.CRYPTOCURRENCY && !booking.cryptocurrency) {
+    return null;
+  }
+  if (booking.unit === Unit.SECURITY && !booking.symbol) return null;
+
+  return getUnitIdentifier({
+    unit: booking.unit,
+    currency: booking.currency,
+    cryptocurrency: booking.cryptocurrency,
+    symbol: booking.symbol,
+  });
+}
+
+export function getMixedUnitAmountFooterLabel(args: {
+  bookings: BookingValues[];
+  field: AmountField;
+}): "Mixed" | null {
+  let firstUnitIdentifier: string | null = null;
+
+  for (const booking of args.bookings) {
+    if (booking[args.field] == null) continue;
+
+    const unitIdentifier = getValidFooterUnitIdentifier(booking);
+    if (!unitIdentifier) return "Mixed";
+
+    if (firstUnitIdentifier == null) {
+      firstUnitIdentifier = unitIdentifier;
+      continue;
+    }
+
+    if (firstUnitIdentifier !== unitIdentifier) {
+      return "Mixed";
+    }
+  }
+
+  return null;
+}
+
+function createAmountFooterCellRendererSelector(field: AmountField) {
+  return ({ context, node }: CustomCellRendererProps) => {
+    if (!node.rowPinned) return undefined;
+
+    const bookings = context?.form?.values?.bookings;
+    if (!Array.isArray(bookings)) return undefined;
+
+    const label = getMixedUnitAmountFooterLabel({ bookings, field });
+    return label
+      ? {
+          component: () => label,
+        }
+      : undefined;
+  };
 }
 
 export function createEditTransactionColumnDefs(args: {
@@ -218,6 +279,7 @@ export function createEditTransactionColumnDefs(args: {
       context: { formattedNumeric: { formattedNumericMode: "entry" } },
       aggFunc: "sum",
       width: 105,
+      cellRendererSelector: createAmountFooterCellRendererSelector("debit"),
       editable: ({ data }) => {
         if (!data?.account) return true;
         const acct = accounts.find((a) => a.value === data.account);
@@ -234,6 +296,7 @@ export function createEditTransactionColumnDefs(args: {
       context: { formattedNumeric: { formattedNumericMode: "entry" } },
       aggFunc: "sum",
       width: 105,
+      cellRendererSelector: createAmountFooterCellRendererSelector("credit"),
       editable: ({ data }) => {
         if (!data?.account) return true;
         const acct = accounts.find((a) => a.value === data.account);
