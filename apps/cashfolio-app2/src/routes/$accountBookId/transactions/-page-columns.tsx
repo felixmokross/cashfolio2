@@ -240,7 +240,7 @@ export function useTransactionsColumnDefs(args: {
       {
         field: "date",
         headerName: "Date",
-        width: 130,
+        width: 170,
         type: DATE_COLUMN,
         cellRenderer: "agGroupCellRenderer",
       },

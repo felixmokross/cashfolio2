@@ -138,7 +138,7 @@ describe("deriveTransactionsRows", () => {
       }),
       expect.objectContaining({
         id: "debit-2",
-        description: "Transaction text",
+        description: "",
         debit: 40,
         credit: null,
       }),

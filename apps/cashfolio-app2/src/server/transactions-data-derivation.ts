@@ -138,7 +138,7 @@ function toBookingRow(
     bookingValue: toMoneyNumber(booking.value),
     date: formatUtcDateLabel(booking.date),
     account: booking.account,
-    description: booking.description || booking.transactionDescription || "",
+    description: booking.description ?? "",
     unit: booking.unit,
     currency: booking.currency,
     cryptocurrency: booking.cryptocurrency,
