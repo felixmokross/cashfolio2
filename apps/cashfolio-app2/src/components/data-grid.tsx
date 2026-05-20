@@ -31,7 +31,7 @@ export function DataGrid({
   );
 }
 
-const dataTypeDefinitions: AgGridReactProps["dataTypeDefinitions"] = {
+export const dataTypeDefinitions: AgGridReactProps["dataTypeDefinitions"] = {
   dateString: {
     baseDataType: "dateString",
     extendsDataType: "dateString",

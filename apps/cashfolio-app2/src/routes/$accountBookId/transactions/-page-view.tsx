@@ -2,7 +2,8 @@ import { Button, Group, Modal, Title } from "@mantine/core";
 import { IconBolt } from "@tabler/icons-react";
 import type { AgGridReactProps } from "ag-grid-react";
 import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
-import { DataGrid } from "@/components/data-grid";
+import { DataGrid, dataTypeDefinitions } from "@/components/data-grid";
+import { columnTypes } from "@/components/column-types";
 import {
   EditTransactionModal,
   type AccountOption,
@@ -17,6 +18,7 @@ import { PageShell } from "@/components/page-shell";
 import { TopPageHeader } from "@/components/top-page-header";
 import type { ReactNode } from "react";
 import type { Unit } from "@/.prisma-client/enums";
+import { useUserLocale } from "@/user-locale-context";
 import type { TransactionsBookingRow, TransactionsRow } from "./-page-types";
 
 export type TransactionBookingInput = {
@@ -137,6 +139,7 @@ export function TransactionsPageView({
   onCloseDeleteModal,
   onConfirmDeleteTransaction,
 }: TransactionsPageViewProps) {
+  const userLocale = useUserLocale();
   const createDialogText = getTransactionCreateDialogText(
     !!createTransactionInitialValues,
   );
@@ -171,20 +174,28 @@ export function TransactionsPageView({
         onRowDataUpdated={onRowDataUpdated}
         masterDetail
         detailRowAutoHeight
-        detailCellRenderer={({ data }: { data?: TransactionsRow }) => (
-          <div style={{ width: "100%" }}>
-            <DataGrid
-              domLayout="autoHeight"
-              rowData={data?.bookings ?? []}
-              columnDefs={detailColumnDefs}
-              defaultColDef={{
-                sortable: false,
-                suppressHeaderMenuButton: true,
-              }}
-              getRowId={({ data }) => data.id}
-            />
-          </div>
-        )}
+        detailCellRendererParams={{
+          detailGridOptions: {
+            columnDefs: detailColumnDefs,
+            columnTypes,
+            dataTypeDefinitions,
+            context: { userLocale },
+            defaultColDef: {
+              sortable: false,
+              suppressHeaderMenuButton: true,
+            },
+            getRowId: ({ data }: { data: TransactionsBookingRow }) => data.id,
+          },
+          getDetailRowData: ({
+            data,
+            successCallback,
+          }: {
+            data?: TransactionsRow;
+            successCallback: (rowData: TransactionsBookingRow[]) => void;
+          }) => {
+            successCallback(data?.bookings ?? []);
+          },
+        }}
       />
 
       <Modal
