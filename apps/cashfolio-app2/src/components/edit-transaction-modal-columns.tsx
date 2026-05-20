@@ -27,8 +27,6 @@ import {
   buildCurrencySelectData,
 } from "./unit-select-options";
 
-type AmountField = "debit" | "credit";
-
 export function isEditableCell(params: CellClassParams) {
   const { colDef, node } = params;
   if (node.rowPinned || !params.data) return false;
@@ -61,14 +59,17 @@ function getValidFooterUnitIdentifier(booking: BookingValues): string | null {
   });
 }
 
-export function getMixedUnitAmountFooterLabel(args: {
+function hasFooterAmount(booking: BookingValues): boolean {
+  return booking.debit != null || booking.credit != null;
+}
+
+export function getMixedUnitTransactionFooterLabel(args: {
   bookings: BookingValues[];
-  field: AmountField;
 }): "Mixed" | null {
   let firstUnitIdentifier: string | null = null;
 
   for (const booking of args.bookings) {
-    if (booking[args.field] == null) continue;
+    if (!hasFooterAmount(booking)) continue;
 
     const unitIdentifier = getValidFooterUnitIdentifier(booking);
     if (!unitIdentifier) return "Mixed";
@@ -86,14 +87,20 @@ export function getMixedUnitAmountFooterLabel(args: {
   return null;
 }
 
-function createAmountFooterCellRendererSelector(field: AmountField) {
+function getMixedUnitTransactionFooterLabelFromContext(
+  context: CustomCellRendererProps["context"],
+): "Mixed" | null {
+  const bookings = context?.form?.values?.bookings;
+  if (!Array.isArray(bookings)) return null;
+
+  return getMixedUnitTransactionFooterLabel({ bookings });
+}
+
+function createMixedUnitTransactionFooterCellRendererSelector() {
   return ({ context, node }: CustomCellRendererProps) => {
     if (!node.rowPinned) return undefined;
 
-    const bookings = context?.form?.values?.bookings;
-    if (!Array.isArray(bookings)) return undefined;
-
-    const label = getMixedUnitAmountFooterLabel({ bookings, field });
+    const label = getMixedUnitTransactionFooterLabelFromContext(context);
     return label
       ? {
           component: () => label,
@@ -279,7 +286,13 @@ export function createEditTransactionColumnDefs(args: {
       context: { formattedNumeric: { formattedNumericMode: "entry" } },
       aggFunc: "sum",
       width: 105,
-      cellRendererSelector: createAmountFooterCellRendererSelector("debit"),
+      colSpan: ({ context, node }) =>
+        node?.rowPinned &&
+        getMixedUnitTransactionFooterLabelFromContext(context)
+          ? 2
+          : 1,
+      cellRendererSelector:
+        createMixedUnitTransactionFooterCellRendererSelector(),
       editable: ({ data }) => {
         if (!data?.account) return true;
         const acct = accounts.find((a) => a.value === data.account);
@@ -296,7 +309,6 @@ export function createEditTransactionColumnDefs(args: {
       context: { formattedNumeric: { formattedNumericMode: "entry" } },
       aggFunc: "sum",
       width: 105,
-      cellRendererSelector: createAmountFooterCellRendererSelector("credit"),
       editable: ({ data }) => {
         if (!data?.account) return true;
         const acct = accounts.find((a) => a.value === data.account);
