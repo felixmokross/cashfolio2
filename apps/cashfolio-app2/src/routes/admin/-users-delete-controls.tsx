@@ -25,6 +25,8 @@ type DeleteUserHandler = (args: {
   confirmation: string;
 }) => Promise<void>;
 
+const TOOLTIP_TRIGGER_STYLE = { display: "inline-flex" } as const;
+
 function showUserDeletedNotification() {
   notifications.show({
     color: "green",
@@ -50,7 +52,7 @@ export function DeleteUserAction({
     <Tooltip
       label={user.isCurrentUser ? "You cannot delete yourself" : "Delete"}
     >
-      <span>
+      <span style={TOOLTIP_TRIGGER_STYLE}>
         <ActionIcon
           aria-label="Delete"
           color="red"
