@@ -10,6 +10,7 @@ export default tseslint.config(
       "coverage/**",
       "dist/**",
       "node_modules/**",
+      ".output/**",
       "playwright-report/**",
       "src/.prisma-client/**",
       "src/routeTree.gen.ts",

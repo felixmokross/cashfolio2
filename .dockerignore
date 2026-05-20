@@ -3,6 +3,8 @@
 **/node_modules
 **/.pnpm-store
 **/dist
+**/.output
+**/.prisma-client
 **/storybook-static
 **/playwright-report
 **/test-results

@@ -9,18 +9,17 @@ WORKDIR /app
 
 ENV NODE_ENV="production"
 
-# Install latest corepack to work around this issue: https://github.com/nodejs/corepack/issues/612
-RUN npm install -g corepack@latest
-
-RUN corepack enable pnpm
-
 FROM base AS build
 
-# Install packages needed to build node modules
+# Install packages needed to generate Prisma client and build the application.
 RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=apt-lists,target=/var/lib/apt/lists,sharing=locked \
     apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
+    apt-get install --no-install-recommends -y openssl
+
+# Install latest corepack to work around this issue: https://github.com/nodejs/corepack/issues/612
+RUN npm install -g corepack@latest
+RUN corepack enable pnpm
 
 # Install node modules
 COPY --link package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -46,7 +45,7 @@ RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt,sharing=locked \
     apt-get install --no-install-recommends -y openssl
 
 # Copy built application
-COPY --from=build /app /app
+COPY --from=build /app/apps/cashfolio-app2/.output .output
 
 EXPOSE 3000
-CMD [ "pnpm", "--filter", "cashfolio-app2", "exec", "vite", "preview", "--host", "0.0.0.0", "--port", "3000" ]
+CMD [ "node", ".output/server/index.mjs" ]
