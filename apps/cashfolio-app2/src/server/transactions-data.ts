@@ -26,42 +26,44 @@ export const getTransactionsData = createServerFn({ method: "GET" })
     await ensureAuthorizedForAccountBookId(data.accountBookId);
     const periodRange = getExplicitPeriodDateRange(data.period);
 
-    const [bookings, openingBalanceTransactionIds, referenceCurrency] =
+    const [transactions, openingBalanceTransactionIds, referenceCurrency] =
       await Promise.all([
-        prisma.booking.findMany({
+        prisma.transaction.findMany({
           where: {
             accountBookId: data.accountBookId,
-            date: {
-              gte: periodRange.from,
-              lt: periodRange.toExclusive,
-            },
-          },
-          orderBy: [
-            { date: "desc" },
-            { transaction: { createdAt: "desc" } },
-            { sortOrder: "asc" },
-            { id: "asc" },
-          ],
-          select: {
-            id: true,
-            date: true,
-            description: true,
-            value: true,
-            unit: true,
-            currency: true,
-            cryptocurrency: true,
-            symbol: true,
-            tradeCurrency: true,
-            transactionId: true,
-            account: {
-              select: {
-                id: true,
-                name: true,
+            bookings: {
+              some: {
+                date: {
+                  gte: periodRange.from,
+                  lt: periodRange.toExclusive,
+                },
               },
             },
-            transaction: {
+          },
+          orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+          select: {
+            id: true,
+            description: true,
+            createdAt: true,
+            bookings: {
+              orderBy: [{ date: "desc" }, { sortOrder: "asc" }, { id: "asc" }],
               select: {
+                id: true,
+                date: true,
                 description: true,
+                value: true,
+                unit: true,
+                currency: true,
+                cryptocurrency: true,
+                symbol: true,
+                tradeCurrency: true,
+                transactionId: true,
+                account: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
           },
@@ -93,6 +95,14 @@ export const getTransactionsData = createServerFn({ method: "GET" })
           })
           .then((accountBook) => accountBook.referenceCurrency.toUpperCase()),
       ]);
+
+    const bookings = transactions.flatMap((transaction) =>
+      transaction.bookings.map((booking) => ({
+        ...booking,
+        transactionDescription: transaction.description,
+        transactionCreatedAt: transaction.createdAt,
+      })),
+    );
 
     const exchangeRateByKey = new Map<string, Promise<number | null>>();
     const convertedValuesInReferenceCurrency = await mapWithConcurrencyLimit(
@@ -127,7 +137,8 @@ export const getTransactionsData = createServerFn({ method: "GET" })
       symbol: booking.symbol,
       tradeCurrency: booking.tradeCurrency,
       transactionId: booking.transactionId,
-      transactionDescription: booking.transaction.description,
+      transactionDescription: booking.transactionDescription,
+      transactionCreatedAt: booking.transactionCreatedAt,
       account: booking.account,
       isOpeningBalancesTransaction: openingBalanceTransactionIds.has(
         booking.transactionId,

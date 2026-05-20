@@ -17,7 +17,7 @@ import { PageShell } from "@/components/page-shell";
 import { TopPageHeader } from "@/components/top-page-header";
 import type { ReactNode } from "react";
 import type { Unit } from "@/.prisma-client/enums";
-import type { TransactionsRow } from "./-page-types";
+import type { TransactionsBookingRow, TransactionsRow } from "./-page-types";
 
 export type TransactionBookingInput = {
   date: string;
@@ -54,6 +54,9 @@ export type TransactionsPageViewProps = {
   accountBookId: string;
   rows: TransactionsRow[];
   columnDefs: NonNullable<AgGridReactProps<TransactionsRow>["columnDefs"]>;
+  detailColumnDefs: NonNullable<
+    AgGridReactProps<TransactionsBookingRow>["columnDefs"]
+  >;
   accountBookStartDate: Date;
   createModalOpened: boolean;
   editModalOpened: boolean;
@@ -101,6 +104,7 @@ export type TransactionsPageViewProps = {
 export function TransactionsPageView({
   rows,
   columnDefs,
+  detailColumnDefs,
   accountBookStartDate,
   createModalOpened,
   editModalOpened,
@@ -164,6 +168,22 @@ export function TransactionsPageView({
         }}
         getRowId={({ data }) => data.id}
         onRowDataUpdated={onRowDataUpdated}
+        masterDetail
+        detailRowAutoHeight
+        detailCellRenderer={({ data }: { data?: TransactionsRow }) => (
+          <div style={{ padding: 12 }}>
+            <DataGrid
+              domLayout="autoHeight"
+              rowData={data?.bookings ?? []}
+              columnDefs={detailColumnDefs}
+              defaultColDef={{
+                sortable: false,
+                suppressHeaderMenuButton: true,
+              }}
+              getRowId={({ data }) => data.id}
+            />
+          </div>
+        )}
       />
 
       <Modal

@@ -175,7 +175,7 @@ export function useTransactionsPageController(args: {
     args.invalidate();
   };
 
-  const columnDefs = useTransactionsColumnDefs({
+  const { columnDefs, detailColumnDefs } = useTransactionsColumnDefs({
     accountBookId: args.accountBookId,
     selectedPeriodValue: args.selectedPeriodValue,
     referenceCurrency: args.loaderData.referenceCurrency,
@@ -188,6 +188,7 @@ export function useTransactionsPageController(args: {
   return {
     rows: args.loaderData.rows,
     columnDefs,
+    detailColumnDefs,
     accountBookStartDate: new Date(args.loaderData.periodBounds.minBookingDate),
     createModalOpened,
     editModalOpened,
