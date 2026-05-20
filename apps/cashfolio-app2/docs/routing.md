@@ -37,9 +37,11 @@ Related docs:
   keys, shows all cached units, and displays cached history charts without live
   provider lookups or account-book context.
 - `admin/users.tsx` - Admin users page listing app-owned database users and
-  supporting app role management. Rows are enriched with Logto Management API
-  identity fields when available while DB rows remain visible if Logto lookup
-  fails or the Logto user is missing.
+  supporting app role management and admin-triggered user deletion. Rows are
+  enriched with Logto Management API identity fields when available while DB
+  rows remain visible if Logto lookup fails or the Logto user is missing.
+  Deletion supports missing Logto users, but rejects while Logto identity lookup
+  is unavailable.
 - `user-settings.tsx` - isolated user settings page for editing Logto-backed
   name/avatar URL and the app-owned locale preference. It accepts a safe
   `returnTo` search parameter so the page can link back to either the Admin UI

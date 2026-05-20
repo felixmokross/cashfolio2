@@ -22,10 +22,16 @@ import { PageShell } from "@/components/page-shell";
 import { TopPageHeader } from "@/components/top-page-header";
 import { useDialogSubmitState } from "@/hooks/use-dialog-submit-state";
 import type { AdminUserListItem } from "@/server/admin-users";
+import { DeleteUserAction, DeleteUserModal } from "./-users-delete-controls";
+import { getIdentityStatusLabel } from "./-users-page-utils";
 
 export type AdminUsersPageViewProps = {
   users: AdminUserListItem[];
   onSubmitRoles: (args: { userId: string; roles: UserRole[] }) => Promise<void>;
+  onDeleteUser: (args: {
+    userId: string;
+    confirmation: string;
+  }) => Promise<void>;
 };
 
 function showRolesSavedNotification() {
@@ -70,12 +76,6 @@ function getInitials(name: string): string {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
-}
-
-function getIdentityStatusLabel(status: AdminUserListItem["identityStatus"]) {
-  if (status === "missing") return "Missing identity";
-  if (status === "unavailable") return "Identity unavailable";
-  return null;
 }
 
 function UserNameCell({ user }: { user: AdminUserListItem }) {
@@ -145,22 +145,25 @@ function formatAdminTimestamp(value: unknown, context: unknown) {
 function UserActionsCell({
   user,
   onManageRoles,
+  onDeleteUser,
 }: {
   user: AdminUserListItem;
   onManageRoles: (user: AdminUserListItem) => void;
+  onDeleteUser: (user: AdminUserListItem) => void;
 }) {
   return (
     <Group gap={4} wrap="nowrap" h="100%" align="center">
-      <Tooltip label="Manage roles">
+      <Tooltip label="Manage Roles">
         <ActionIcon
           variant="subtle"
           size="sm"
           onClick={() => onManageRoles(user)}
-          aria-label="Manage roles"
+          aria-label="Manage Roles"
         >
           <IconUserCog size={16} />
         </ActionIcon>
       </Tooltip>
+      <DeleteUserAction user={user} onDeleteUser={onDeleteUser} />
     </Group>
   );
 }
@@ -172,8 +175,12 @@ function getErrorMessage(error: unknown) {
 export function AdminUsersPageView({
   users,
   onSubmitRoles,
+  onDeleteUser,
 }: AdminUsersPageViewProps) {
   const [managingUser, setManagingUser] = useState<AdminUserListItem | null>(
+    null,
+  );
+  const [deletingUser, setDeletingUser] = useState<AdminUserListItem | null>(
     null,
   );
   const [adminRoleChecked, setAdminRoleChecked] = useState(false);
@@ -253,6 +260,7 @@ export function AdminUsersPageView({
                 setAdminRoleChecked(user.roles.includes(UserRole.ADMIN));
                 setSubmitError(null);
               }}
+              onDeleteUser={setDeletingUser}
             />
           ) : null,
       },
@@ -284,7 +292,7 @@ export function AdminUsersPageView({
           if (isSubmitting) return;
           setManagingUser(null);
         }}
-        title="Manage roles"
+        title="Manage Roles"
         size="md"
         closeOnEscape={!isSubmitting}
         closeOnClickOutside={!isSubmitting}
@@ -351,6 +359,12 @@ export function AdminUsersPageView({
           </Stack>
         ) : null}
       </Modal>
+
+      <DeleteUserModal
+        user={deletingUser}
+        onClose={() => setDeletingUser(null)}
+        onDeleteUser={onDeleteUser}
+      />
     </PageShell>
   );
 }

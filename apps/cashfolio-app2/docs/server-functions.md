@@ -117,8 +117,9 @@ Related docs:
   `GET /api/users` exact-id searches for Admin user-table identity enrichment.
 - User auth guard: `src/auth/functions.server.ts` (`ensureAuthenticated`)
 - User upsert/lookup: `src/users/functions.server.ts`
-- Admin user listing, current-user Admin capability checks, and role management:
-  `src/server/admin-users.ts`
+- Admin user listing, current-user Admin capability checks, role management, and
+  admin-triggered deletion of DB-backed users, including missing Logto
+  identities: `src/server/admin-users.ts`
 - Account-book authorization guard: `src/account-books/functions.server.ts`
 - All account/ledger/transaction server functions enforce account-book access
   before querying/updating data

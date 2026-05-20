@@ -1,10 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { UserRole } from "../.prisma-client/enums";
-import {
-  getLogtoUser,
-  getLogtoUsers,
-  type LogtoManagementUser,
-} from "../auth/logto-management.server";
 import { prisma } from "../prisma.server";
 import { ensureSameOriginRequestFromServerContext } from "../security/same-origin.server";
 import { ensureUser, ensureUserHasRole } from "../users/functions.server";
@@ -13,8 +8,16 @@ import {
   requireArrayField,
   requireStringField,
 } from "./input-validation";
-
-type LogtoIdentityStatus = "available" | "missing" | "unavailable";
+import {
+  deleteAdminUserById,
+  type DeleteAdminUserInput,
+} from "./admin-user-deletion.server";
+import {
+  loadLogtoIdentities,
+  loadLogtoIdentity,
+  type LogtoIdentityResult,
+  type LogtoIdentityStatus,
+} from "./admin-user-identities.server";
 
 export type AdminUserListItem = {
   id: string;
@@ -26,8 +29,14 @@ export type AdminUserListItem = {
   identityStatus: LogtoIdentityStatus;
   roles: UserRole[];
   accountBookCount: number;
+  isCurrentUser: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+type UpdateAdminUserRolesInput = {
+  userId: string;
+  roles: UserRole[];
 };
 
 type AdminUserRecord = {
@@ -41,88 +50,12 @@ type AdminUserRecord = {
   };
 };
 
-type UpdateAdminUserRolesInput = {
-  userId: string;
-  roles: UserRole[];
-};
-
 const USER_ROLES = new Set<string>(Object.values(UserRole));
-
-type LogtoIdentityResult =
-  | {
-      status: "available";
-      displayName: string;
-      email: string | null;
-      username: string | null;
-      avatarUrl: string | null;
-    }
-  | {
-      status: "missing" | "unavailable";
-      displayName: string;
-      email: null;
-      username: null;
-      avatarUrl: null;
-    };
-
-function getUnavailableIdentity(user: AdminUserRecord): LogtoIdentityResult {
-  return {
-    status: "unavailable",
-    displayName: user.externalId,
-    email: null,
-    username: null,
-    avatarUrl: null,
-  };
-}
-
-function getLogtoIdentityResult(
-  user: AdminUserRecord,
-  logtoUser: LogtoManagementUser | null | undefined,
-): LogtoIdentityResult {
-  if (!logtoUser) {
-    return {
-      status: "missing",
-      displayName: user.externalId,
-      email: null,
-      username: null,
-      avatarUrl: null,
-    };
-  }
-
-  return {
-    status: "available",
-    displayName:
-      logtoUser.name ??
-      logtoUser.primaryEmail ??
-      logtoUser.username ??
-      user.externalId,
-    email: logtoUser.primaryEmail,
-    username: logtoUser.username,
-    avatarUrl: logtoUser.avatar,
-  };
-}
-
-function logLogtoIdentityFailure(
-  message: string,
-  error: unknown,
-  context: Record<string, unknown>,
-) {
-  console.warn(message, { ...context, error });
-}
-
-async function loadLogtoIdentity(user: AdminUserRecord) {
-  try {
-    return getLogtoIdentityResult(user, await getLogtoUser(user.externalId));
-  } catch (error) {
-    logLogtoIdentityFailure("Failed to load Logto user identity.", error, {
-      externalId: user.externalId,
-    });
-    return getUnavailableIdentity(user);
-  }
-}
 
 async function toAdminUserListItem(
   user: AdminUserRecord,
   identity?: LogtoIdentityResult,
+  isCurrentUser = false,
 ): Promise<AdminUserListItem> {
   const resolvedIdentity = identity ?? (await loadLogtoIdentity(user));
 
@@ -136,40 +69,10 @@ async function toAdminUserListItem(
     identityStatus: resolvedIdentity.status,
     roles: user.roles,
     accountBookCount: user._count.accountBookLinks,
+    isCurrentUser,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
-}
-
-async function loadLogtoIdentities(
-  users: AdminUserRecord[],
-): Promise<Map<string, LogtoIdentityResult>> {
-  if (users.length === 0) {
-    return new Map();
-  }
-
-  try {
-    const logtoUsersById = await getLogtoUsers(
-      users.map((user) => user.externalId),
-    );
-
-    return new Map(
-      users.map((user) => [
-        user.externalId,
-        getLogtoIdentityResult(user, logtoUsersById.get(user.externalId)),
-      ]),
-    );
-  } catch (error) {
-    logLogtoIdentityFailure(
-      "Failed to load Logto user identities for Admin Users.",
-      error,
-      { userCount: users.length },
-    );
-
-    return new Map(
-      users.map((user) => [user.externalId, getUnavailableIdentity(user)]),
-    );
-  }
 }
 
 export function validateUpdateAdminUserRolesInput(
@@ -193,9 +96,24 @@ export function validateUpdateAdminUserRolesInput(
   return { userId, roles };
 }
 
+export function validateDeleteAdminUserInput(
+  data: unknown,
+): DeleteAdminUserInput {
+  assertRecord(data);
+
+  return {
+    userId: requireStringField(data, "userId", "User id is required."),
+    confirmation: requireStringField(
+      data,
+      "confirmation",
+      "Confirmation is required.",
+    ),
+  };
+}
+
 export const getAdminUsers = createServerFn({ method: "GET" }).handler(
   async (): Promise<AdminUserListItem[]> => {
-    await ensureUserHasRole(UserRole.ADMIN);
+    const currentUser = await ensureUserHasRole(UserRole.ADMIN);
 
     const users = await prisma.user.findMany({
       orderBy: { createdAt: "desc" },
@@ -216,7 +134,11 @@ export const getAdminUsers = createServerFn({ method: "GET" }).handler(
     const identities = await loadLogtoIdentities(users);
     return await Promise.all(
       users.map((user) =>
-        toAdminUserListItem(user, identities.get(user.externalId)),
+        toAdminUserListItem(
+          user,
+          identities.get(user.externalId),
+          user.id === currentUser.id,
+        ),
       ),
     );
   },
@@ -278,5 +200,21 @@ export const updateAdminUserRoles = createServerFn({ method: "POST" })
       },
     });
 
-    return await toAdminUserListItem(updatedUser);
+    return await toAdminUserListItem(
+      updatedUser,
+      undefined,
+      updatedUser.id === currentAdmin.id,
+    );
+  });
+
+export const deleteAdminUser = createServerFn({ method: "POST" })
+  .inputValidator(validateDeleteAdminUserInput)
+  .handler(async ({ data }): Promise<void> => {
+    ensureSameOriginRequestFromServerContext();
+    const currentAdmin = await ensureUserHasRole(UserRole.ADMIN);
+
+    await deleteAdminUserById({
+      currentAdminId: currentAdmin.id,
+      data,
+    });
   });

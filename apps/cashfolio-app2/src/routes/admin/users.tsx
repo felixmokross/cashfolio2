@@ -34,6 +34,20 @@ function AdminUsersPage() {
           });
           await router.invalidate();
         }}
+        onDeleteUser={async ({ userId, confirmation }) => {
+          const { deleteAdminUser } = await import("@/server/admin-users");
+          await deleteAdminUser({
+            data: {
+              userId,
+              confirmation,
+            },
+          });
+          void router.invalidate().catch((error) => {
+            console.warn("Failed to refresh Admin Users after deleting user.", {
+              error,
+            });
+          });
+        }}
       />
     </Suspense>
   );
