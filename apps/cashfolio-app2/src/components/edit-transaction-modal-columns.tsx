@@ -286,6 +286,7 @@ export function createEditTransactionColumnDefs(args: {
       context: { formattedNumeric: { formattedNumericMode: "entry" } },
       aggFunc: "sum",
       width: 105,
+      suppressMovable: true,
       colSpan: ({ context, node }) =>
         node?.rowPinned &&
         getMixedUnitTransactionFooterLabelFromContext(context)
@@ -309,6 +310,7 @@ export function createEditTransactionColumnDefs(args: {
       context: { formattedNumeric: { formattedNumericMode: "entry" } },
       aggFunc: "sum",
       width: 105,
+      suppressMovable: true,
       editable: ({ data }) => {
         if (!data?.account) return true;
         const acct = accounts.find((a) => a.value === data.account);

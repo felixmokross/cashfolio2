@@ -257,6 +257,21 @@ describe("createEditTransactionColumnDefs", () => {
     ).toBeUndefined();
   });
 
+  test("prevents moving the debit and credit columns", () => {
+    const columnDefs = createEditTransactionColumnDefs({
+      accounts,
+      isSubmitting: false,
+      accountBookStartDate: new Date("2026-01-04T00:00:00.000Z"),
+    });
+
+    expect(
+      columnDefs.find((column) => column.field === "debit")?.suppressMovable,
+    ).toBe(true);
+    expect(
+      columnDefs.find((column) => column.field === "credit")?.suppressMovable,
+    ).toBe(true);
+  });
+
   test("spans the debit footer across debit and credit only for mixed transaction footers", () => {
     const columnDefs = createEditTransactionColumnDefs({
       accounts,
