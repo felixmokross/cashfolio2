@@ -39,12 +39,6 @@ describe("createAccountsMutationActions", () => {
   test("creates an account, closes create modal, and invalidates", async () => {
     const invalidate = vi.fn();
 
-    let editingAccount:
-      | { id: string; initialValues: Record<string, unknown> }
-      | undefined;
-    let editingGroup:
-      | { id: string; initialValues: Record<string, unknown> }
-      | undefined;
     let deletingRow:
       | { id: string; nodeType: "account" | "accountGroup"; name: string }
       | undefined;
@@ -53,8 +47,8 @@ describe("createAccountsMutationActions", () => {
       | undefined;
 
     const state = {
-      getEditingAccount: () => editingAccount,
-      getEditingGroup: () => editingGroup,
+      getEditingAccount: () => undefined,
+      getEditingGroup: () => undefined,
       getDeletingRow: () => deletingRow,
       getArchivingRow: () => archivingRow,
       setCreateModalOpened: vi.fn(),

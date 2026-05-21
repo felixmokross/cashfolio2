@@ -70,27 +70,12 @@ describe("createLedgerMutationActions", () => {
       current: undefined,
     };
 
-    let editingTransactionId: string | undefined;
     let deletingTransaction: { id: string; description: string } | undefined;
-    let rebooking:
-      | {
-          bookingId: string;
-          transactionId: string;
-          bookingValue: number;
-          bookingUnit: {
-            unit: Unit | null;
-            currency: string | null;
-            cryptocurrency: string | null;
-            symbol: string | null;
-            tradeCurrency: string | null;
-          };
-        }
-      | undefined;
 
     const state = {
-      getEditingTransactionId: () => editingTransactionId,
+      getEditingTransactionId: () => undefined,
       getDeletingTransaction: () => deletingTransaction,
-      getRebooking: () => rebooking,
+      getRebooking: () => undefined,
       setModalOpened: vi.fn(),
       setSimpleModalOpened: vi.fn(),
       setEditModalOpened: vi.fn(),

@@ -29,7 +29,7 @@ export function ensureSameOriginRequest(
     throw new Response("Forbidden", { status: 403 });
   }
 
-  let refererOrigin = "";
+  let refererOrigin: string;
   try {
     refererOrigin = new URL(referer).origin;
   } catch {

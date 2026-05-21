@@ -211,7 +211,7 @@ async function fetchLogtoAccountApiSafely(
       : await fetchLogtoAccountApi(pathname);
   } catch (error) {
     if (isLogtoAccountApiAccessError(error)) {
-      throw new Error(accountApiAccessMessage);
+      throw new Error(accountApiAccessMessage, { cause: error });
     }
     throw error;
   }
