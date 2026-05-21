@@ -319,20 +319,29 @@ for ledger child routes.
 ## Transactions Page Pattern
 
 The transactions page (`src/routes/$accountBookId/transactions/index.tsx`) shows
-individual bookings across the whole account book, newest first. It is not in a
-single-account context.
+one master row per transaction across the whole account book, newest first. It
+is not in a single-account context. Expanding a master row opens a detail grid
+with the transaction's bookings.
 
-- **Sign convention**: Uses raw booking values; positive values show in Debit
-  and negative values show as positive amounts in Credit.
-- **Columns**: Date, Account, Description, Ccy./Symbol, Debit/Credit in booking
-  unit, Debit/Credit in reference currency, and row actions. No balance column.
+- **Master columns**: Date, Debit Account(s), Credit Account(s), Description,
+  Ccy./Symbol, Amount in reference currency, and transaction actions. The Date
+  is the earliest booking date in the transaction, and the reference amount is
+  the larger absolute converted debit or credit side.
+- **Detail columns**: Date, Account, Description, Ccy./Symbol, Debit/Credit in
+  booking unit, Debit/Credit in reference currency, and booking actions. Detail
+  booking rows intentionally show only the booking description; they do not fall
+  back to the transaction description when the booking description is blank.
+- **Sign convention**: Detail rows use raw booking values; positive values show
+  in Debit and negative values show as positive amounts in Credit.
 - **Period filter**: Uses the same explicit month/year filter control as the
   account ledger, bounded by the account-book start date and the latest booking
-  date. Direct visits default to the current month so the page does not load the
-  whole account book by accident or jump to scheduled future bookings.
+  date. Direct visits default to the current month. If any booking intersects
+  the selected period, the page shows the complete transaction, including
+  bookings outside that period.
 - **Actions**: Add Transaction and Edit open the split transaction editor
-  without a locked current account booking. Rebook excludes the clicked
-  booking's current account.
+  without a locked current account booking. Edit, Copy, and Delete are
+  transaction-level actions on the master row. Rebook is a booking-level action
+  in the detail grid and excludes the clicked booking's current account.
 
 ## Validation Pattern
 

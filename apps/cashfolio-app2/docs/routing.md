@@ -72,9 +72,10 @@ Related docs:
   type: Asset, Liability, Income, Expense)
   - Loader data is tab-scoped: only the selected tab is fetched in the route
     loader critical path.
-- `$accountBookId/transactions/route.tsx` - transactions page showing individual
-  bookings across the account book in reverse-chronological order, with an
-  explicit month/year period filter and booking-level Edit/Rebook/Delete actions
+- `$accountBookId/transactions/route.tsx` - transactions page showing one master
+  row per transaction, with AG Grid Master Detail expansion for the underlying
+  booking rows. The explicit month/year period filter includes a full
+  transaction when any of its bookings intersects the selected period.
 - `$accountBookId/settings/route.tsx` - account-book settings page for editing
   account book name, reference currency, and start date, plus a danger-zone
   delete flow that requires typing the current account-book name
