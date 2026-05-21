@@ -292,6 +292,7 @@ export function EditTransactionModal({
           columnDefs={columnDefs}
           rowDragManaged
           animateRows
+          suppressMovableColumns
           onRowDragEnd={onRowDragEnd}
           defaultColDef={{
             editable: !isSubmitting,
