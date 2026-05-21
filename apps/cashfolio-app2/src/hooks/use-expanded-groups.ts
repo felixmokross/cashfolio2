@@ -24,7 +24,7 @@ export function useExpandedGroups(storageKey: string) {
   const isGroupOpenByDefault = useCallback(
     (params: IsGroupOpenByDefaultParams) => {
       const defaultIsOpen = params.rowNode.level === 0;
-      let stored: string | null = null;
+      let stored: string | null;
       try {
         stored = sessionStorage.getItem(storageKeyRef.current);
       } catch {
