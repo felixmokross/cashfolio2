@@ -65,14 +65,14 @@ function hasFooterAmount(booking: BookingValues): boolean {
 
 export function getMixedUnitTransactionFooterLabel(args: {
   bookings: BookingValues[];
-}): "Mixed" | null {
+}): "Multiple Units" | null {
   let firstUnitIdentifier: string | null = null;
 
   for (const booking of args.bookings) {
     if (!hasFooterAmount(booking)) continue;
 
     const unitIdentifier = getValidFooterUnitIdentifier(booking);
-    if (!unitIdentifier) return "Mixed";
+    if (!unitIdentifier) return "Multiple Units";
 
     if (firstUnitIdentifier == null) {
       firstUnitIdentifier = unitIdentifier;
@@ -80,7 +80,7 @@ export function getMixedUnitTransactionFooterLabel(args: {
     }
 
     if (firstUnitIdentifier !== unitIdentifier) {
-      return "Mixed";
+      return "Multiple Units";
     }
   }
 
@@ -89,7 +89,7 @@ export function getMixedUnitTransactionFooterLabel(args: {
 
 function getMixedUnitTransactionFooterLabelFromContext(
   context: CustomCellRendererProps["context"],
-): "Mixed" | null {
+): "Multiple Units" | null {
   const bookings = context?.form?.values?.bookings;
   if (!Array.isArray(bookings)) return null;
 

@@ -114,7 +114,7 @@ describe("createEditTransactionColumnDefs", () => {
           },
         ],
       }),
-    ).toBe("Mixed");
+    ).toBe("Multiple Units");
   });
 
   test("detects debit-side-only and credit-side-only mixed units as mixed transaction footers", () => {
@@ -129,10 +129,10 @@ describe("createEditTransactionColumnDefs", () => {
 
     expect(
       getMixedUnitTransactionFooterLabel({ bookings: mixedDebitBookings }),
-    ).toBe("Mixed");
+    ).toBe("Multiple Units");
     expect(
       getMixedUnitTransactionFooterLabel({ bookings: mixedCreditBookings }),
-    ).toBe("Mixed");
+    ).toBe("Multiple Units");
   });
 
   test("treats matching displayed currency with different unit identities as mixed", () => {
@@ -154,7 +154,7 @@ describe("createEditTransactionColumnDefs", () => {
           },
         ],
       }),
-    ).toBe("Mixed");
+    ).toBe("Multiple Units");
   });
 
   test("ignores rows without debit or credit amounts", () => {
@@ -194,7 +194,7 @@ describe("createEditTransactionColumnDefs", () => {
           },
         ],
       }),
-    ).toBe("Mixed");
+    ).toBe("Multiple Units");
   });
 
   test("uses one merged mixed marker only for mixed pinned transaction footers", () => {
@@ -238,7 +238,7 @@ describe("createEditTransactionColumnDefs", () => {
       context: { form: { values: { bookings: mixedBookings } } },
       node: { rowPinned: "bottom" },
     } as never);
-    expect(mixedRenderer?.component()).toBe("Mixed");
+    expect(mixedRenderer?.component()).toBe("Multiple Units");
 
     expect(creditColumn?.cellRendererSelector).toBeUndefined();
 
