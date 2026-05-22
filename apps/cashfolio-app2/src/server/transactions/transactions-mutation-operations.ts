@@ -1,6 +1,7 @@
 import { prisma } from "../../prisma.server";
 import { AccountType, EquityAccountSubtype } from "../../.prisma-client/enums";
 import { getSimpleTransactionUnitIdentifier } from "../../shared/account-utils";
+import { parseUtcDayDate } from "../../shared/date";
 import { toMoneyNumber } from "../../shared/money";
 import { OPENING_BALANCES_MANAGEMENT_MESSAGE } from "../../shared/opening-balances";
 import { validateRebookGainLossSimpleTransactionInvariant } from "./rebook-gain-loss-validation";
@@ -69,7 +70,7 @@ export async function updateTransactionOperation(data: UpdateTransactionInput) {
         description: data.description,
         bookings: {
           create: data.bookings.map((b, sortOrder) => ({
-            date: new Date(b.date),
+            date: parseUtcDayDate(b.date) ?? new Date(b.date),
             description: b.description,
             account: {
               connect: {
@@ -121,10 +122,10 @@ export async function createSimpleTransactionOperation(
     throw new Error("Date is required.");
   }
 
-  const bookingDate = new Date(data.date);
+  const bookingDate = parseUtcDayDate(data.date);
 
-  if (isNaN(bookingDate.getTime())) {
-    throw new Error("Date is invalid.");
+  if (!bookingDate) {
+    throw new Error("Date must be a valid UTC day.");
   }
 
   if (data.accountId === data.counterAccountId) {

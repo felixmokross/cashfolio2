@@ -1,6 +1,11 @@
 import { createId } from "@paralleldrive/cuid2";
 import { min } from "date-fns";
 import type { Unit } from "../.prisma-client/enums";
+import {
+  createDateInputValueFromUtcDay,
+  formatDateInputValueAsUtcDayIsoString,
+  normalizeDateInputValueToUtcDay,
+} from "../shared/date";
 import type {
   AccountOption,
   BookingValues,
@@ -20,10 +25,16 @@ export function createTransactionFormInitialValues(args: {
       ?.map((booking) => booking.date)
       .filter(
         (date): date is NonNullable<BookingValues["date"]> => date != null,
-      ) ?? [];
+      )
+      .map((date) => normalizeDateInputValueToUtcDay(date))
+      .filter((date): date is Date => date != null) ?? [];
+  const initialDate =
+    initialBookingDates.length > 0
+      ? (createDateInputValueFromUtcDay(min(initialBookingDates)) ?? undefined)
+      : undefined;
 
   return {
-    date: initialBookingDates.length > 0 ? min(initialBookingDates) : undefined,
+    date: initialDate,
     description: args.initialValues?.description,
     bookings: args.initialValues?.bookings?.map((b) => ({
       ...b,
@@ -71,12 +82,7 @@ export function toTransactionSubmitBookings(bookings: BookingValues[]): {
   value: number;
 }[] {
   return bookings.map((booking) => ({
-    date:
-      booking.date &&
-      typeof booking.date === "object" &&
-      "toISOString" in booking.date
-        ? (booking.date as Date).toISOString()
-        : String(booking.date ?? ""),
+    date: formatDateInputValueAsUtcDayIsoString(booking.date),
     accountId: booking.account ?? "",
     description: booking.description ?? "",
     unit: booking.unit!,

@@ -1,4 +1,3 @@
-import { isSameDay } from "date-fns";
 import {
   AccountType,
   EquityAccountSubtype,
@@ -16,6 +15,11 @@ import {
   getUnitDisplayDecimals,
 } from "@/shared/unit-format";
 import { DEFAULT_USER_LOCALE } from "@/user-locale";
+import {
+  createDateInputValueFromUtcDay,
+  isSameUtcDay,
+  parseUtcDayDate,
+} from "@/shared/date";
 import type { LedgerAccount } from "./-page-types";
 
 export type LedgerAccountKindBadgeProps = {
@@ -250,14 +254,12 @@ export function deriveSimpleTransactionEditState(args: {
   if (!first.date || !second.date) {
     return ineligible("Simple edit requires both bookings to have a date.");
   }
-  const firstDate = new Date(first.date);
-  const secondDate = new Date(second.date);
-  if (isNaN(firstDate.getTime()) || isNaN(secondDate.getTime())) {
+  const firstDate = parseUtcDayDate(first.date);
+  const secondDate = parseUtcDayDate(second.date);
+  if (!firstDate || !secondDate) {
     return ineligible("Simple edit requires valid booking dates.");
   }
-  // Booking semantics are day-granular in this app; time-of-day is not
-  // significant for eligibility or editing behavior.
-  if (!isSameDay(firstDate, secondDate)) {
+  if (!isSameUtcDay(firstDate, secondDate)) {
     return ineligible(
       "Simple edit requires both bookings to have the same date.",
     );
@@ -330,7 +332,7 @@ export function deriveSimpleTransactionEditState(args: {
     eligible: true,
     disabledReason: null,
     initialValues: {
-      date: firstDate,
+      date: createDateInputValueFromUtcDay(firstDate) ?? firstDate,
       description: args.transaction.description ?? "",
       counterAccountId: counterBooking.account,
       amount,

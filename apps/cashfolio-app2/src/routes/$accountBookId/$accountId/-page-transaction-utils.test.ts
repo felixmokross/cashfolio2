@@ -28,6 +28,21 @@ describe("normalizeSimpleDraft", () => {
     expect(result.date).toBe("2026-02-10T00:00:00.000Z");
   });
 
+  test("serializes DateInput draft dates as canonical UTC days", () => {
+    const result = normalizeSimpleDraft({
+      draft: {
+        date: new Date(2026, 4, 18),
+        description: "Draft description",
+        counterAccountId: "counter-1",
+        amount: 10,
+        direction: "CREDIT",
+      },
+      fallback,
+    });
+
+    expect(result.date).toBe("2026-05-18T00:00:00.000Z");
+  });
+
   test("falls back to the fallback date when draft date is invalid", () => {
     const result = normalizeSimpleDraft({
       draft: {
@@ -41,6 +56,24 @@ describe("normalizeSimpleDraft", () => {
     });
 
     expect(result.date).toBe(fallback.date.toISOString());
+  });
+
+  test("serializes DateInput fallback dates as canonical UTC days", () => {
+    const result = normalizeSimpleDraft({
+      draft: {
+        date: "not-a-date",
+        description: "Draft description",
+        counterAccountId: "counter-1",
+        amount: 10,
+        direction: "CREDIT",
+      },
+      fallback: {
+        ...fallback,
+        date: new Date(2026, 4, 18),
+      },
+    });
+
+    expect(result.date).toBe("2026-05-18T00:00:00.000Z");
   });
 });
 

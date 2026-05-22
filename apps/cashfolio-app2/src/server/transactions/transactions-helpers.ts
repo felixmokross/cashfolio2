@@ -7,7 +7,11 @@ import {
 import { isBefore } from "date-fns";
 import { getUnitIdentifier } from "../../shared/account-utils";
 import { validateGainLossSimpleTransactionInvariant } from "../../shared/gain-loss-transaction-invariant";
-import { formatUtcDate, startOfUtcDay } from "../../shared/date";
+import {
+  formatUtcDate,
+  parseUtcDayDate,
+  startOfUtcDay,
+} from "../../shared/date";
 import {
   getBookingUnitFields,
   type BookingUnitFieldsSource,
@@ -24,9 +28,9 @@ export function validateCreateTransaction(input: CreateTransactionInput) {
 
   for (let i = 0; i < input.bookings.length; i++) {
     const b = input.bookings[i];
-    const date = new Date(b.date);
-    if (isNaN(date.getTime())) {
-      errors.push(`Booking ${i}: invalid date.`);
+    const date = parseUtcDayDate(b.date);
+    if (!date) {
+      errors.push(`Booking ${i}: date must be a valid UTC day.`);
     }
 
     if (!b.accountId) {
@@ -169,9 +173,9 @@ export function validateAccountTypeBookingsWithAccounts(
       continue;
     }
 
-    const bookingDate = new Date(b.date);
-    if (isNaN(bookingDate.getTime())) {
-      errors.push(`Booking ${i}: invalid date.`);
+    const bookingDate = parseUtcDayDate(b.date);
+    if (!bookingDate) {
+      errors.push(`Booking ${i}: date must be a valid UTC day.`);
       continue;
     }
 
@@ -194,7 +198,7 @@ export function buildTransactionCreateData(input: CreateTransactionInput) {
     accountBookId: input.accountBookId,
     bookings: {
       create: input.bookings.map((booking, sortOrder) => ({
-        date: new Date(booking.date),
+        date: parseUtcDayDate(booking.date) ?? new Date(booking.date),
         description: booking.description,
         account: {
           connect: {

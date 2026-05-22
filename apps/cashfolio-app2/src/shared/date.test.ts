@@ -1,12 +1,16 @@
 import { describe, expect, test } from "vitest";
 import {
+  createDateInputValueFromUtcDay,
   formatUtcDateForLocale,
+  formatDateInputValueAsUtcDayIsoString,
   getDateInputValueFormat,
   formatUtcDate,
   getUtcDayRange,
   getOpeningBalancesBookingDate,
   MILLISECONDS_PER_DAY,
   normalizeDateInputValue,
+  normalizeDateInputValueToUtcDay,
+  parseUtcDayDate,
   isSameUtcDay,
   startOfUtcDay,
   startOfUtcMonth,
@@ -88,6 +92,44 @@ describe("shared/date", () => {
     expect(fromDate?.toISOString()).toBe("2026-04-20T00:00:00.000Z");
     expect(fromIsoString?.toISOString()).toBe("2026-04-20T00:00:00.000Z");
     expect(fromYyyyMmDd?.toISOString()).toBe("2026-04-20T00:00:00.000Z");
+  });
+
+  test("normalizes DateInput Date instances by local calendar day", () => {
+    const dateInputValue = new Date(2026, 4, 18, 0, 0, 0, 0);
+
+    expect(normalizeDateInputValueToUtcDay(dateInputValue)?.toISOString()).toBe(
+      "2026-05-18T00:00:00.000Z",
+    );
+    expect(formatDateInputValueAsUtcDayIsoString(dateInputValue)).toBe(
+      "2026-05-18T00:00:00.000Z",
+    );
+  });
+
+  test("normalizes strings by UTC day", () => {
+    expect(
+      normalizeDateInputValueToUtcDay(
+        "2026-05-18T22:30:00.000Z",
+      )?.toISOString(),
+    ).toBe("2026-05-18T00:00:00.000Z");
+  });
+
+  test("parses only canonical UTC day values", () => {
+    expect(parseUtcDayDate("2026-05-18")?.toISOString()).toBe(
+      "2026-05-18T00:00:00.000Z",
+    );
+    expect(parseUtcDayDate("2026-05-18T00:00:00.000Z")?.toISOString()).toBe(
+      "2026-05-18T00:00:00.000Z",
+    );
+    expect(parseUtcDayDate("2026-05-18T22:00:00.000Z")).toBeNull();
+    expect(parseUtcDayDate("2026-02-31T00:00:00.000Z")).toBeNull();
+  });
+
+  test("creates DateInput values from UTC days by local calendar day", () => {
+    const result = createDateInputValueFromUtcDay("2026-05-18T00:00:00.000Z");
+
+    expect(result?.getFullYear()).toBe(2026);
+    expect(result?.getMonth()).toBe(4);
+    expect(result?.getDate()).toBe(18);
   });
 
   test("normalizeDateInputValue parses display-format strings and rejects invalid values", () => {
