@@ -4,6 +4,7 @@ set -eu
 
 MAX_ATTEMPTS=6
 ATTEMPT=1
+RUNTIME_PRISMA_CLI="/app/node_modules/.bin/prisma"
 
 delay_for_attempt() {
   case "$1" in
@@ -36,12 +37,30 @@ is_definitely_non_transient_reachability_error() {
   return 1
 }
 
+run_prisma_migrate_deploy() {
+  if command -v pnpm >/dev/null 2>&1; then
+    pnpm --filter cashfolio-app2 exec prisma migrate deploy
+    return
+  fi
+
+  if [ -x "$RUNTIME_PRISMA_CLI" ]; then
+    (
+      cd /app/apps/cashfolio-app2
+      "$RUNTIME_PRISMA_CLI" migrate deploy
+    )
+    return
+  fi
+
+  printf '%s\n' "Unable to find Prisma CLI. Expected pnpm in development or $RUNTIME_PRISMA_CLI in the Docker runtime." >&2
+  return 127
+}
+
 while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
   printf '{"event":"prisma_migrate_deploy_attempt","attempt":%s,"max":%s}\n' "$ATTEMPT" "$MAX_ATTEMPTS"
 
   OUTPUT_FILE="$(mktemp)"
   set +e
-  pnpm --filter cashfolio-app2 exec prisma migrate deploy >"$OUTPUT_FILE" 2>&1
+  run_prisma_migrate_deploy >"$OUTPUT_FILE" 2>&1
   STATUS="$?"
   set -e
 

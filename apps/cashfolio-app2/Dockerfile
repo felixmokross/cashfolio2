@@ -1,6 +1,8 @@
 # syntax = docker/dockerfile:1
 
 ARG NODE_VERSION=24
+ARG DOTENV_VERSION=17.4.2
+ARG PRISMA_VERSION=7.8.0
 FROM node:${NODE_VERSION}-slim AS base
 
 LABEL fly_launch_runtime="TanStack Start"
@@ -36,6 +38,15 @@ RUN pnpm --filter cashfolio-app2 prisma:generate
 # Build application
 RUN pnpm --filter cashfolio-app2 build
 
+FROM base AS migration-tools
+
+ARG DOTENV_VERSION
+ARG PRISMA_VERSION
+
+RUN npm install --omit=dev --no-audit --no-fund \
+    dotenv@${DOTENV_VERSION} \
+    prisma@${PRISMA_VERSION}
+
 FROM base
 
 # Install openssl needed to run Prisma
@@ -46,6 +57,12 @@ RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt,sharing=locked \
 
 # Copy built application
 COPY --from=build /app/apps/cashfolio-app2/.output .output
+
+# Copy the minimal release-command payload for Prisma migrations.
+COPY --from=migration-tools /app/node_modules node_modules
+COPY --from=build /app/apps/cashfolio-app2/prisma apps/cashfolio-app2/prisma
+COPY --from=build /app/apps/cashfolio-app2/prisma.config.ts apps/cashfolio-app2/prisma.config.ts
+COPY --from=build /app/apps/cashfolio-app2/scripts/prisma-migrate-deploy-with-retry.sh apps/cashfolio-app2/scripts/prisma-migrate-deploy-with-retry.sh
 
 EXPOSE 3000
 CMD [ "node", ".output/server/index.mjs" ]

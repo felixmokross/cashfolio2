@@ -20,7 +20,9 @@ On pull requests (non-forks), CI now:
    generated per deploy in CI
 6. Deploys the PR image to
    `https://cashfolio-app2-pr-<PR_NUMBER>-<FLY_BRANCH_TAIL_SLUG>.fly.dev/`
-7. Posts/updates a PR comment with the dynamic preview URL
+7. Runs the Fly release command from the deployed image to apply Prisma
+   migrations before the app Machines update
+8. Posts/updates a PR comment with the dynamic preview URL
 
 Preview deployment is gated by the app image build. Preview resource preparation
 runs inside the same environment-scoped deployment job that deploys the app.
