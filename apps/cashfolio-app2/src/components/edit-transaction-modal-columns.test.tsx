@@ -1,8 +1,14 @@
 import { describe, expect, test } from "vitest";
 import { AccountType, Unit } from "../.prisma-client/enums";
 import { ACCOUNT_TREE_SELECT_COLUMN, SELECT_COLUMN } from "./column-types";
-import { createEditTransactionColumnDefs } from "./edit-transaction-modal-columns";
-import type { AccountOption } from "./edit-transaction-modal-types";
+import {
+  createEditTransactionColumnDefs,
+  getMixedUnitTransactionFooterLabel,
+} from "./edit-transaction-modal-columns";
+import type {
+  AccountOption,
+  BookingValues,
+} from "./edit-transaction-modal-types";
 
 const accounts: AccountOption[] = [
   {
@@ -67,5 +73,240 @@ describe("createEditTransactionColumnDefs", () => {
       group: "Used",
       items: [{ value: "BTC", label: "BTC" }],
     });
+  });
+
+  test("detects same-unit transaction footers as numeric totals", () => {
+    expect(
+      getMixedUnitTransactionFooterLabel({
+        bookings: [
+          {
+            key: "row-1",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            debit: 10,
+          },
+          {
+            key: "row-2",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            credit: 20,
+          },
+        ],
+      }),
+    ).toBeNull();
+  });
+
+  test("detects mixed units across debit and credit as a mixed transaction footer", () => {
+    expect(
+      getMixedUnitTransactionFooterLabel({
+        bookings: [
+          {
+            key: "row-1",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            debit: 10,
+          },
+          {
+            key: "row-2",
+            unit: Unit.CURRENCY,
+            currency: "USD",
+            credit: 20,
+          },
+        ],
+      }),
+    ).toBe("Multiple Units");
+  });
+
+  test("detects debit-side-only and credit-side-only mixed units as mixed transaction footers", () => {
+    const mixedDebitBookings: BookingValues[] = [
+      { key: "row-1", unit: Unit.CURRENCY, currency: "CHF", debit: 10 },
+      { key: "row-2", unit: Unit.CURRENCY, currency: "USD", debit: 20 },
+    ];
+    const mixedCreditBookings: BookingValues[] = [
+      { key: "row-1", unit: Unit.CURRENCY, currency: "CHF", credit: 10 },
+      { key: "row-2", unit: Unit.CURRENCY, currency: "USD", credit: 20 },
+    ];
+
+    expect(
+      getMixedUnitTransactionFooterLabel({ bookings: mixedDebitBookings }),
+    ).toBe("Multiple Units");
+    expect(
+      getMixedUnitTransactionFooterLabel({ bookings: mixedCreditBookings }),
+    ).toBe("Multiple Units");
+  });
+
+  test("treats matching displayed currency with different unit identities as mixed", () => {
+    expect(
+      getMixedUnitTransactionFooterLabel({
+        bookings: [
+          {
+            key: "row-1",
+            unit: Unit.CURRENCY,
+            currency: "USD",
+            debit: 10,
+          },
+          {
+            key: "row-2",
+            unit: Unit.SECURITY,
+            symbol: "AAPL",
+            tradeCurrency: "USD",
+            debit: 1,
+          },
+        ],
+      }),
+    ).toBe("Multiple Units");
+  });
+
+  test("ignores rows without debit or credit amounts", () => {
+    expect(
+      getMixedUnitTransactionFooterLabel({
+        bookings: [
+          {
+            key: "row-1",
+            unit: Unit.CURRENCY,
+            currency: "USD",
+          },
+          {
+            key: "row-2",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            debit: 10,
+          },
+        ],
+      }),
+    ).toBeNull();
+  });
+
+  test("treats amount rows with missing unit identity as mixed", () => {
+    expect(
+      getMixedUnitTransactionFooterLabel({
+        bookings: [
+          {
+            key: "row-1",
+            unit: Unit.CURRENCY,
+            debit: 0,
+          },
+          {
+            key: "row-2",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            debit: 10,
+          },
+        ],
+      }),
+    ).toBe("Multiple Units");
+  });
+
+  test("uses one merged mixed marker only for mixed pinned transaction footers", () => {
+    const columnDefs = createEditTransactionColumnDefs({
+      accounts,
+      isSubmitting: false,
+      accountBookStartDate: new Date("2026-01-04T00:00:00.000Z"),
+    });
+    const debitColumn = columnDefs.find((column) => column.field === "debit");
+    const creditColumn = columnDefs.find((column) => column.field === "credit");
+    const mixedBookings: BookingValues[] = [
+      {
+        key: "row-1",
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        debit: 10,
+      },
+      {
+        key: "row-2",
+        unit: Unit.CURRENCY,
+        currency: "USD",
+        debit: 20,
+      },
+    ];
+    const sameUnitBookings: BookingValues[] = [
+      {
+        key: "row-1",
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        debit: 10,
+      },
+      {
+        key: "row-2",
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        debit: 20,
+      },
+    ];
+
+    const mixedRenderer = debitColumn?.cellRendererSelector?.({
+      context: { form: { values: { bookings: mixedBookings } } },
+      node: { rowPinned: "bottom" },
+    } as never);
+    expect(mixedRenderer?.component()).toBe("Multiple Units");
+
+    expect(creditColumn?.cellRendererSelector).toBeUndefined();
+
+    expect(
+      debitColumn?.cellRendererSelector?.({
+        context: { form: { values: { bookings: sameUnitBookings } } },
+        node: { rowPinned: "bottom" },
+      } as never),
+    ).toBeUndefined();
+
+    expect(
+      debitColumn?.cellRendererSelector?.({
+        context: { form: { values: { bookings: mixedBookings } } },
+        node: { rowPinned: undefined },
+      } as never),
+    ).toBeUndefined();
+  });
+
+  test("prevents moving the debit and credit columns", () => {
+    const columnDefs = createEditTransactionColumnDefs({
+      accounts,
+      isSubmitting: false,
+      accountBookStartDate: new Date("2026-01-04T00:00:00.000Z"),
+    });
+
+    expect(
+      columnDefs.find((column) => column.field === "debit")?.suppressMovable,
+    ).toBe(true);
+    expect(
+      columnDefs.find((column) => column.field === "credit")?.suppressMovable,
+    ).toBe(true);
+  });
+
+  test("spans the debit footer across debit and credit only for mixed transaction footers", () => {
+    const columnDefs = createEditTransactionColumnDefs({
+      accounts,
+      isSubmitting: false,
+      accountBookStartDate: new Date("2026-01-04T00:00:00.000Z"),
+    });
+    const debitColumn = columnDefs.find((column) => column.field === "debit");
+    const mixedBookings: BookingValues[] = [
+      { key: "row-1", unit: Unit.CURRENCY, currency: "CHF", debit: 10 },
+      { key: "row-2", unit: Unit.CURRENCY, currency: "USD", credit: 20 },
+    ];
+    const sameUnitBookings: BookingValues[] = [
+      { key: "row-1", unit: Unit.CURRENCY, currency: "CHF", debit: 10 },
+      { key: "row-2", unit: Unit.CURRENCY, currency: "CHF", credit: 20 },
+    ];
+
+    expect(
+      debitColumn?.colSpan?.({
+        context: { form: { values: { bookings: mixedBookings } } },
+        node: { rowPinned: "bottom" },
+      } as never),
+    ).toBe(2);
+
+    expect(
+      debitColumn?.colSpan?.({
+        context: { form: { values: { bookings: sameUnitBookings } } },
+        node: { rowPinned: "bottom" },
+      } as never),
+    ).toBe(1);
+
+    expect(
+      debitColumn?.colSpan?.({
+        context: { form: { values: { bookings: mixedBookings } } },
+        node: { rowPinned: undefined },
+      } as never),
+    ).toBe(1);
   });
 });

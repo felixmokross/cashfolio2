@@ -5,6 +5,7 @@ import { IconTrash, IconX } from "@tabler/icons-react";
 import { Unit } from "../.prisma-client/enums";
 import type { AccountBookUnitUsage } from "../shared/account-book-unit-usage";
 import {
+  getUnitIdentifier,
   isExpenseAccount,
   isIncomeAccount,
   isOpeningBalancesAccount,
@@ -39,6 +40,73 @@ export function isEditableCell(params: CellClassParams) {
   }
 
   return true;
+}
+
+function getValidFooterUnitIdentifier(booking: BookingValues): string | null {
+  if (!booking.unit) return null;
+
+  if (booking.unit === Unit.CURRENCY && !booking.currency) return null;
+  if (booking.unit === Unit.CRYPTOCURRENCY && !booking.cryptocurrency) {
+    return null;
+  }
+  if (booking.unit === Unit.SECURITY && !booking.symbol) return null;
+
+  return getUnitIdentifier({
+    unit: booking.unit,
+    currency: booking.currency,
+    cryptocurrency: booking.cryptocurrency,
+    symbol: booking.symbol,
+  });
+}
+
+function hasFooterAmount(booking: BookingValues): boolean {
+  return booking.debit != null || booking.credit != null;
+}
+
+export function getMixedUnitTransactionFooterLabel(args: {
+  bookings: BookingValues[];
+}): "Multiple Units" | null {
+  let firstUnitIdentifier: string | null = null;
+
+  for (const booking of args.bookings) {
+    if (!hasFooterAmount(booking)) continue;
+
+    const unitIdentifier = getValidFooterUnitIdentifier(booking);
+    if (!unitIdentifier) return "Multiple Units";
+
+    if (firstUnitIdentifier == null) {
+      firstUnitIdentifier = unitIdentifier;
+      continue;
+    }
+
+    if (firstUnitIdentifier !== unitIdentifier) {
+      return "Multiple Units";
+    }
+  }
+
+  return null;
+}
+
+function getMixedUnitTransactionFooterLabelFromContext(
+  context: CustomCellRendererProps["context"],
+): "Multiple Units" | null {
+  const bookings = context?.form?.values?.bookings;
+  if (!Array.isArray(bookings)) return null;
+
+  return getMixedUnitTransactionFooterLabel({ bookings });
+}
+
+function createMixedUnitTransactionFooterCellRendererSelector() {
+  return ({ context, node }: CustomCellRendererProps) => {
+    if (!node.rowPinned) return undefined;
+
+    const label = getMixedUnitTransactionFooterLabelFromContext(context);
+    return label
+      ? {
+          component: () => label,
+        }
+      : undefined;
+  };
 }
 
 export function createEditTransactionColumnDefs(args: {
@@ -218,6 +286,14 @@ export function createEditTransactionColumnDefs(args: {
       context: { formattedNumeric: { formattedNumericMode: "entry" } },
       aggFunc: "sum",
       width: 105,
+      suppressMovable: true,
+      colSpan: ({ context, node }) =>
+        node?.rowPinned &&
+        getMixedUnitTransactionFooterLabelFromContext(context)
+          ? 2
+          : 1,
+      cellRendererSelector:
+        createMixedUnitTransactionFooterCellRendererSelector(),
       editable: ({ data }) => {
         if (!data?.account) return true;
         const acct = accounts.find((a) => a.value === data.account);
@@ -234,6 +310,7 @@ export function createEditTransactionColumnDefs(args: {
       context: { formattedNumeric: { formattedNumericMode: "entry" } },
       aggFunc: "sum",
       width: 105,
+      suppressMovable: true,
       editable: ({ data }) => {
         if (!data?.account) return true;
         const acct = accounts.find((a) => a.value === data.account);
