@@ -20,7 +20,8 @@ RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt,sharing=locked \
     apt-get update -qq && \
     apt-get install --no-install-recommends -y openssl
 
-# Install latest corepack to work around this issue: https://github.com/nodejs/corepack/issues/612
+# npm is used only to refresh Corepack before pnpm is available.
+# This works around Corepack signature issues: https://github.com/nodejs/corepack/issues/612
 RUN npm install -g corepack@latest
 RUN corepack enable pnpm
 
@@ -45,6 +46,7 @@ ARG DOTENV_VERSION
 ARG PNPM_VERSION
 ARG PRISMA_VERSION
 
+# npm is used only to refresh Corepack before pnpm is available.
 RUN npm install -g corepack@latest
 RUN corepack enable pnpm && corepack prepare pnpm@${PNPM_VERSION} --activate
 RUN pnpm add --prod \
