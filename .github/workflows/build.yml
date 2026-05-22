@@ -320,7 +320,7 @@ jobs:
         run: pnpm --filter cashfolio-app2 build-storybook
       - name: Publish Storybook to Chromatic
         id: publish-chromatic
-        uses: chromaui/action@v16
+        uses: chromaui/action@v17
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           storybookBuildDir: apps/cashfolio-app2/storybook-static
