@@ -69,6 +69,7 @@ type TransactionsData = Awaited<
   ReturnType<TransactionsServerModule["getTransactionsData"]>
 >;
 export type TransactionsRow = TransactionsData["rows"][number];
+export type TransactionsBookingRow = TransactionsRow["bookings"][number];
 export type TransactionsAccountOptionSource = Awaited<
   ReturnType<AccountsServerModule["getAccounts"]>
 >[number];

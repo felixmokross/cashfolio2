@@ -15,29 +15,34 @@ import {
 import { LinkAnchor } from "@/components/link-anchor";
 import { OPENING_BALANCES_MANAGEMENT_MESSAGE } from "@/shared/opening-balances";
 import { getCurrencyDecimals } from "@/shared/unit-format";
-import type { TransactionsRow } from "./-page-types";
+import type { TransactionsBookingRow, TransactionsRow } from "./-page-types";
+
+type RebookClickArgs = {
+  bookingId: string;
+  transactionId: string;
+  currentAccountId: string;
+  bookingValue: number;
+  bookingUnit: {
+    unit: Unit | null;
+    currency: string | null;
+    cryptocurrency: string | null;
+    symbol: string | null;
+    tradeCurrency: string | null;
+  };
+};
 
 export function useTransactionsColumnDefs(args: {
   accountBookId: string;
   selectedPeriodValue?: string;
   referenceCurrency: string;
   onEditClick: (transactionId: string) => void;
-  onRebookClick: (args: {
-    bookingId: string;
-    transactionId: string;
-    currentAccountId: string;
-    bookingValue: number;
-    bookingUnit: {
-      unit: Unit | null;
-      currency: string | null;
-      cryptocurrency: string | null;
-      symbol: string | null;
-      tradeCurrency: string | null;
-    };
-  }) => void;
+  onRebookClick: (args: RebookClickArgs) => void;
   onCopyClick: (transactionId: string) => void;
   onDeleteClick: (transactionId: string, description: string) => void;
-}): ColDef<TransactionsRow>[] {
+}): {
+  columnDefs: ColDef<TransactionsRow>[];
+  detailColumnDefs: ColDef<TransactionsBookingRow>[];
+} {
   const {
     accountBookId,
     selectedPeriodValue,
@@ -48,11 +53,37 @@ export function useTransactionsColumnDefs(args: {
     onDeleteClick,
   } = args;
 
-  return useMemo<ColDef<TransactionsRow>[]>(() => {
+  return useMemo(() => {
     const referenceCurrencyDisplayDecimals =
       getCurrencyDecimals(referenceCurrency);
 
-    return [
+    const accountSearch = (transactionId: string) => ({
+      transactionId,
+      period: selectedPeriodValue,
+    });
+
+    const renderAccountLinks = (
+      accounts: Array<{ id: string; name: string }> | null | undefined,
+      transactionId: string,
+    ) => {
+      if (!accounts?.length) return null;
+
+      return accounts.map((account, index) => (
+        <span key={account.id}>
+          {index > 0 && ", "}
+          <LinkAnchor
+            to="/$accountBookId/$accountId"
+            params={{ accountBookId, accountId: account.id }}
+            search={accountSearch(transactionId)}
+            size="sm"
+          >
+            {account.name}
+          </LinkAnchor>
+        </span>
+      ));
+    };
+
+    const detailColumnDefs: ColDef<TransactionsBookingRow>[] = [
       {
         field: "date",
         headerName: "Date",
@@ -67,18 +98,15 @@ export function useTransactionsColumnDefs(args: {
           value,
           data,
         }: ICellRendererParams<
-          TransactionsRow,
-          TransactionsRow["account"]
+          TransactionsBookingRow,
+          TransactionsBookingRow["account"]
         >) => {
           if (!value || !data) return null;
           return (
             <LinkAnchor
               to="/$accountBookId/$accountId"
               params={{ accountBookId, accountId: value.id }}
-              search={{
-                transactionId: data.transactionId,
-                period: selectedPeriodValue,
-              }}
+              search={accountSearch(data.transactionId)}
               size="sm"
             >
               {value.name}
@@ -98,7 +126,7 @@ export function useTransactionsColumnDefs(args: {
         headerName: "Ccy./Symbol",
         width: 130,
         filter: true,
-        valueGetter: ({ data }: { data?: TransactionsRow }) => {
+        valueGetter: ({ data }: { data?: TransactionsBookingRow }) => {
           if (!data) return null;
           switch (data.unit) {
             case Unit.CURRENCY:
@@ -153,7 +181,129 @@ export function useTransactionsColumnDefs(args: {
       {
         colId: "actions",
         headerName: "",
+        width: 70,
+        sortable: false,
+        filter: false,
+        resizable: false,
+        suppressHeaderMenuButton: true,
+        cellClass: "actions-cell",
+        cellRenderer: ({
+          data,
+        }: ICellRendererParams<TransactionsBookingRow>) => {
+          if (!data) return null;
+          const isOpeningBalancesTransaction =
+            data.isOpeningBalancesTransaction;
+          return (
+            <Group gap={4} wrap="nowrap" h="100%" align="center">
+              <Tooltip
+                label={
+                  isOpeningBalancesTransaction
+                    ? OPENING_BALANCES_MANAGEMENT_MESSAGE
+                    : "Rebook"
+                }
+              >
+                <span style={{ display: "inline-flex" }}>
+                  <ActionIcon
+                    variant="subtle"
+                    size="sm"
+                    color="blue"
+                    disabled={isOpeningBalancesTransaction}
+                    onClick={() => {
+                      if (isOpeningBalancesTransaction) return;
+                      onRebookClick({
+                        bookingId: data.id,
+                        transactionId: data.transactionId,
+                        currentAccountId: data.account.id,
+                        bookingValue: data.bookingValue,
+                        bookingUnit: {
+                          unit: data.unit,
+                          currency: data.currency,
+                          cryptocurrency: data.cryptocurrency,
+                          symbol: data.symbol,
+                          tradeCurrency: data.tradeCurrency,
+                        },
+                      });
+                    }}
+                    aria-label="Rebook"
+                  >
+                    <IconSquareArrowRight size={16} />
+                  </ActionIcon>
+                </span>
+              </Tooltip>
+            </Group>
+          );
+        },
+      },
+    ];
+
+    const columnDefs: ColDef<TransactionsRow>[] = [
+      {
+        field: "date",
+        headerName: "Date",
+        width: 170,
+        type: DATE_COLUMN,
+        cellRenderer: "agGroupCellRenderer",
+      },
+      {
+        field: "debitAccounts",
+        headerName: "Debit Account(s)",
+        width: 240,
+        cellRenderer: ({
+          value,
+          data,
+        }: ICellRendererParams<
+          TransactionsRow,
+          TransactionsRow["debitAccounts"]
+        >) => {
+          if (!data) return null;
+          return renderAccountLinks(value, data.transactionId);
+        },
+      },
+      {
+        field: "creditAccounts",
+        headerName: "Credit Account(s)",
+        width: 240,
+        cellRenderer: ({
+          value,
+          data,
+        }: ICellRendererParams<
+          TransactionsRow,
+          TransactionsRow["creditAccounts"]
+        >) => {
+          if (!data) return null;
+          return renderAccountLinks(value, data.transactionId);
+        },
+      },
+      {
+        field: "description",
+        headerName: "Description",
+        minWidth: 260,
+        flex: 1,
+        filter: "agTextColumnFilter",
+      },
+      {
+        colId: "unitIdentifiers",
+        headerName: "Ccy./Symbol",
         width: 150,
+        filter: true,
+        valueGetter: ({ data }) => data?.unitIdentifiers.join(", ") ?? "",
+      },
+      {
+        field: "referenceAmount",
+        headerName: `Amount (${referenceCurrency})`,
+        width: 160,
+        type: FORMATTED_NUMERIC_COLUMN,
+        context: {
+          formattedNumeric: {
+            getDisplayDecimals: () => referenceCurrencyDisplayDecimals,
+          },
+        },
+        filter: "agNumberColumnFilter",
+      },
+      {
+        colId: "actions",
+        headerName: "",
+        width: 120,
         sortable: false,
         filter: false,
         resizable: false,
@@ -213,41 +363,6 @@ export function useTransactionsColumnDefs(args: {
                 label={
                   isOpeningBalancesTransaction
                     ? OPENING_BALANCES_MANAGEMENT_MESSAGE
-                    : "Rebook"
-                }
-              >
-                <span style={{ display: "inline-flex" }}>
-                  <ActionIcon
-                    variant="subtle"
-                    size="sm"
-                    color="blue"
-                    disabled={isOpeningBalancesTransaction}
-                    onClick={() => {
-                      if (isOpeningBalancesTransaction) return;
-                      onRebookClick({
-                        bookingId: data.id,
-                        transactionId: data.transactionId,
-                        currentAccountId: data.account.id,
-                        bookingValue: data.bookingValue,
-                        bookingUnit: {
-                          unit: data.unit,
-                          currency: data.currency,
-                          cryptocurrency: data.cryptocurrency,
-                          symbol: data.symbol,
-                          tradeCurrency: data.tradeCurrency,
-                        },
-                      });
-                    }}
-                    aria-label="Rebook"
-                  >
-                    <IconSquareArrowRight size={16} />
-                  </ActionIcon>
-                </span>
-              </Tooltip>
-              <Tooltip
-                label={
-                  isOpeningBalancesTransaction
-                    ? OPENING_BALANCES_MANAGEMENT_MESSAGE
                     : "Delete"
                 }
               >
@@ -272,6 +387,8 @@ export function useTransactionsColumnDefs(args: {
         },
       },
     ];
+
+    return { columnDefs, detailColumnDefs };
   }, [
     accountBookId,
     onCopyClick,

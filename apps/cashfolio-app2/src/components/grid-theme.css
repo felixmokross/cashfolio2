@@ -16,3 +16,18 @@
   color: var(--mantine-color-dimmed);
   cursor: not-allowed;
 }
+
+.transactions-master-grid .ag-details-row {
+  padding: 12px;
+}
+
+.transactions-master-grid
+  .ag-details-row
+  .ag-layout-auto-height
+  .ag-center-cols-viewport,
+.transactions-master-grid
+  .ag-details-row
+  .ag-layout-auto-height
+  .ag-center-cols-container {
+  min-height: 0;
+}

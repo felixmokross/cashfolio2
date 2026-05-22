@@ -17,8 +17,16 @@ function createBooking(args: {
   value: number;
   valueInReferenceCurrency?: number | null;
   description?: string | null;
+  transactionId?: string;
   transactionDescription?: string | null;
+  transactionCreatedAt?: Date;
   account?: { id: string; name: string };
+  unit?: Unit | null;
+  currency?: string | null;
+  cryptocurrency?: string | null;
+  symbol?: string | null;
+  tradeCurrency?: string | null;
+  isOpeningBalancesTransaction?: boolean;
 }) {
   return {
     id: args.id,
@@ -29,122 +37,197 @@ function createBooking(args: {
       args.valueInReferenceCurrency === undefined
         ? args.value
         : args.valueInReferenceCurrency,
-    unit: Unit.CURRENCY as Unit | null,
-    currency: "CHF",
-    cryptocurrency: null,
-    symbol: null,
-    tradeCurrency: null,
-    transactionId: `transaction-${args.id}`,
+    unit: args.unit === undefined ? (Unit.CURRENCY as Unit | null) : args.unit,
+    currency: args.currency === undefined ? "CHF" : args.currency,
+    cryptocurrency: args.cryptocurrency ?? null,
+    symbol: args.symbol ?? null,
+    tradeCurrency: args.tradeCurrency ?? null,
+    transactionId: args.transactionId ?? `transaction-${args.id}`,
     transactionDescription: args.transactionDescription ?? null,
+    transactionCreatedAt: args.transactionCreatedAt ?? utcDate(2026, 0, 1, 12),
     account: args.account ?? { id: "cash", name: "Cash" },
-    isOpeningBalancesTransaction: false,
+    isOpeningBalancesTransaction: args.isOpeningBalancesTransaction ?? false,
   };
 }
 
 describe("deriveTransactionsRows", () => {
-  test("keeps booking order and maps account metadata", () => {
+  test("groups bookings under transaction rows with summary accounts and earliest date", () => {
     const result = deriveTransactionsRows({
       bookings: [
         createBooking({
-          id: "newer",
+          id: "salary",
+          transactionId: "transaction-1",
+          transactionDescription: "Salary",
           date: utcDate(2026, 0, 11),
-          value: 30,
+          value: 100,
           account: { id: "bank", name: "Bank" },
         }),
         createBooking({
-          id: "older",
+          id: "income",
+          transactionId: "transaction-1",
+          transactionDescription: "Salary",
           date: utcDate(2026, 0, 10),
-          value: -50,
-          account: { id: "cash", name: "Cash" },
+          value: -100,
+          account: { id: "income", name: "Income" },
         }),
       ],
     });
 
     expect(result.rows).toEqual([
       expect.objectContaining({
-        id: "newer",
-        date: "11.01.2026",
-        account: { id: "bank", name: "Bank" },
-      }),
-      expect.objectContaining({
-        id: "older",
+        id: "transaction-1",
+        transactionId: "transaction-1",
         date: "10.01.2026",
-        account: { id: "cash", name: "Cash" },
+        debitAccounts: [{ id: "bank", name: "Bank" }],
+        creditAccounts: [{ id: "income", name: "Income" }],
+        description: "Salary",
       }),
     ]);
+    expect(result.rows[0]?.bookings).toHaveLength(2);
   });
 
-  test("uses raw booking signs for debit and credit columns", () => {
+  test("deduplicates account and unit summaries while preserving detail booking fields", () => {
     const result = deriveTransactionsRows({
       bookings: [
-        createBooking({ id: "debit", date: utcDate(2026, 0, 10), value: 100 }),
+        createBooking({
+          id: "debit-1",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: 60,
+          account: { id: "bank", name: "Bank" },
+          description: "Booking text",
+          transactionDescription: "Transaction text",
+        }),
+        createBooking({
+          id: "debit-2",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: 40,
+          account: { id: "bank", name: "Bank" },
+          transactionDescription: "Transaction text",
+        }),
         createBooking({
           id: "credit",
+          transactionId: "transaction-1",
           date: utcDate(2026, 0, 10),
-          value: -40,
+          value: -100,
+          unit: Unit.SECURITY,
+          currency: null,
+          symbol: "AAPL",
+          tradeCurrency: "USD",
+          account: { id: "broker", name: "Broker" },
         }),
       ],
     });
 
-    expect(result.rows).toEqual([
-      expect.objectContaining({ debit: 100, credit: null }),
-      expect.objectContaining({ debit: null, credit: 40 }),
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        debitAccounts: [{ id: "bank", name: "Bank" }],
+        creditAccounts: [{ id: "broker", name: "Broker" }],
+        unitIdentifiers: ["CHF", "AAPL"],
+      }),
+    );
+    expect(result.rows[0]?.bookings).toEqual([
+      expect.objectContaining({
+        id: "debit-1",
+        description: "Booking text",
+        debit: 60,
+        credit: null,
+        referenceDebit: 60,
+        referenceCredit: null,
+      }),
+      expect.objectContaining({
+        id: "debit-2",
+        description: "",
+        debit: 40,
+        credit: null,
+      }),
+      expect.objectContaining({
+        id: "credit",
+        unit: Unit.SECURITY,
+        symbol: "AAPL",
+        credit: 100,
+      }),
     ]);
   });
 
-  test("splits converted reference values and leaves unavailable conversions empty", () => {
+  test("uses the higher converted debit or credit side as the reference amount", () => {
     const result = deriveTransactionsRows({
       bookings: [
         createBooking({
-          id: "converted-debit",
+          id: "debit",
+          transactionId: "transaction-1",
           date: utcDate(2026, 0, 10),
           value: 100,
           valueInReferenceCurrency: 120,
         }),
         createBooking({
-          id: "converted-credit",
+          id: "credit",
+          transactionId: "transaction-1",
           date: utcDate(2026, 0, 10),
-          value: -40,
-          valueInReferenceCurrency: -50,
+          value: -100,
+          valueInReferenceCurrency: -110,
+        }),
+      ],
+    });
+
+    expect(result.rows[0]?.referenceAmount).toBe(120);
+  });
+
+  test("leaves reference amount empty when a required conversion is unavailable", () => {
+    const result = deriveTransactionsRows({
+      bookings: [
+        createBooking({
+          id: "debit",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: 100,
+          valueInReferenceCurrency: 120,
         }),
         createBooking({
-          id: "missing",
+          id: "credit",
+          transactionId: "transaction-1",
           date: utcDate(2026, 0, 10),
-          value: 10,
+          value: -100,
           valueInReferenceCurrency: null,
         }),
       ],
     });
 
-    expect(result.rows).toEqual([
-      expect.objectContaining({ referenceDebit: 120, referenceCredit: null }),
-      expect.objectContaining({ referenceDebit: null, referenceCredit: 50 }),
-      expect.objectContaining({ referenceDebit: null, referenceCredit: null }),
-    ]);
+    expect(result.rows[0]?.referenceAmount).toBeNull();
   });
 
-  test("falls back from booking description to transaction description", () => {
+  test("sorts transactions by earliest booking date, creation date, and id", () => {
     const result = deriveTransactionsRows({
       bookings: [
         createBooking({
-          id: "booking-description",
+          id: "older",
+          transactionId: "transaction-b",
           date: utcDate(2026, 0, 10),
           value: 100,
-          description: "Booking text",
-          transactionDescription: "Transaction text",
+          transactionCreatedAt: utcDate(2026, 0, 10, 9),
         }),
         createBooking({
-          id: "transaction-description",
+          id: "newer-created",
+          transactionId: "transaction-a",
           date: utcDate(2026, 0, 10),
           value: 100,
-          transactionDescription: "Transaction text",
+          transactionCreatedAt: utcDate(2026, 0, 10, 10),
+        }),
+        createBooking({
+          id: "newest-date",
+          transactionId: "transaction-c",
+          date: utcDate(2026, 0, 11),
+          value: 100,
+          transactionCreatedAt: utcDate(2026, 0, 9, 10),
         }),
       ],
     });
 
-    expect(result.rows).toEqual([
-      expect.objectContaining({ description: "Booking text" }),
-      expect.objectContaining({ description: "Transaction text" }),
+    expect(result.rows.map((row) => row.transactionId)).toEqual([
+      "transaction-c",
+      "transaction-a",
+      "transaction-b",
     ]);
   });
 });

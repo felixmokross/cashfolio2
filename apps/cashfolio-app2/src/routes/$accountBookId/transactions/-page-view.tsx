@@ -2,7 +2,8 @@ import { Button, Group, Modal, Title } from "@mantine/core";
 import { IconBolt } from "@tabler/icons-react";
 import type { AgGridReactProps } from "ag-grid-react";
 import { ConfirmDeleteModal } from "@/components/confirm-delete-modal";
-import { DataGrid } from "@/components/data-grid";
+import { DataGrid, dataTypeDefinitions } from "@/components/data-grid";
+import { columnTypes } from "@/components/column-types";
 import {
   EditTransactionModal,
   type AccountOption,
@@ -17,7 +18,8 @@ import { PageShell } from "@/components/page-shell";
 import { TopPageHeader } from "@/components/top-page-header";
 import type { ReactNode } from "react";
 import type { Unit } from "@/.prisma-client/enums";
-import type { TransactionsRow } from "./-page-types";
+import { useUserLocale } from "@/user-locale-context";
+import type { TransactionsBookingRow, TransactionsRow } from "./-page-types";
 
 export type TransactionBookingInput = {
   date: string;
@@ -54,6 +56,9 @@ export type TransactionsPageViewProps = {
   accountBookId: string;
   rows: TransactionsRow[];
   columnDefs: NonNullable<AgGridReactProps<TransactionsRow>["columnDefs"]>;
+  detailColumnDefs: NonNullable<
+    AgGridReactProps<TransactionsBookingRow>["columnDefs"]
+  >;
   accountBookStartDate: Date;
   createModalOpened: boolean;
   editModalOpened: boolean;
@@ -101,6 +106,7 @@ export type TransactionsPageViewProps = {
 export function TransactionsPageView({
   rows,
   columnDefs,
+  detailColumnDefs,
   accountBookStartDate,
   createModalOpened,
   editModalOpened,
@@ -133,6 +139,7 @@ export function TransactionsPageView({
   onCloseDeleteModal,
   onConfirmDeleteTransaction,
 }: TransactionsPageViewProps) {
+  const userLocale = useUserLocale();
   const createDialogText = getTransactionCreateDialogText(
     !!createTransactionInitialValues,
   );
@@ -155,6 +162,7 @@ export function TransactionsPageView({
       />
 
       <DataGrid
+        className="transactions-master-grid"
         containerStyle={{ flex: 1, minHeight: 0 }}
         rowData={rows}
         columnDefs={columnDefs}
@@ -164,6 +172,30 @@ export function TransactionsPageView({
         }}
         getRowId={({ data }) => data.id}
         onRowDataUpdated={onRowDataUpdated}
+        masterDetail
+        detailRowAutoHeight
+        detailCellRendererParams={{
+          detailGridOptions: {
+            columnDefs: detailColumnDefs,
+            columnTypes,
+            dataTypeDefinitions,
+            context: { userLocale },
+            defaultColDef: {
+              sortable: false,
+              suppressHeaderMenuButton: true,
+            },
+            getRowId: ({ data }: { data: TransactionsBookingRow }) => data.id,
+          },
+          getDetailRowData: ({
+            data,
+            successCallback,
+          }: {
+            data?: TransactionsRow;
+            successCallback: (rowData: TransactionsBookingRow[]) => void;
+          }) => {
+            successCallback(data?.bookings ?? []);
+          },
+        }}
       />
 
       <Modal

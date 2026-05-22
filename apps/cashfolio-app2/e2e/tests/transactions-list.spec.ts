@@ -71,11 +71,18 @@ async function rowIndex(row: Locator): Promise<number> {
   return Number(index);
 }
 
+async function expandTransactionRow(row: Locator) {
+  const expandButton = row.locator(".ag-group-contracted").first();
+  await expect(expandButton).toBeVisible();
+  await expandButton.click();
+  await expect(row.locator(".ag-group-expanded").first()).toBeVisible();
+}
+
 test.beforeAll(async ({ e2eExternalId }) => {
   seeded = await seedDatabase({ userExternalId: e2eExternalId });
 });
 
-test("lists bookings, carries account link context, and creates transactions", async ({
+test("lists transactions with booking details, carries account link context, and creates transactions", async ({
   page,
 }) => {
   const scenario = await seedTransactionsPageScenario({
@@ -98,25 +105,35 @@ test("lists bookings, carries account link context, and creates transactions", a
     "May 2026",
   );
 
-  const newerCashRow = agGridRowByText(
+  const newerTransactionRow = agGridRowByText(page, scenario.newerDescription);
+  const olderTransactionRow = agGridRowByText(page, scenario.olderDescription);
+  await expect(newerTransactionRow).toBeVisible();
+  await expect(olderTransactionRow).toBeVisible();
+  expect(await rowIndex(newerTransactionRow)).toBeLessThan(
+    await rowIndex(olderTransactionRow),
+  );
+  await expect(
+    agGridCellByColId(newerTransactionRow, "debitAccounts"),
+  ).toContainText(seeded.cashAccount.name);
+  await expect(
+    agGridCellByColId(newerTransactionRow, "creditAccounts"),
+  ).toContainText(seeded.expenseAccount.name);
+  await expect(
+    agGridCellByColId(newerTransactionRow, "referenceAmount"),
+  ).toContainText("125.00");
+
+  await expandTransactionRow(newerTransactionRow);
+  const newerCashBookingRow = agGridRowByText(
     page,
     `${scenario.newerDescription} Cash`,
   );
-  const olderCashRow = agGridRowByText(
-    page,
-    `${scenario.olderDescription} Cash`,
-  );
-  await expect(newerCashRow).toBeVisible();
-  await expect(olderCashRow).toBeVisible();
-  expect(await rowIndex(newerCashRow)).toBeLessThan(
-    await rowIndex(olderCashRow),
-  );
-  await expect(agGridCellByColId(newerCashRow, "debit")).toContainText(
+  await expect(newerCashBookingRow).toBeVisible();
+  await expect(agGridCellByColId(newerCashBookingRow, "debit")).toContainText(
     "125.00",
   );
-  await expect(agGridCellByColId(newerCashRow, "credit")).toHaveText("");
+  await expect(agGridCellByColId(newerCashBookingRow, "credit")).toHaveText("");
 
-  await agGridCellByColId(newerCashRow, "account")
+  await agGridCellByColId(newerCashBookingRow, "account")
     .getByRole("link", { name: seeded.cashAccount.name })
     .click();
 
