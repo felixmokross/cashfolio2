@@ -20,12 +20,18 @@ On pull requests (non-forks), CI now:
    generated per deploy in CI
 6. Deploys the PR image to
    `https://cashfolio-app2-pr-<PR_NUMBER>-<FLY_BRANCH_TAIL_SLUG>.fly.dev/`
-7. Posts/updates a PR comment with the dynamic preview URL
+7. Runs the Fly release command from the deployed image to apply Prisma
+   migrations before the app Machines update
+8. Posts/updates a PR comment with the dynamic preview URL
 
 Preview deployment is gated by the app image build. Preview resource preparation
 runs inside the same environment-scoped deployment job that deploys the app.
 Unit tests, typecheck, lint, and format checks still run in CI, but they do not
 block dynamic preview deployment.
+
+The app image runs TanStack Start through Nitro's generated Node runtime. See
+`apps/cashfolio-app2/docs/deployment.md` for the Nitro version-pin rationale and
+the slim runtime migration payload.
 
 `<BRANCH_TAIL_SLUG>` is derived from the last segment of the PR branch name
 (`head.ref`): lowercased, non-`[a-z0-9-]` characters replaced with `-`,

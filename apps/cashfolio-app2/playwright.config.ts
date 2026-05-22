@@ -4,6 +4,10 @@ const databaseUrl =
   process.env.DATABASE_URL ??
   "postgresql://postgres:postgres@127.0.0.1:5433/postgres?schema=public";
 const baseUrl = process.env.BASE_URL ?? "http://127.0.0.1:4173";
+const webServerUrl = new URL(baseUrl);
+const webServerHost = webServerUrl.hostname;
+const webServerPort =
+  webServerUrl.port || (webServerUrl.protocol === "https:" ? "443" : "80");
 const workers = process.env.CI
   ? Number.parseInt(process.env.E2E_WORKERS ?? "2", 10)
   : 1;
@@ -37,8 +41,7 @@ export default defineConfig({
     video: process.env.CI ? "on-first-retry" : "retain-on-failure",
   },
   webServer: {
-    command:
-      "pnpm build && pnpm exec vite preview --host 127.0.0.1 --port 4173",
+    command: `pnpm build && HOST=${webServerHost} PORT=${webServerPort} node .output/server/index.mjs`,
     url: baseUrl,
     reuseExistingServer: !process.env.CI,
     timeout: 300_000,

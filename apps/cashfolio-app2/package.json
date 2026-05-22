@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "start": "vite preview",
+    "start": "node .output/server/index.mjs",
+    "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "format": "prettier --check .",
@@ -70,6 +71,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
     "msw": "^2.14.2",
+    "nitro": "3.0.260429-beta",
     "postcss": "^8.5.13",
     "postcss-preset-mantine": "^1.18.0",
     "postcss-simple-vars": "^7.0.1",

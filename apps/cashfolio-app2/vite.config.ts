@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 
 const previewAllowedHosts = new Set<string>([
@@ -23,7 +24,7 @@ if (baseUrl) {
 }
 
 export default defineConfig({
-  plugins: [tanstackStart()],
+  plugins: [tanstackStart(), nitro()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

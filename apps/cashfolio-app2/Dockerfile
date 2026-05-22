@@ -1,6 +1,9 @@
 # syntax = docker/dockerfile:1
 
 ARG NODE_VERSION=24
+ARG DOTENV_VERSION=17.4.2
+ARG PRISMA_VERSION=7.8.0
+ARG PNPM_VERSION=11.1.3
 FROM node:${NODE_VERSION}-slim AS base
 
 LABEL fly_launch_runtime="TanStack Start"
@@ -9,18 +12,18 @@ WORKDIR /app
 
 ENV NODE_ENV="production"
 
-# Install latest corepack to work around this issue: https://github.com/nodejs/corepack/issues/612
-RUN npm install -g corepack@latest
-
-RUN corepack enable pnpm
-
 FROM base AS build
 
-# Install packages needed to build node modules
+# Install packages needed to generate Prisma client and build the application.
 RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=apt-lists,target=/var/lib/apt/lists,sharing=locked \
     apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
+    apt-get install --no-install-recommends -y openssl
+
+# npm is used only to refresh Corepack before pnpm is available.
+# This works around Corepack signature issues: https://github.com/nodejs/corepack/issues/612
+RUN npm install -g corepack@latest
+RUN corepack enable pnpm
 
 # Install node modules
 COPY --link package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -37,6 +40,21 @@ RUN pnpm --filter cashfolio-app2 prisma:generate
 # Build application
 RUN pnpm --filter cashfolio-app2 build
 
+FROM base AS migration-tools
+
+ARG DOTENV_VERSION
+ARG PNPM_VERSION
+ARG PRISMA_VERSION
+
+# npm is used only to refresh Corepack before pnpm is available.
+RUN npm install -g corepack@latest
+RUN corepack enable pnpm && corepack prepare pnpm@${PNPM_VERSION} --activate
+RUN pnpm add --prod \
+    --allow-build=@prisma/engines \
+    --allow-build=prisma \
+    dotenv@${DOTENV_VERSION} \
+    prisma@${PRISMA_VERSION}
+
 FROM base
 
 # Install openssl needed to run Prisma
@@ -46,7 +64,15 @@ RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt,sharing=locked \
     apt-get install --no-install-recommends -y openssl
 
 # Copy built application
-COPY --from=build /app /app
+COPY --from=build /app/apps/cashfolio-app2/.output .output
+COPY --from=build /app/package.json package.json
+COPY --from=build /app/apps/cashfolio-app2/package.json apps/cashfolio-app2/package.json
+
+# Copy the minimal release-command payload for Prisma migrations.
+COPY --from=migration-tools /app/node_modules node_modules
+COPY --from=build /app/apps/cashfolio-app2/prisma apps/cashfolio-app2/prisma
+COPY --from=build /app/apps/cashfolio-app2/prisma.config.ts apps/cashfolio-app2/prisma.config.ts
+COPY --from=build /app/apps/cashfolio-app2/scripts/prisma-migrate-deploy-with-retry.sh apps/cashfolio-app2/scripts/prisma-migrate-deploy-with-retry.sh
 
 EXPOSE 3000
-CMD [ "pnpm", "--filter", "cashfolio-app2", "exec", "vite", "preview", "--host", "0.0.0.0", "--port", "3000" ]
+CMD [ "node", ".output/server/index.mjs" ]

@@ -7,6 +7,7 @@ Architecture and implementation patterns for `apps/cashfolio-app2`.
 - [Account list valuation and reference balances](valuation-reference-balances.md)
 - [Valuation caching](valuation-caching.md)
 - [Database and Prisma](database.md)
+- [Deployment](deployment.md)
 - [UI patterns](ui-patterns.md)
 - [Testing](testing.md)
 
