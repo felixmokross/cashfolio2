@@ -3,6 +3,7 @@
 ARG NODE_VERSION=24
 ARG DOTENV_VERSION=17.4.2
 ARG PRISMA_VERSION=7.8.0
+ARG PNPM_VERSION=11.1.3
 FROM node:${NODE_VERSION}-slim AS base
 
 LABEL fly_launch_runtime="TanStack Start"
@@ -41,9 +42,14 @@ RUN pnpm --filter cashfolio-app2 build
 FROM base AS migration-tools
 
 ARG DOTENV_VERSION
+ARG PNPM_VERSION
 ARG PRISMA_VERSION
 
-RUN npm install --omit=dev --no-audit --no-fund \
+RUN npm install -g corepack@latest
+RUN corepack enable pnpm && corepack prepare pnpm@${PNPM_VERSION} --activate
+RUN pnpm add --prod \
+    --allow-build=@prisma/engines \
+    --allow-build=prisma \
     dotenv@${DOTENV_VERSION} \
     prisma@${PRISMA_VERSION}
 
@@ -57,6 +63,8 @@ RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt,sharing=locked \
 
 # Copy built application
 COPY --from=build /app/apps/cashfolio-app2/.output .output
+COPY --from=build /app/package.json package.json
+COPY --from=build /app/apps/cashfolio-app2/package.json apps/cashfolio-app2/package.json
 
 # Copy the minimal release-command payload for Prisma migrations.
 COPY --from=migration-tools /app/node_modules node_modules
