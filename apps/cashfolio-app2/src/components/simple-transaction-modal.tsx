@@ -63,8 +63,6 @@ export function createSimpleTransactionFormInitialValues(args: {
   today: Date;
 }) {
   return {
-    // Copy flows pass initial values without a date so the user must choose
-    // the target date explicitly instead of accepting today's default.
     date: args.initialValues ? args.initialValues.date : args.today,
     description: args.initialValues?.description ?? "",
     counterAccountId: args.initialValues?.counterAccountId ?? "",

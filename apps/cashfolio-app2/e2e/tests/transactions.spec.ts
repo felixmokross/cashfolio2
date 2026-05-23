@@ -8,239 +8,19 @@ import {
 import {
   getTransactionBookingsByDescription,
   seedDatabase,
-  seedThreeBookingSplitTransaction,
   type SeededData,
 } from "../support/db";
-import { expect, test, type Locator, type Page } from "../support/fixtures";
+import { expect, test } from "../support/fixtures";
+import {
+  expectAccountLeafSearchResult,
+  fillTransactionHeader,
+  openCreateSimpleTransaction,
+  openCreateTransaction,
+  selectAccountLeaf,
+  setGridAccountCellValue,
+} from "../support/transaction-form";
 
 let seeded: SeededData;
-
-function simpleCreateDialog(page: Page): Locator {
-  return page.getByRole("dialog", { name: "Add Transaction" }).filter({
-    has: page.getByRole("button", { name: "Switch to Split Editor" }),
-  });
-}
-
-function splitCreateDialog(page: Page): Locator {
-  return page.getByRole("dialog", { name: "Add Transaction" }).filter({
-    has: page.getByRole("button", { name: "Add Booking" }),
-  });
-}
-
-async function opensWithin(
-  locator: Locator,
-  timeout: number,
-): Promise<boolean> {
-  try {
-    await expect(locator).toBeVisible({ timeout });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function openAddTransactionDialog(
-  page: Page,
-): Promise<"SIMPLE" | "SPLIT"> {
-  const button = page.getByRole("button", { name: "Add Transaction" });
-  await expect(button).toBeVisible();
-
-  const simpleDialog = simpleCreateDialog(page);
-  const splitDialog = splitCreateDialog(page);
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    await button.click();
-    if (await opensWithin(simpleDialog, 1500)) {
-      return "SIMPLE";
-    }
-    if (await opensWithin(splitDialog, 1500)) {
-      return "SPLIT";
-    }
-  }
-
-  await expect(simpleDialog.or(splitDialog)).toBeVisible();
-  return (await simpleDialog.isVisible()) ? "SIMPLE" : "SPLIT";
-}
-
-async function openCreateTransaction(page: Page): Promise<Locator> {
-  const openedVariant = await openAddTransactionDialog(page);
-  const splitDialog = splitCreateDialog(page);
-  if (openedVariant === "SPLIT") {
-    await expect(splitDialog).toBeVisible();
-    return splitDialog;
-  }
-
-  const simpleDialog = simpleCreateDialog(page);
-  await simpleDialog
-    .getByRole("button", { name: "Switch to Split Editor" })
-    .click();
-  await expect(simpleDialog).toHaveCount(0);
-  await expect(splitDialog).toBeVisible();
-  return splitDialog;
-}
-
-async function openCreateSimpleTransaction(page: Page): Promise<Locator> {
-  const openedVariant = await openAddTransactionDialog(page);
-  expect(openedVariant).toBe("SIMPLE");
-  const simpleDialog = simpleCreateDialog(page);
-  await expect(simpleDialog).toBeVisible();
-  return simpleDialog;
-}
-
-async function fillTransactionHeader(dialog: Locator, description: string) {
-  await dialog.getByLabel("Date").fill("01/01/2026");
-  await dialog.getByLabel("Description").fill(description);
-}
-
-async function openEditTransaction(page: Page, description: string) {
-  const row = agGridRowByText(page, description);
-  await clickRowAction(row, "Edit");
-  await expect(
-    page.getByRole("heading", { name: "Edit Transaction" }),
-  ).toBeVisible();
-}
-
-function gridRowByIndex(root: Locator, rowIndex: number): Locator {
-  return root
-    .locator(`.ag-center-cols-container .ag-row[row-index="${rowIndex}"]`)
-    .first();
-}
-
-function normalizeCellText(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
-}
-
-function accountOptionNameRegex(name: string): RegExp {
-  return new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-}
-
-function accountLeafOption(page: Page, name: string): Locator {
-  return page
-    .getByRole("option", {
-      name: accountOptionNameRegex(name),
-    })
-    .filter({ hasNot: page.getByRole("button") })
-    .first();
-}
-
-async function searchFocusedAccountTree(page: Page, name: string) {
-  await page.keyboard.press("ControlOrMeta+A");
-  await page.keyboard.type(name);
-}
-
-async function selectAccountLeaf(page: Page, name: string) {
-  await searchFocusedAccountTree(page, name);
-  const option = accountLeafOption(page, name);
-  await expect(option).toBeVisible();
-  await option.click();
-}
-
-async function expectAccountLeafSearchResult(args: {
-  input: Locator;
-  page: Page;
-  accountName: string;
-  visible: boolean;
-}) {
-  await args.input.click();
-  await searchFocusedAccountTree(args.page, args.accountName);
-
-  const option = accountLeafOption(args.page, args.accountName);
-  if (args.visible) {
-    await expect(option).toBeVisible();
-  } else {
-    await expect(option).toHaveCount(0);
-  }
-}
-
-async function setGridAccountCellValue(args: {
-  dialog: Locator;
-  rowIndex: number;
-  accountName: string;
-}) {
-  const cell = args.dialog
-    .locator(
-      `.ag-center-cols-container .ag-row[row-index="${args.rowIndex}"] [col-id="account"]`,
-    )
-    .first();
-
-  await expect(cell).toBeVisible();
-  await cell.click({ force: true });
-
-  let editorInput = args.dialog
-    .locator(".ag-cell-inline-editing input:not([type='hidden'])")
-    .first();
-  if (!(await editorInput.isVisible())) {
-    await cell.press("Enter");
-    editorInput = args.dialog
-      .locator(".ag-cell-inline-editing input:not([type='hidden'])")
-      .first();
-  }
-
-  await expect(editorInput).toBeVisible();
-  await editorInput.fill(args.accountName);
-
-  const option = accountLeafOption(args.dialog.page(), args.accountName);
-  await expect(option).toBeVisible({ timeout: 3000 });
-  await option.click();
-  await args.dialog.page().keyboard.press("Enter");
-}
-
-async function setUnitlessEquityAccountOnEditableRow(args: {
-  dialog: Locator;
-  accountName: string;
-}): Promise<{ editedRowIndex: number; lockedRowIndex: number }> {
-  const visibleRowIndexes = async (): Promise<number[]> => {
-    const rows = args.dialog.locator(".ag-center-cols-container .ag-row");
-    const rowCount = await rows.count();
-    const indexes = new Set<number>();
-    for (let i = 0; i < rowCount; i += 1) {
-      const rowIndex = await rows.nth(i).getAttribute("row-index");
-      if (rowIndex == null) {
-        continue;
-      }
-      const parsed = Number(rowIndex);
-      if (!Number.isNaN(parsed)) {
-        indexes.add(parsed);
-      }
-    }
-    return [...indexes].sort((a, b) => a - b);
-  };
-
-  const accountContains = async (rowIndex: number) =>
-    normalizeCellText(
-      await agGridCellByColId(
-        gridRowByIndex(args.dialog, rowIndex),
-        "account",
-      ).innerText(),
-    ).includes(args.accountName);
-
-  const rowIndexes = await visibleRowIndexes();
-  for (const rowIndex of rowIndexes) {
-    try {
-      await setGridAccountCellValue({
-        dialog: args.dialog,
-        rowIndex,
-        accountName: args.accountName,
-      });
-      await expect
-        .poll(async () => accountContains(rowIndex), { timeout: 3000 })
-        .toBe(true);
-      if (await accountContains(rowIndex)) {
-        const lockedRowIndex =
-          rowIndexes.find((candidateIndex) => candidateIndex !== rowIndex) ??
-          rowIndex;
-        return {
-          editedRowIndex: rowIndex,
-          lockedRowIndex,
-        };
-      }
-    } catch {
-      // Try the other row if this one is non-editable in the current ordering.
-    }
-  }
-
-  throw new Error("Could not set unitless equity account on an editable row");
-}
 
 test.beforeAll(async ({ e2eExternalId }) => {
   seeded = await seedDatabase({ userExternalId: e2eExternalId });
@@ -343,6 +123,52 @@ test("create simple transaction", async ({ page }) => {
   await page.goto(`/${seeded.accountBookId}/accounts?tab=ASSET&mode=active`);
   const cashRow = agGridRowByText(page, seeded.cashAccount.name);
   await expect(agGridCellByColId(cashRow, "balance")).toHaveText("-342.00");
+});
+
+test("copy simple transaction keeps source date and saves selected copy date", async ({
+  page,
+}) => {
+  await page.goto(`/${seeded.accountBookId}/${seeded.cashAccount.id}`);
+
+  const sourceDescription = "E2E Copy Simple Source";
+  const copiedDescription = "E2E Copy Simple Result";
+  const simpleDialog = await openCreateSimpleTransaction(page);
+  await simpleDialog.getByLabel("Date").fill("01/10/2026");
+  await simpleDialog.getByLabel("Description").fill(sourceDescription);
+  await simpleDialog.getByLabel("Counter Account").click();
+  await selectAccountLeaf(page, seeded.expenseAccount.name);
+  await simpleDialog.getByLabel("Amount").fill("33");
+  await simpleDialog.getByRole("button", { name: "Create" }).click();
+
+  const sourceRow = agGridRowByText(page, sourceDescription);
+  await expect(sourceRow).toBeVisible();
+  await clickRowAction(sourceRow, "Copy");
+
+  const copyDialog = page.getByRole("dialog", { name: "Copy Transaction" });
+  await expect(copyDialog).toBeVisible();
+
+  const dateInput = copyDialog.getByLabel("Date");
+  await expect(dateInput).toBeFocused();
+  await expect(dateInput).toHaveValue("01/10/2026");
+
+  await dateInput.fill("01/11/2026");
+  await copyDialog.getByLabel("Description").fill(copiedDescription);
+  await copyDialog.getByRole("button", { name: "Create Copy" }).click();
+
+  await expect(agGridRowByText(page, copiedDescription)).toBeVisible();
+
+  const copiedBookings = await getTransactionBookingsByDescription({
+    accountBookId: seeded.accountBookId,
+    description: copiedDescription,
+  });
+  expect(copiedBookings).toHaveLength(2);
+  expect(copiedBookings.map((booking) => booking.date)).toEqual([
+    "2026-01-11T00:00:00.000Z",
+    "2026-01-11T00:00:00.000Z",
+  ]);
+  expect(
+    copiedBookings.map((booking) => booking.value).sort((a, b) => a - b),
+  ).toEqual([-33, 33]);
 });
 
 test("counterparty account link highlights the matching booking row", async ({
@@ -451,327 +277,4 @@ test("rebook booking to another compatible account", async ({ page }) => {
   expect(
     bookings.map((booking) => booking.value).sort((a, b) => a - b),
   ).toEqual([-100, 100]);
-});
-
-test("eligible edit opens simple editor and ineligible edit opens split editor", async ({
-  page,
-}) => {
-  await page.goto(`/${seeded.accountBookId}/${seeded.cashAccount.id}`);
-
-  await openCreateSimpleTransaction(page);
-  const simpleCreateDialog = page.getByRole("dialog", {
-    name: "Add Transaction",
-  });
-  await page.getByLabel("Date").fill("01/04/2026");
-  await page.getByLabel("Description").fill("E2E Editable Simple");
-  await simpleCreateDialog.getByLabel("Counter Account").click();
-  await selectAccountLeaf(page, seeded.expenseAccount.name);
-  await page.getByLabel("Amount").fill("20");
-  await simpleCreateDialog.getByRole("button", { name: "Create" }).click();
-
-  await openEditTransaction(page, "E2E Editable Simple");
-  const simpleEditDialog = page.getByRole("dialog", {
-    name: "Edit Transaction",
-  });
-  await expect(
-    simpleEditDialog.getByRole("button", { name: "Switch to Split Editor" }),
-  ).toBeVisible();
-  await expect(simpleEditDialog.getByLabel("Counter Account")).toBeVisible();
-  await simpleEditDialog.getByRole("button", { name: "Save" }).click();
-
-  await page.goto(`/${seeded.accountBookId}/${seeded.expenseAccount.id}`);
-  await openEditTransaction(page, "E2E Editable Simple");
-  const expenseEditDialog = page.getByRole("dialog", {
-    name: "Edit Transaction",
-  });
-  await expect(
-    expenseEditDialog.getByRole("button", { name: "Add Booking" }),
-  ).toBeVisible();
-  await expect(
-    expenseEditDialog.getByRole("button", { name: "Switch to Split Editor" }),
-  ).toHaveCount(0);
-  await expenseEditDialog.getByRole("button", { name: "Cancel" }).click();
-
-  await page.goto(`/${seeded.accountBookId}/${seeded.cashAccount.id}`);
-  await seedThreeBookingSplitTransaction({
-    accountBookId: seeded.accountBookId,
-    description: "E2E Ineligible Split",
-    currentAccountId: seeded.cashAccount.id,
-    debitAccountIds: [seeded.savingsAccount.id, seeded.investmentsAccount.id],
-    date: "2026-01-04T00:00:00.000Z",
-  });
-  await page.reload();
-
-  await openEditTransaction(page, "E2E Ineligible Split");
-  const splitEditDialog = page.getByRole("dialog", {
-    name: "Edit Transaction",
-  });
-  await expect(
-    splitEditDialog.getByRole("button", { name: "Add Booking" }),
-  ).toBeVisible();
-  await splitEditDialog.getByRole("button", { name: "Cancel" }).click();
-});
-
-test("switch from simple edit to split carries over edited values", async ({
-  page,
-}) => {
-  await page.goto(`/${seeded.accountBookId}/${seeded.cashAccount.id}`);
-
-  await openCreateSimpleTransaction(page);
-  const simpleCreateDialog = page.getByRole("dialog", {
-    name: "Add Transaction",
-  });
-  await page.getByLabel("Date").fill("01/05/2026");
-  await page.getByLabel("Description").fill("E2E Carry Switch");
-  await simpleCreateDialog.getByLabel("Counter Account").click();
-  await selectAccountLeaf(page, seeded.expenseAccount.name);
-  await page.getByLabel("Amount").fill("15");
-  await simpleCreateDialog.getByRole("button", { name: "Create" }).click();
-
-  await openEditTransaction(page, "E2E Carry Switch");
-  const editDialog = page.getByRole("dialog", {
-    name: "Edit Transaction",
-  });
-
-  await editDialog.getByLabel("Description").fill("E2E Carry Switch Updated");
-  await editDialog.getByLabel("Amount").fill("55");
-  await editDialog
-    .getByRole("button", { name: "Switch to Split Editor" })
-    .click();
-
-  await expect(
-    editDialog.getByRole("button", { name: "Add Booking" }),
-  ).toBeVisible();
-  await expect(editDialog.getByLabel("Description")).toHaveValue(
-    "E2E Carry Switch Updated",
-  );
-
-  const firstRow = editDialog
-    .locator('.ag-center-cols-container .ag-row[row-index="0"]')
-    .first();
-  await expect(agGridCellByColId(firstRow, "credit")).toContainText("55");
-
-  await editDialog.getByRole("button", { name: "Save" }).click();
-  await expect(agGridRowByText(page, "E2E Carry Switch Updated")).toBeVisible();
-
-  const bookings = await getTransactionBookingsByDescription({
-    accountBookId: seeded.accountBookId,
-    description: "E2E Carry Switch Updated",
-  });
-  expect(bookings).toHaveLength(2);
-
-  const bookingByAccountId = new Map(
-    bookings.map((booking) => [booking.accountId, booking]),
-  );
-  expect(bookingByAccountId.get(seeded.cashAccount.id)?.value).toBe(-55);
-  expect(bookingByAccountId.get(seeded.expenseAccount.id)?.value).toBe(55);
-});
-
-test("create flow: changing date before switching to split still allows split create", async ({
-  page,
-}) => {
-  await page.goto(`/${seeded.accountBookId}/${seeded.cashAccount.id}`);
-
-  const simpleDialog = await openCreateSimpleTransaction(page);
-  await simpleDialog.getByLabel("Date").fill("01/06/2026");
-  await simpleDialog.getByLabel("Description").fill("E2E Create Date Switch");
-  await simpleDialog.getByLabel("Counter Account").click();
-  await selectAccountLeaf(page, seeded.expenseAccount.name);
-  await simpleDialog.getByLabel("Amount").fill("22");
-
-  await simpleDialog
-    .getByRole("button", { name: "Switch to Split Editor" })
-    .click();
-
-  const splitDialog = splitCreateDialog(page);
-  await expect(splitDialog).toBeVisible();
-  await expect(splitDialog.getByLabel("Description")).toHaveValue(
-    "E2E Create Date Switch",
-  );
-
-  await splitDialog.getByLabel("Date").fill("01/07/2026");
-
-  const splitRow0 = splitDialog
-    .locator('.ag-center-cols-container .ag-row[row-index="0"]')
-    .first();
-  await expect(agGridCellByColId(splitRow0, "date")).toContainText("1/7/2026");
-
-  await splitDialog.getByRole("button", { name: "Create" }).click();
-  await expect(agGridRowByText(page, "E2E Create Date Switch")).toBeVisible();
-});
-
-test("create security simple transaction preserves account metadata", async ({
-  page,
-}) => {
-  await page.goto(`/${seeded.accountBookId}/${seeded.securityAccount.id}`);
-
-  const simpleDialog = await openCreateSimpleTransaction(page);
-
-  await page.getByLabel("Date").fill("01/03/2026");
-  await page.getByLabel("Description").fill("E2E Security Simple Transaction");
-  await simpleDialog.getByLabel("Counter Account").click();
-  await selectAccountLeaf(page, seeded.securityCounterAccount.name);
-  await page.getByLabel("Amount").fill("3");
-  await simpleDialog.getByRole("button", { name: "Create" }).click();
-
-  await expect(
-    agGridRowByText(page, "E2E Security Simple Transaction"),
-  ).toBeVisible();
-
-  const bookings = await getTransactionBookingsByDescription({
-    accountBookId: seeded.accountBookId,
-    description: "E2E Security Simple Transaction",
-  });
-  expect(bookings).toHaveLength(2);
-
-  const bookingByAccountId = new Map(
-    bookings.map((booking) => [booking.accountId, booking]),
-  );
-  const currentBooking = bookingByAccountId.get(seeded.securityAccount.id);
-  const counterBooking = bookingByAccountId.get(
-    seeded.securityCounterAccount.id,
-  );
-
-  expect(currentBooking).toBeDefined();
-  expect(counterBooking).toBeDefined();
-  expect(currentBooking?.unit).toBe(Unit.SECURITY);
-  expect(counterBooking?.unit).toBe(Unit.SECURITY);
-  expect(currentBooking?.symbol).toBe("AAPL");
-  expect(counterBooking?.symbol).toBe("AAPL");
-  expect(currentBooking?.tradeCurrency).toBe("USD");
-  expect(counterBooking?.tradeCurrency).toBe("EUR");
-
-  await page.goto(`/${seeded.accountBookId}/accounts?tab=ASSET&mode=active`);
-
-  const usdSecurityRow = agGridRowByText(page, seeded.securityAccount.name);
-  await expect(agGridCellByColId(usdSecurityRow, "balance")).toHaveText("3");
-  await expect(
-    agGridCellByColId(usdSecurityRow, "balanceInReferenceCurrency"),
-  ).toHaveText("15.00");
-
-  const eurSecurityRow = agGridRowByText(
-    page,
-    seeded.securityCounterAccount.name,
-  );
-  await expect(agGridCellByColId(eurSecurityRow, "balance")).toHaveText("-3");
-  await expect(
-    agGridCellByColId(eurSecurityRow, "balanceInReferenceCurrency"),
-  ).toHaveText(/^-13\.6[34]$/);
-});
-
-test("split dialogs auto-fill unit metadata for unitless equity account selection", async ({
-  page,
-}) => {
-  await page.goto(`/${seeded.accountBookId}/${seeded.cashAccount.id}`);
-
-  const createSimpleDialog = await openCreateSimpleTransaction(page);
-  await createSimpleDialog.getByLabel("Date").fill("01/08/2026");
-  await createSimpleDialog
-    .getByLabel("Description")
-    .fill("E2E Unitless Equity Create");
-  await createSimpleDialog.getByLabel("Counter Account").click();
-  await selectAccountLeaf(page, seeded.savingsAccount.name);
-  await createSimpleDialog.getByLabel("Amount").fill("90");
-  await createSimpleDialog
-    .getByRole("button", { name: "Switch to Split Editor" })
-    .click();
-
-  const createDialog = splitCreateDialog(page);
-  await expect(createDialog).toBeVisible();
-
-  const createCounterRow = createDialog
-    .locator('.ag-center-cols-container .ag-row[row-index="1"]')
-    .first();
-  await setGridAccountCellValue({
-    dialog: createDialog,
-    rowIndex: 1,
-    accountName: seeded.unitlessEquityAccount.name,
-  });
-  await expect(agGridCellByColId(createCounterRow, "unit")).toContainText(
-    "Currency",
-  );
-  await expect(agGridCellByColId(createCounterRow, "ccy")).toContainText("CHF");
-
-  await createDialog.getByRole("button", { name: "Create" }).click();
-  await expect(
-    agGridRowByText(page, "E2E Unitless Equity Create"),
-  ).toBeVisible();
-
-  await page.goto(`/${seeded.accountBookId}/${seeded.securityAccount.id}`);
-
-  const securitySimpleDialog = await openCreateSimpleTransaction(page);
-  await securitySimpleDialog.getByLabel("Date").fill("01/09/2026");
-  await securitySimpleDialog
-    .getByLabel("Description")
-    .fill("E2E Unitless Equity Edit");
-  await securitySimpleDialog.getByLabel("Counter Account").click();
-  await selectAccountLeaf(page, seeded.securityCounterAccount.name);
-  await securitySimpleDialog.getByLabel("Amount").fill("5");
-  await securitySimpleDialog.getByRole("button", { name: "Create" }).click();
-  await expect(agGridRowByText(page, "E2E Unitless Equity Edit")).toBeVisible();
-
-  await openEditTransaction(page, "E2E Unitless Equity Edit");
-  const editDialog = page.getByRole("dialog", { name: "Edit Transaction" });
-  await editDialog
-    .getByRole("button", { name: "Switch to Split Editor" })
-    .click();
-  await expect(
-    editDialog.getByRole("button", { name: "Add Booking" }),
-  ).toBeVisible();
-  const { editedRowIndex, lockedRowIndex } =
-    await setUnitlessEquityAccountOnEditableRow({
-      dialog: editDialog,
-      accountName: seeded.unitlessEquityAccount.name,
-    });
-  const lockedRow = gridRowByIndex(editDialog, lockedRowIndex);
-  const expectedUnit = (
-    await agGridCellByColId(lockedRow, "unit").innerText()
-  ).trim();
-  const expectedSymbol = (
-    await agGridCellByColId(lockedRow, "symbol").innerText()
-  ).trim();
-  const expectedCcy = (
-    await agGridCellByColId(lockedRow, "ccy").innerText()
-  ).trim();
-  const editedRow = gridRowByIndex(editDialog, editedRowIndex);
-  await expect(agGridCellByColId(editedRow, "unit")).toContainText(
-    expectedUnit,
-  );
-  await expect(agGridCellByColId(editedRow, "symbol")).toContainText(
-    expectedSymbol,
-  );
-  await expect(agGridCellByColId(editedRow, "ccy")).toContainText(expectedCcy);
-
-  await editDialog.getByRole("button", { name: "Save" }).click();
-  await expect(agGridRowByText(page, "E2E Unitless Equity Edit")).toBeVisible();
-
-  await expect
-    .poll(
-      async () => {
-        const bookings = await getTransactionBookingsByDescription({
-          accountBookId: seeded.accountBookId,
-          description: "E2E Unitless Equity Edit",
-        });
-        const unitlessEquityBooking = bookings.find(
-          (booking) => booking.accountId === seeded.unitlessEquityAccount.id,
-        );
-        const lockedBooking = bookings.find(
-          (booking) => booking.accountId !== seeded.unitlessEquityAccount.id,
-        );
-        if (!unitlessEquityBooking || !lockedBooking) {
-          return false;
-        }
-
-        return (
-          unitlessEquityBooking.unit === lockedBooking.unit &&
-          unitlessEquityBooking.symbol === lockedBooking.symbol &&
-          unitlessEquityBooking.tradeCurrency === lockedBooking.tradeCurrency &&
-          unitlessEquityBooking.value === -lockedBooking.value
-        );
-      },
-      {
-        timeout: 10_000,
-      },
-    )
-    .toBe(true);
 });

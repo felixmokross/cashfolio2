@@ -29,9 +29,8 @@ export type SimpleTransactionEditInitialValues = {
 
 export function createCopySimpleTransactionInitialValues(
   initialValues: SimpleTransactionEditInitialValues,
-): Omit<SimpleTransactionEditInitialValues, "date"> & { date?: Date } {
-  const { date: _date, ...initialValuesWithoutDate } = initialValues;
-  return initialValuesWithoutDate;
+): SimpleTransactionEditInitialValues {
+  return { ...initialValues };
 }
 
 export function buildSimpleTransactionValues(args: {

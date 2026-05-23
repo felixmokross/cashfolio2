@@ -19,6 +19,7 @@ export async function clickRowAction(
   row: Locator,
   actionLabel:
     | "Edit"
+    | "Copy"
     | "Rebook"
     | "Delete"
     | "Archive"

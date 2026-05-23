@@ -64,7 +64,7 @@ describe("createTransactionFormInitialValues", () => {
 });
 
 describe("createCopyTransactionInitialValues", () => {
-  test("preserves copied booking details and ordering while removing dates", () => {
+  test("preserves copied booking details, dates, and ordering", () => {
     const result = createCopyTransactionInitialValues({
       description: "Copy me",
       bookings: [
@@ -92,6 +92,7 @@ describe("createCopyTransactionInitialValues", () => {
       description: "Copy me",
       bookings: [
         {
+          date: "2026-01-10T00:00:00.000Z",
           account: "cash",
           description: "Cash leg",
           unit: Unit.CURRENCY,
@@ -99,6 +100,7 @@ describe("createCopyTransactionInitialValues", () => {
           debit: 12,
         },
         {
+          date: "2026-01-11T00:00:00.000Z",
           account: "expense",
           description: "Expense leg",
           unit: Unit.SECURITY,

@@ -63,10 +63,7 @@ export function createCopyTransactionInitialValues(args: {
 } {
   return {
     description: args.description,
-    bookings: args.bookings?.map((booking) => {
-      const { date: _date, ...bookingWithoutDate } = booking;
-      return bookingWithoutDate;
-    }),
+    bookings: args.bookings?.map((booking) => ({ ...booking })),
   };
 }
 
