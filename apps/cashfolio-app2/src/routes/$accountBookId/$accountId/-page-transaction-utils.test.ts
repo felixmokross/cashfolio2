@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
 import {
+  AccountType,
+  EquityAccountSubtype,
+  Unit,
+} from "@/.prisma-client/enums";
+import {
+  buildSimpleTransactionValues,
   createCopySimpleTransactionInitialValues,
   normalizeSimpleDraft,
 } from "./-page-transaction-utils";
@@ -78,9 +84,10 @@ describe("normalizeSimpleDraft", () => {
 });
 
 describe("createCopySimpleTransactionInitialValues", () => {
-  test("keeps simple transaction fields while removing the source date", () => {
+  test("keeps simple transaction fields and the source date", () => {
+    const date = new Date("2026-01-15T00:00:00.000Z");
     const result = createCopySimpleTransactionInitialValues({
-      date: new Date("2026-01-15T00:00:00.000Z"),
+      date,
       description: "Salary",
       counterAccountId: "income-1",
       amount: 100,
@@ -88,10 +95,49 @@ describe("createCopySimpleTransactionInitialValues", () => {
     });
 
     expect(result).toEqual({
+      date,
       description: "Salary",
       counterAccountId: "income-1",
       amount: 100,
       direction: "DEBIT",
     });
+  });
+});
+
+describe("buildSimpleTransactionValues", () => {
+  test("applies the selected simple date to both generated bookings", () => {
+    const result = buildSimpleTransactionValues({
+      values: {
+        date: "2026-02-10T00:00:00.000Z",
+        description: "Groceries",
+        counterAccountId: "expense-1",
+        amount: 25,
+        direction: "CREDIT",
+      },
+      currentAccount: {
+        id: "cash",
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        cryptocurrency: null,
+        symbol: null,
+        tradeCurrency: null,
+      },
+      counterAccount: {
+        label: "Groceries",
+        value: "expense-1",
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        cryptocurrency: null,
+        symbol: null,
+        tradeCurrency: null,
+        type: AccountType.EQUITY,
+        equityAccountSubtype: EquityAccountSubtype.EXPENSE,
+      },
+    });
+
+    expect(result.bookings.map((booking) => booking.date)).toEqual([
+      "2026-02-10T00:00:00.000Z",
+      "2026-02-10T00:00:00.000Z",
+    ]);
   });
 });

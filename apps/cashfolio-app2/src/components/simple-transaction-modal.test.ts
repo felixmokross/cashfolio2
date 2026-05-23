@@ -21,12 +21,14 @@ describe("createSimpleTransactionFormInitialValues", () => {
     });
   });
 
-  test("keeps date empty when copied initial values omit date", () => {
+  test("keeps the copied initial date", () => {
     const today = new Date("2026-05-18T00:00:00.000Z");
+    const copiedDate = new Date("2026-01-15T00:00:00.000Z");
 
     const result = createSimpleTransactionFormInitialValues({
       today,
       initialValues: {
+        date: copiedDate,
         description: "Copied transaction",
         counterAccountId: "expense-1",
         amount: 12,
@@ -35,7 +37,7 @@ describe("createSimpleTransactionFormInitialValues", () => {
     });
 
     expect(result).toEqual({
-      date: undefined,
+      date: copiedDate,
       description: "Copied transaction",
       counterAccountId: "expense-1",
       amount: 12,
