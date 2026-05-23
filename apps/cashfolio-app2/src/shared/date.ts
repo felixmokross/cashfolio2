@@ -116,6 +116,79 @@ export function normalizeDateInputValue(
   return null;
 }
 
+export function normalizeDateInputValueToUtcDay(
+  value: Date | string | null | undefined,
+  locale = DEFAULT_USER_LOCALE,
+): Date | null {
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) return null;
+    const utcDay = startOfUtcDay(value);
+    if (value.getTime() === utcDay.getTime()) return utcDay;
+
+    return createUtcDateFromParts({
+      year: value.getFullYear(),
+      month: value.getMonth() + 1,
+      day: value.getDate(),
+    });
+  }
+
+  const normalized = normalizeDateInputValue(value, locale);
+  return normalized ? startOfUtcDay(normalized) : null;
+}
+
+export function formatDateInputValueAsUtcDayIsoString(
+  value: Date | string | null | undefined,
+  locale = DEFAULT_USER_LOCALE,
+): string {
+  return normalizeDateInputValueToUtcDay(value, locale)?.toISOString() ?? "";
+}
+
+export function createDateInputValueFromUtcDay(
+  value: Date | string | null | undefined,
+): Date | null {
+  const utcDay =
+    value instanceof Date
+      ? startOfUtcDay(value)
+      : normalizeDateInputValueToUtcDay(value);
+  if (!utcDay || isNaN(utcDay.getTime())) return null;
+  return new Date(
+    utcDay.getUTCFullYear(),
+    utcDay.getUTCMonth(),
+    utcDay.getUTCDate(),
+  );
+}
+
+export function parseUtcDayDate(value: Date | string): Date | null {
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) return null;
+    const utcDay = startOfUtcDay(value);
+    return value.getTime() === utcDay.getTime() ? utcDay : null;
+  }
+
+  const trimmed = value.trim();
+  const isoDateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (isoDateMatch) {
+    return createUtcDateFromParts({
+      year: Number(isoDateMatch[1]),
+      month: Number(isoDateMatch[2]),
+      day: Number(isoDateMatch[3]),
+    });
+  }
+
+  const canonicalUtcDayMatch = /^(\d{4})-(\d{2})-(\d{2})T00:00:00\.000Z$/.exec(
+    trimmed,
+  );
+  if (canonicalUtcDayMatch) {
+    return createUtcDateFromParts({
+      year: Number(canonicalUtcDayMatch[1]),
+      month: Number(canonicalUtcDayMatch[2]),
+      day: Number(canonicalUtcDayMatch[3]),
+    });
+  }
+
+  return null;
+}
+
 function getLocaleDateParts(locale: string) {
   return new Intl.DateTimeFormat(locale, {
     day: "2-digit",

@@ -139,6 +139,9 @@ describe("deriveSimpleTransactionEditState", () => {
     expect(result.initialValues.amount).toBe(42);
     expect(result.initialValues.direction).toBe("CREDIT");
     expect(result.initialValues.description).toBe("Groceries");
+    expect(result.initialValues.date.getFullYear()).toBe(2026);
+    expect(result.initialValues.date.getMonth()).toBe(0);
+    expect(result.initialValues.date.getDate()).toBe(10);
   });
 
   test("rejects transactions with more than two bookings", () => {

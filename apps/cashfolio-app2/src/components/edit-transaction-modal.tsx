@@ -14,6 +14,7 @@ import {
   formatUtcDateForLocale,
   getDateInputValueFormat,
   normalizeDateInputValue,
+  normalizeDateInputValueToUtcDay,
   startOfUtcDay,
 } from "../shared/date";
 import { useUserLocale } from "@/user-locale-context";
@@ -102,7 +103,7 @@ export function EditTransactionModal({
     }),
     onValuesChange: ({ date }, { date: previousDate }) => {
       if (date !== previousDate) {
-        const normalizedDate = normalizeDateInputValue(date);
+        const normalizedDate = normalizeDateInputValue(date, userLocale);
         if (date != null && normalizedDate == null) return;
         for (let i = 0; i < form.values.bookings.length; i++) {
           form.setFieldValue(`bookings.${i}.date`, normalizedDate ?? undefined);
@@ -111,7 +112,7 @@ export function EditTransactionModal({
     },
     validate: {
       date: (value) => {
-        const date = normalizeDateInputValue(value);
+        const date = normalizeDateInputValueToUtcDay(value, userLocale);
         if (!date) {
           return value ? "Date is invalid" : "Date is required";
         }
@@ -129,7 +130,10 @@ export function EditTransactionModal({
             decimalSeparator,
           }),
         date: (value) => {
-          const bookingDate = normalizeDateInputValue(value);
+          const bookingDate = normalizeDateInputValueToUtcDay(
+            value,
+            userLocale,
+          );
           if (!bookingDate) {
             return value ? "Date is invalid" : "Date is required";
           }

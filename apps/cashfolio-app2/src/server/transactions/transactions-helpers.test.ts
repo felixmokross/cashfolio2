@@ -203,8 +203,35 @@ describe("transactions helpers", () => {
         ],
       }),
     ).toThrow(
-      "Booking 0: currency is required. Booking 1: invalid date. Booking 1: symbol and trade currency are required for security bookings.",
+      "Booking 0: currency is required. Booking 1: date must be a valid UTC day. Booking 1: symbol and trade currency are required for security bookings.",
     );
+  });
+
+  test("rejects non-canonical time-bearing booking dates", () => {
+    expect(() =>
+      validateCreateTransaction({
+        accountBookId: "book-1",
+        description: "shifted local date",
+        bookings: [
+          {
+            date: "2026-05-17T22:00:00.000Z",
+            accountId: "asset-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: 120,
+          },
+          {
+            date: "2026-05-17T22:00:00.000Z",
+            accountId: "equity-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: -120,
+          },
+        ],
+      }),
+    ).toThrow("Booking 0: date must be a valid UTC day.");
   });
 
   test("allows future booking dates", () => {
@@ -292,6 +319,33 @@ describe("transactions helpers", () => {
         ],
       },
     });
+  });
+
+  test("rejects non-canonical dates while building transaction create payloads", () => {
+    expect(() =>
+      buildTransactionCreateData({
+        accountBookId: "book-1",
+        description: "shifted transaction",
+        bookings: [
+          {
+            date: "2026-01-02T23:00:00.000Z",
+            accountId: "asset-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: 50,
+          },
+          {
+            date: "2026-01-02T23:00:00.000Z",
+            accountId: "equity-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: -50,
+          },
+        ],
+      }),
+    ).toThrow("Date must be a valid UTC day.");
   });
 
   test("loads account metadata when validating account type booking rules", async () => {
@@ -410,7 +464,7 @@ describe("transactions helpers", () => {
           {
             accountId: "income",
             value: -100,
-            date: "2026-01-03T08:00:00.000Z",
+            date: "2026-01-03T00:00:00.000Z",
           },
         ],
         createAccountMap(),
@@ -428,7 +482,7 @@ describe("transactions helpers", () => {
           {
             accountId: "income",
             value: -100,
-            date: "2026-01-04T08:00:00.000Z",
+            date: "2026-01-04T00:00:00.000Z",
           },
         ],
         createAccountMap(),
@@ -446,12 +500,12 @@ describe("transactions helpers", () => {
           {
             accountId: "gain-loss",
             value: -100,
-            date: "2026-01-04T08:00:00.000Z",
+            date: "2026-01-04T00:00:00.000Z",
           },
           {
             accountId: "asset",
             value: 100,
-            date: "2026-01-04T08:00:00.000Z",
+            date: "2026-01-04T00:00:00.000Z",
           },
         ],
         createAccountMap(),
@@ -469,17 +523,17 @@ describe("transactions helpers", () => {
           {
             accountId: "gain-loss",
             value: -100,
-            date: "2026-01-04T08:00:00.000Z",
+            date: "2026-01-04T00:00:00.000Z",
           },
           {
             accountId: "asset",
             value: 40,
-            date: "2026-01-04T08:00:00.000Z",
+            date: "2026-01-04T00:00:00.000Z",
           },
           {
             accountId: "liability",
             value: 60,
-            date: "2026-01-04T08:00:00.000Z",
+            date: "2026-01-04T00:00:00.000Z",
           },
         ],
         createAccountMap(),
@@ -497,12 +551,12 @@ describe("transactions helpers", () => {
           {
             accountId: "gain-loss",
             value: -100,
-            date: "2026-01-04T08:00:00.000Z",
+            date: "2026-01-04T00:00:00.000Z",
           },
           {
             accountId: "income",
             value: -100,
-            date: "2026-01-04T08:00:00.000Z",
+            date: "2026-01-04T00:00:00.000Z",
           },
         ],
         createAccountMap(),
@@ -520,12 +574,12 @@ describe("transactions helpers", () => {
           {
             accountId: "gain-loss",
             value: -100,
-            date: "2026-01-04T08:00:00.000Z",
+            date: "2026-01-04T00:00:00.000Z",
           },
           {
             accountId: "gain-loss",
             value: 100,
-            date: "2026-01-04T08:00:00.000Z",
+            date: "2026-01-04T00:00:00.000Z",
           },
         ],
         createAccountMap(),

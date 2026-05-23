@@ -18,9 +18,11 @@ import {
   isOpeningBalancesAccount,
 } from "../shared/account-utils";
 import {
+  formatDateInputValueAsUtcDayIsoString,
   formatUtcDateForLocale,
   getDateInputValueFormat,
   normalizeDateInputValue,
+  normalizeDateInputValueToUtcDay,
   startOfUtcDay,
 } from "../shared/date";
 import { useDialogSubmitState } from "../hooks/use-dialog-submit-state";
@@ -71,6 +73,16 @@ export function createSimpleTransactionFormInitialValues(args: {
     direction:
       args.initialValues?.direction ?? ("DEBIT" as SimpleTransactionDirection),
   };
+}
+
+export function toSimpleTransactionSubmitDate(
+  value: Date | string | null | undefined,
+  fallback: Date,
+): string {
+  return (
+    formatDateInputValueAsUtcDayIsoString(value) ||
+    formatDateInputValueAsUtcDayIsoString(fallback)
+  );
 }
 
 export function SimpleTransactionModal({
@@ -124,7 +136,7 @@ export function SimpleTransactionModal({
     }),
     validate: {
       date: (value) => {
-        const date = normalizeDateInputValue(value);
+        const date = normalizeDateInputValueToUtcDay(value, userLocale);
         if (!date) {
           return value ? "Date is invalid" : "Date is required";
         }
@@ -199,9 +211,8 @@ export function SimpleTransactionModal({
         form.onSubmit(
           (values) =>
             runSubmit(async () => {
-              const date = normalizeDateInputValue(values.date) ?? today;
               await onSubmit({
-                date: date.toISOString(),
+                date: toSimpleTransactionSubmitDate(values.date, today),
                 description: values.description,
                 counterAccountId: values.counterAccountId,
                 amount: Number(values.amount),
@@ -301,7 +312,7 @@ export function SimpleTransactionModal({
               disabled={isSubmitting}
               onClick={() =>
                 onSwitchToSplit({
-                  date: normalizeDateInputValue(form.values.date),
+                  date: form.values.date ?? null,
                   description: form.values.description,
                   counterAccountId: form.values.counterAccountId,
                   amount: form.values.amount,

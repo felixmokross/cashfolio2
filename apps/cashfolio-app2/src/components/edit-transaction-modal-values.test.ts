@@ -3,6 +3,7 @@ import { Unit } from "@/.prisma-client/enums";
 import {
   createCopyTransactionInitialValues,
   createTransactionFormInitialValues,
+  toTransactionSubmitBookings,
 } from "./edit-transaction-modal-values";
 
 describe("createTransactionFormInitialValues", () => {
@@ -43,6 +44,22 @@ describe("createTransactionFormInitialValues", () => {
     });
 
     expect(result.date).toBeUndefined();
+  });
+
+  test("uses the earliest booking UTC day as a DateInput calendar day", () => {
+    const result = createTransactionFormInitialValues({
+      initialValues: {
+        description: "Transfer",
+        bookings: [
+          { date: "2026-05-18T00:00:00.000Z", account: "cash" },
+          { date: "2026-05-17T00:00:00.000Z", account: "bank" },
+        ],
+      },
+    });
+
+    expect(result.date?.getFullYear()).toBe(2026);
+    expect(result.date?.getMonth()).toBe(4);
+    expect(result.date?.getDate()).toBe(17);
   });
 });
 
@@ -91,5 +108,23 @@ describe("createCopyTransactionInitialValues", () => {
         },
       ],
     });
+  });
+});
+
+describe("toTransactionSubmitBookings", () => {
+  test("serializes DateInput dates as canonical UTC days", () => {
+    const result = toTransactionSubmitBookings([
+      {
+        key: "booking-1",
+        date: new Date(2026, 4, 18),
+        account: "cash",
+        description: "",
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        debit: 12,
+      },
+    ]);
+
+    expect(result[0]?.date).toBe("2026-05-18T00:00:00.000Z");
   });
 });

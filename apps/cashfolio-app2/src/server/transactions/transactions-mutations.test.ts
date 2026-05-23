@@ -277,6 +277,16 @@ describe("transactions mutations", () => {
     );
   });
 
+  it("rejects simple transactions with non-canonical time-bearing dates", async () => {
+    await expect(
+      createSimpleTransaction({
+        data: createSimpleInput({ date: "2026-01-11T23:00:00.000Z" }),
+      }),
+    ).rejects.toThrow("Date must be a valid UTC day.");
+
+    expect(prisma.transaction.create).not.toHaveBeenCalled();
+  });
+
   it("rejects missing current account in simple transactions", async () => {
     prisma.account.findMany.mockResolvedValueOnce([
       createCounterEquityAccount(),
@@ -426,6 +436,35 @@ describe("transactions mutations", () => {
     expect(invalidatePeriodBaseDataCacheForAccountBook).toHaveBeenCalledWith(
       "book-1",
     );
+  });
+
+  it("rejects full transactions with non-canonical time-bearing dates", async () => {
+    await expect(
+      createTransaction({
+        data: createTransactionInput({
+          bookings: [
+            {
+              date: "2026-01-11T23:00:00.000Z",
+              accountId: "asset-1",
+              description: "",
+              unit: Unit.CURRENCY,
+              currency: "CHF",
+              value: 50,
+            },
+            {
+              date: "2026-01-11T23:00:00.000Z",
+              accountId: "counter-1",
+              description: "",
+              unit: Unit.CURRENCY,
+              currency: "CHF",
+              value: -50,
+            },
+          ],
+        }),
+      }),
+    ).rejects.toThrow("date must be a valid UTC day");
+
+    expect(prisma.transaction.create).not.toHaveBeenCalled();
   });
 
   it("rejects create transaction when gain/loss booking is not simple", async () => {
