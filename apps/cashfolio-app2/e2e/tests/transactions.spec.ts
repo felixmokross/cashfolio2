@@ -345,6 +345,52 @@ test("create simple transaction", async ({ page }) => {
   await expect(agGridCellByColId(cashRow, "balance")).toHaveText("-342.00");
 });
 
+test("copy simple transaction keeps source date and saves selected copy date", async ({
+  page,
+}) => {
+  await page.goto(`/${seeded.accountBookId}/${seeded.cashAccount.id}`);
+
+  const sourceDescription = "E2E Copy Simple Source";
+  const copiedDescription = "E2E Copy Simple Result";
+  const simpleDialog = await openCreateSimpleTransaction(page);
+  await simpleDialog.getByLabel("Date").fill("01/10/2026");
+  await simpleDialog.getByLabel("Description").fill(sourceDescription);
+  await simpleDialog.getByLabel("Counter Account").click();
+  await selectAccountLeaf(page, seeded.expenseAccount.name);
+  await simpleDialog.getByLabel("Amount").fill("33");
+  await simpleDialog.getByRole("button", { name: "Create" }).click();
+
+  const sourceRow = agGridRowByText(page, sourceDescription);
+  await expect(sourceRow).toBeVisible();
+  await clickRowAction(sourceRow, "Copy");
+
+  const copyDialog = page.getByRole("dialog", { name: "Copy Transaction" });
+  await expect(copyDialog).toBeVisible();
+
+  const dateInput = copyDialog.getByLabel("Date");
+  await expect(dateInput).toBeFocused();
+  await expect(dateInput).toHaveValue("01/10/2026");
+
+  await dateInput.fill("01/11/2026");
+  await copyDialog.getByLabel("Description").fill(copiedDescription);
+  await copyDialog.getByRole("button", { name: "Create Copy" }).click();
+
+  await expect(agGridRowByText(page, copiedDescription)).toBeVisible();
+
+  const copiedBookings = await getTransactionBookingsByDescription({
+    accountBookId: seeded.accountBookId,
+    description: copiedDescription,
+  });
+  expect(copiedBookings).toHaveLength(2);
+  expect(copiedBookings.map((booking) => booking.date)).toEqual([
+    "2026-01-11T00:00:00.000Z",
+    "2026-01-11T00:00:00.000Z",
+  ]);
+  expect(
+    copiedBookings.map((booking) => booking.value).sort((a, b) => a - b),
+  ).toEqual([-33, 33]);
+});
+
 test("counterparty account link highlights the matching booking row", async ({
   page,
 }) => {

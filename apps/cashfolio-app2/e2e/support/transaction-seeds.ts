@@ -16,6 +16,7 @@ export async function getTransactionBookingsByDescription(args: {
 }): Promise<
   Array<{
     accountId: string;
+    date: string;
     unit: Unit;
     symbol: string | null;
     tradeCurrency: string | null;
@@ -37,6 +38,7 @@ export async function getTransactionBookingsByDescription(args: {
 
   return transaction.bookings.map((booking) => ({
     accountId: booking.accountId,
+    date: booking.date.toISOString(),
     unit: booking.unit,
     symbol: booking.symbol,
     tradeCurrency: booking.tradeCurrency,
