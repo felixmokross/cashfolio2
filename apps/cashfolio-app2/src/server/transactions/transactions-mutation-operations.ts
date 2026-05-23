@@ -10,6 +10,7 @@ import {
   accountTypeMeta,
   buildTransactionCreateData,
   getBookingUnitFields,
+  requireUtcDayDate,
   validateAccountTypeBookings,
   validateAccountTypeBookingsWithAccounts,
   validateCreateTransaction,
@@ -70,7 +71,7 @@ export async function updateTransactionOperation(data: UpdateTransactionInput) {
         description: data.description,
         bookings: {
           create: data.bookings.map((b, sortOrder) => ({
-            date: parseUtcDayDate(b.date) ?? new Date(b.date),
+            date: requireUtcDayDate(b.date),
             description: b.description,
             account: {
               connect: {

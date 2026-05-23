@@ -198,7 +198,7 @@ export function buildTransactionCreateData(input: CreateTransactionInput) {
     accountBookId: input.accountBookId,
     bookings: {
       create: input.bookings.map((booking, sortOrder) => ({
-        date: parseUtcDayDate(booking.date) ?? new Date(booking.date),
+        date: requireUtcDayDate(booking.date),
         description: booking.description,
         account: {
           connect: {
@@ -221,6 +221,14 @@ export function buildTransactionCreateData(input: CreateTransactionInput) {
       })),
     },
   };
+}
+
+export function requireUtcDayDate(value: string | Date): Date {
+  const date = parseUtcDayDate(value);
+  if (!date) {
+    throw new Error("Date must be a valid UTC day.");
+  }
+  return date;
 }
 
 export type SimpleUnitFields = BookingUnitFieldsSource;

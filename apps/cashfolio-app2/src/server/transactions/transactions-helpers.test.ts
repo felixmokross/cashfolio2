@@ -321,6 +321,33 @@ describe("transactions helpers", () => {
     });
   });
 
+  test("rejects non-canonical dates while building transaction create payloads", () => {
+    expect(() =>
+      buildTransactionCreateData({
+        accountBookId: "book-1",
+        description: "shifted transaction",
+        bookings: [
+          {
+            date: "2026-01-02T23:00:00.000Z",
+            accountId: "asset-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: 50,
+          },
+          {
+            date: "2026-01-02T23:00:00.000Z",
+            accountId: "equity-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: -50,
+          },
+        ],
+      }),
+    ).toThrow("Date must be a valid UTC day.");
+  });
+
   test("loads account metadata when validating account type booking rules", async () => {
     prisma.account.findMany.mockResolvedValue([
       {
