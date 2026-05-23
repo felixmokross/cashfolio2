@@ -105,6 +105,17 @@ describe("shared/date", () => {
     );
   });
 
+  test("preserves Date instances that already represent UTC days", () => {
+    const utcDayValue = new Date("2026-05-18T00:00:00.000Z");
+
+    expect(normalizeDateInputValueToUtcDay(utcDayValue)?.toISOString()).toBe(
+      "2026-05-18T00:00:00.000Z",
+    );
+    expect(formatDateInputValueAsUtcDayIsoString(utcDayValue)).toBe(
+      "2026-05-18T00:00:00.000Z",
+    );
+  });
+
   test("normalizes strings by UTC day", () => {
     expect(
       normalizeDateInputValueToUtcDay(

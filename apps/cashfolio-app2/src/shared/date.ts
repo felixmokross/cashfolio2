@@ -122,6 +122,9 @@ export function normalizeDateInputValueToUtcDay(
 ): Date | null {
   if (value instanceof Date) {
     if (isNaN(value.getTime())) return null;
+    const utcDay = startOfUtcDay(value);
+    if (value.getTime() === utcDay.getTime()) return utcDay;
+
     return createUtcDateFromParts({
       year: value.getFullYear(),
       month: value.getMonth() + 1,
