@@ -113,6 +113,7 @@ export function useStatementImportColumnDefs(args: {
         colId: "actions",
         headerName: "",
         width: 95,
+        pinned: "right",
         sortable: false,
         filter: false,
         resizable: false,

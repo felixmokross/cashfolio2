@@ -26,6 +26,10 @@ async function openStatementImportPage(page: Page) {
   await page.getByRole("menuitem", { name: "Import Statement" }).click();
 }
 
+function ledgerUrlPattern(args: { accountBookId: string; accountId: string }) {
+  return new RegExp(`/${args.accountBookId}/${args.accountId}(?:[?]|$)`);
+}
+
 test("imports a statement after selecting the counter account in the review grid", async ({
   page,
 }) => {
@@ -81,7 +85,10 @@ test("imports a statement after selecting the counter account in the review grid
   await page.getByRole("button", { name: "Import Transactions" }).click();
 
   await expect(page).toHaveURL(
-    new RegExp(`/${seeded.accountBookId}/${seeded.cashAccount.id}`),
+    ledgerUrlPattern({
+      accountBookId: seeded.accountBookId,
+      accountId: seeded.cashAccount.id,
+    }),
   );
   await expect(agGridRowByText(page, importedDescription)).toBeVisible();
 
@@ -171,7 +178,10 @@ test("shows multiple for drafts with several counter bookings", async ({
 
   await page.getByRole("button", { name: "Import Transactions" }).click();
   await expect(page).toHaveURL(
-    new RegExp(`/${seeded.accountBookId}/${seeded.cashAccount.id}`),
+    ledgerUrlPattern({
+      accountBookId: seeded.accountBookId,
+      accountId: seeded.cashAccount.id,
+    }),
   );
   await expect(agGridRowByText(page, importedDescription)).toBeVisible();
 
