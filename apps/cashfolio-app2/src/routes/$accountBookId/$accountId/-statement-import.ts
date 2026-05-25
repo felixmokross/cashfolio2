@@ -73,32 +73,36 @@ type CurrentAccountForStatementImport = {
 
 const STRICT_DECIMAL_PATTERN = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/;
 const CURRENCY_PATTERN = /^[A-Z]{3}$/;
+const REQUIRED_COLUMN_COUNT = STATEMENT_IMPORT_CSV_HEADERS.length;
 
 export function parseStatementImportCsv(args: {
   text: string;
   currentAccount: CurrentAccountForStatementImport;
 }): StatementImportParseResult {
-  const parsed = Papa.parse<StatementImportCsvRow>(args.text, {
-    header: true,
+  const parsed = Papa.parse<string[]>(args.text, {
+    header: false,
     delimitersToGuess: [",", ";"],
     skipEmptyLines: "greedy",
   });
   const errors = parsed.errors.map((error) =>
     error.row != null
-      ? `Row ${error.row + 2}: ${error.message}`
+      ? `Row ${error.row + 1}: ${error.message}`
       : error.message,
   );
 
-  if (!hasExactHeaders(parsed.meta.fields)) {
+  const [headerRow, ...dataRows] = parsed.data;
+  if (!headerRow || headerRow.length < REQUIRED_COLUMN_COUNT) {
     errors.unshift(
-      `CSV headers must exactly be: ${STATEMENT_IMPORT_CSV_HEADERS.join(", ")}`,
+      `CSV must include at least ${REQUIRED_COLUMN_COUNT} columns in this order: ${STATEMENT_IMPORT_CSV_HEADERS.join(", ")}`,
     );
     return { drafts: [], errors };
   }
 
-  const rows = parsed.data.filter((row) =>
-    STATEMENT_IMPORT_CSV_HEADERS.some((header) => row[header]?.trim() !== ""),
-  );
+  const rows = dataRows
+    .filter((row) =>
+      row.slice(0, REQUIRED_COLUMN_COUNT).some((value) => value?.trim() !== ""),
+    )
+    .map(toStatementImportCsvRow);
   if (rows.length === 0) {
     errors.push("CSV must contain at least one transaction row.");
   }
@@ -289,14 +293,15 @@ export function updateStatementImportDraftTransaction(args: {
   };
 }
 
-function hasExactHeaders(fields: string[] | undefined): boolean {
-  if (!fields || fields.length !== STATEMENT_IMPORT_CSV_HEADERS.length) {
-    return false;
-  }
-
-  return STATEMENT_IMPORT_CSV_HEADERS.every(
-    (expectedHeader, index) => fields[index] === expectedHeader,
-  );
+function toStatementImportCsvRow(row: string[]): StatementImportCsvRow {
+  return {
+    date: row[0] ?? "",
+    amount: row[1] ?? "",
+    "original amount": row[2] ?? "",
+    "original currency": row[3] ?? "",
+    "exchange rate": row[4] ?? "",
+    description: row[5] ?? "",
+  };
 }
 
 function validateCsvRow(

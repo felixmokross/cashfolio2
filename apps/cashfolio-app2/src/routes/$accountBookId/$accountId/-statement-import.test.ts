@@ -102,7 +102,7 @@ describe("statement import", () => {
     const result = parseStatementImportCsv({
       currentAccount,
       text: [
-        "date;amount;original amount;original currency;exchange rate;description",
+        "Booking Date;Booked Amount;Source Amount;Source Currency;FX Rate;Memo",
         '2026-02-03;100.25;92.50;EUR;1.083784;"Transfer; incoming"',
       ].join("\n"),
     });
@@ -117,17 +117,57 @@ describe("statement import", () => {
     });
   });
 
-  test("rejects non-exact headers", () => {
+  test("parses arbitrary header names by column order", () => {
     const result = parseStatementImportCsv({
       currentAccount,
       text: [
-        "date,amount,originalAmount,original currency,exchange rate,description",
+        "Booked On,Value,Foreign Value,Foreign Ccy,Rate,Text",
         "2026-02-03,100.25,92.50,EUR,1.083784,Transfer",
       ].join("\n"),
     });
 
+    expect(result.errors).toEqual([]);
+    expect(result.drafts[0]).toMatchObject({
+      date: "2026-02-03T00:00:00.000Z",
+      amount: 100.25,
+      originalAmount: 92.5,
+      originalCurrency: "EUR",
+      exchangeRate: 1.083784,
+      description: "Transfer",
+    });
+  });
+
+  test("ignores extra trailing columns", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      text: [
+        "date,amount,original amount,original currency,exchange rate,description,balance,unused",
+        "2026-02-03,100.25,92.50,EUR,1.083784,Transfer,5000,ignored",
+      ].join("\n"),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.drafts[0]).toMatchObject({
+      amount: 100.25,
+      originalAmount: 92.5,
+      originalCurrency: "EUR",
+      exchangeRate: 1.083784,
+      description: "Transfer",
+    });
+  });
+
+  test("rejects CSVs with fewer than six columns", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      text: ["date,amount,original amount", "2026-02-03,100.25,92.50"].join(
+        "\n",
+      ),
+    });
+
     expect(result.drafts).toEqual([]);
-    expect(result.errors[0]).toContain("CSV headers must exactly be");
+    expect(result.errors[0]).toContain(
+      "CSV must include at least 6 columns in this order",
+    );
   });
 
   test("rejects invalid dates and numeric fields", () => {
