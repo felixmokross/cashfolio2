@@ -3,6 +3,7 @@ import { Unit } from "../../src/.prisma-client/enums";
 import {
   agGridCellByColId,
   agGridRowByText,
+  setGridCellValue,
   setGridAccountTreeCellValue,
 } from "../support/grid";
 import {
@@ -11,6 +12,7 @@ import {
   type SeededData,
 } from "../support/db";
 import { expect, test } from "../support/fixtures";
+import { setGridAccountCellValue } from "../support/transaction-form";
 
 let seeded: SeededData;
 
@@ -101,6 +103,90 @@ test("imports a statement after selecting the counter account in the review grid
         symbol: null,
         tradeCurrency: null,
         value: 42.55,
+      }),
+    ]),
+  );
+});
+
+test("shows multiple for drafts with several counter bookings", async ({
+  page,
+}) => {
+  const importedDescription = "E2E Statement Import Multiple";
+  const csv = [
+    "Booked;Cashflow;Original;Currency;Rate;Text;Ignored",
+    `2026-05-15;-42.55;;;ignored;${importedDescription};extra value`,
+  ].join("\n");
+
+  await page.goto(
+    `/${seeded.accountBookId}/${seeded.cashAccount.id}?period=2026-04`,
+  );
+  await page.getByRole("button", { name: "Import Statement" }).click();
+
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "statement-import-multiple.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(csv),
+  });
+
+  const draftRow = agGridRowByText(page, importedDescription);
+  await expect(draftRow).toBeVisible();
+  await draftRow.hover();
+  await draftRow
+    .getByRole("button", { name: "Edit Imported Transaction" })
+    .click();
+
+  const editDialog = page.getByRole("dialog", {
+    name: "Edit Imported Transaction",
+  });
+  await expect(editDialog).toBeVisible();
+  await setGridAccountCellValue({
+    dialog: editDialog,
+    rowIndex: 1,
+    accountName: seeded.savingsAccount.name,
+  });
+  await setGridCellValue(editDialog, 1, "debit", "30");
+  await editDialog.getByRole("button", { name: "Add Booking" }).click();
+  await setGridCellValue(editDialog, 2, "date", "05/15/2026");
+  await setGridAccountCellValue({
+    dialog: editDialog,
+    rowIndex: 2,
+    accountName: seeded.investmentsAccount.name,
+  });
+  await setGridCellValue(editDialog, 2, "debit", "12.55");
+  await editDialog.getByRole("button", { name: "Save Draft" }).click();
+  await expect(editDialog).toHaveCount(0);
+
+  const counterCell = agGridCellByColId(draftRow, "counterAccountId");
+  await expect(counterCell).toContainText("Multiple");
+  await expect(agGridCellByColId(draftRow, "status")).toContainText("Ready");
+
+  await counterCell.dblclick();
+  await expect(page.locator(".ag-cell-inline-editing")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Import Transactions" }).click();
+  await expect(page).toHaveURL(
+    new RegExp(`/${seeded.accountBookId}/${seeded.cashAccount.id}`),
+  );
+  await expect(agGridRowByText(page, importedDescription)).toBeVisible();
+
+  const bookings = await getTransactionBookingsByDescription({
+    accountBookId: seeded.accountBookId,
+    description: importedDescription,
+  });
+  expect(bookings).toHaveLength(3);
+  expect(bookings).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        accountId: seeded.cashAccount.id,
+        value: -42.55,
+      }),
+      expect.objectContaining({
+        accountId: seeded.savingsAccount.id,
+        value: 30,
+      }),
+      expect.objectContaining({
+        accountId: seeded.investmentsAccount.id,
+        value: 12.55,
       }),
     ]),
   );

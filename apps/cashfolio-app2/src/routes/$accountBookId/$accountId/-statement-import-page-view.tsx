@@ -24,6 +24,7 @@ import type { AccountBookUnitUsage } from "@/shared/account-book-unit-usage";
 import type { TransactionMutationValues } from "./-page-view";
 import {
   getStatementImportDraftStatus,
+  hasStatementImportSingleCounterBooking,
   parseStatementImportCsv,
   toStatementImportEditInitialValues,
   updateStatementImportDraftCounterAccount,
@@ -123,6 +124,9 @@ export function AccountStatementImportPageView({
     event: CellValueChangedEvent<StatementImportDraft>,
   ) {
     if (event.colDef.field !== "counterAccountId" || !event.data) {
+      return;
+    }
+    if (!hasStatementImportSingleCounterBooking(event.data)) {
       return;
     }
 

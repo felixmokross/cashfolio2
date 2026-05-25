@@ -8,6 +8,7 @@ import type { AccountOption } from "@/components/edit-transaction-modal";
 import {
   createStatementImportDraft,
   getStatementImportDraftStatus,
+  hasStatementImportSingleCounterBooking,
   parseStatementImportCsv,
   shouldIncludeStatementImportAccountOption,
   updateStatementImportDraftCounterAccount,
@@ -484,6 +485,142 @@ describe("statement import", () => {
         }),
       ]),
     );
+  });
+
+  test("single-counter detection allows simple import drafts", () => {
+    const draft = createStatementImportDraft({
+      row: createRow(),
+      sourceRowNumber: 2,
+      currentAccount,
+    });
+    const withCounterAccount = updateStatementImportDraftCounterAccount({
+      draft,
+      selectedAccount: accountOptions.find(
+        (account) => account.value === "income-1",
+      ),
+    });
+
+    expect(hasStatementImportSingleCounterBooking(draft)).toBe(true);
+    expect(hasStatementImportSingleCounterBooking(withCounterAccount)).toBe(
+      true,
+    );
+  });
+
+  test("single-counter detection treats multiple counter bookings as multiple", () => {
+    const draft = createStatementImportDraft({
+      row: createRow({ "original currency": "CHF" }),
+      sourceRowNumber: 2,
+      currentAccount,
+    });
+    const withMultipleCounters = updateStatementImportDraftTransaction({
+      draft,
+      transaction: {
+        ...draft.transaction,
+        bookings: [
+          {
+            ...draft.transaction.bookings[0],
+            accountId: "asset-1",
+            value: 100.25,
+          },
+          {
+            ...draft.transaction.bookings[1],
+            accountId: "income-1",
+            value: -60,
+          },
+          {
+            ...draft.transaction.bookings[1],
+            accountId: "income-1",
+            value: -40.25,
+          },
+        ],
+      },
+    });
+
+    expect(hasStatementImportSingleCounterBooking(withMultipleCounters)).toBe(
+      false,
+    );
+  });
+
+  test("single-counter detection treats missing counter bookings as multiple", () => {
+    const draft = createStatementImportDraft({
+      row: createRow(),
+      sourceRowNumber: 2,
+      currentAccount,
+    });
+    const withoutCounter = updateStatementImportDraftTransaction({
+      draft,
+      transaction: {
+        ...draft.transaction,
+        bookings: draft.transaction.bookings.filter(
+          (booking) => booking.accountId === "asset-1",
+        ),
+      },
+    });
+
+    expect(hasStatementImportSingleCounterBooking(withoutCounter)).toBe(false);
+  });
+
+  test("single-counter detection allows multiple current account bookings", () => {
+    const draft = createStatementImportDraft({
+      row: createRow({ "original currency": "CHF" }),
+      sourceRowNumber: 2,
+      currentAccount,
+    });
+    const withMultipleCurrentBookings = updateStatementImportDraftTransaction({
+      draft,
+      transaction: {
+        ...draft.transaction,
+        bookings: [
+          {
+            ...draft.transaction.bookings[0],
+            accountId: "asset-1",
+            value: 60,
+          },
+          {
+            ...draft.transaction.bookings[0],
+            accountId: "asset-1",
+            value: 40.25,
+          },
+          {
+            ...draft.transaction.bookings[1],
+            accountId: "income-1",
+            value: -100.25,
+          },
+        ],
+      },
+    });
+
+    expect(
+      hasStatementImportSingleCounterBooking(withMultipleCurrentBookings),
+    ).toBe(true);
+  });
+
+  test("direct counter-account edits ignore multiple counter drafts", () => {
+    const draft = createStatementImportDraft({
+      row: createRow({ "original currency": "CHF" }),
+      sourceRowNumber: 2,
+      currentAccount,
+    });
+    const withMultipleCounters = updateStatementImportDraftTransaction({
+      draft,
+      transaction: {
+        ...draft.transaction,
+        bookings: [
+          draft.transaction.bookings[0],
+          { ...draft.transaction.bookings[1], accountId: "income-1" },
+          { ...draft.transaction.bookings[1], accountId: "expense-1" },
+        ],
+      },
+    });
+
+    const updated = updateStatementImportDraftCounterAccount({
+      draft: withMultipleCounters,
+      selectedAccount: accountOptions.find(
+        (account) => account.value === "asset-usd",
+      ),
+    });
+
+    expect(updated).toBe(withMultipleCounters);
   });
 
   test("drafts are not ready when edits remove the current ledger account booking", () => {

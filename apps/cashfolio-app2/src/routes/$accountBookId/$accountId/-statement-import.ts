@@ -4,6 +4,7 @@ export {
   getStatementImportCounterAccountId,
   getStatementImportDisabledReason,
   getStatementImportDraftStatus,
+  hasStatementImportSingleCounterBooking,
   shouldIncludeStatementImportAccountOption,
   toStatementImportEditInitialValues,
   updateStatementImportDraftCounterAccount,

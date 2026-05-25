@@ -12,6 +12,7 @@ import type {
   StatementImportDraft,
   StatementImportDraftStatus,
 } from "./-statement-import";
+import { hasStatementImportSingleCounterBooking } from "./-statement-import";
 
 export function useStatementImportColumnDefs(args: {
   counterAccountOptions: AccountOption[];
@@ -81,7 +82,28 @@ export function useStatementImportColumnDefs(args: {
         field: "counterAccountId",
         headerName: "Counter Account",
         width: 260,
-        editable: !isSubmitting,
+        editable: ({ data }) =>
+          !isSubmitting &&
+          data != null &&
+          hasStatementImportSingleCounterBooking(data),
+        cellRenderer: ({
+          data,
+          value,
+        }: ICellRendererParams<StatementImportDraft>) => {
+          if (!data) return null;
+          if (!hasStatementImportSingleCounterBooking(data)) {
+            return (
+              <Badge color="gray" variant="light">
+                Multiple
+              </Badge>
+            );
+          }
+
+          return (
+            counterAccountOptions.find((option) => option.value === value)
+              ?.label ?? ""
+          );
+        },
         type: ACCOUNT_TREE_SELECT_COLUMN,
         context: {
           options: counterAccountOptions,

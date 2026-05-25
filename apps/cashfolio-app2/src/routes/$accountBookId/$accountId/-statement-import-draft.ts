@@ -219,6 +219,10 @@ export function updateStatementImportDraftCounterAccount(args: {
   draft: StatementImportDraft;
   selectedAccount: AccountOption | undefined;
 }): StatementImportDraft {
+  if (!hasStatementImportSingleCounterBooking(args.draft)) {
+    return args.draft;
+  }
+
   const counterBookingIndex = findStatementImportCounterBookingIndex(
     args.draft,
   );
@@ -281,6 +285,16 @@ export function getStatementImportCounterAccountId(
   return counterBookingIndex === -1
     ? ""
     : (draft.transaction.bookings[counterBookingIndex]?.accountId ?? "");
+}
+
+export function hasStatementImportSingleCounterBooking(
+  draft: StatementImportDraft,
+): boolean {
+  return (
+    draft.transaction.bookings.filter(
+      (booking) => booking.accountId !== draft.currentAccountId,
+    ).length === 1
+  );
 }
 
 export function getStatementImportDisabledReason(account: {

@@ -447,6 +447,8 @@ the importer.
   ledger grid.
 - The counter account is editable directly in the review grid. Full draft edits
   still use `EditTransactionModal`.
+- Drafts with zero or multiple non-current-account bookings show a `Multiple`
+  badge in the counter account cell and must be edited through the row action.
 - Import uses a batch server mutation so either all reviewed drafts are created
   or none are.
 - For imported mixed-currency drafts, `EditTransactionModal` preserves the
