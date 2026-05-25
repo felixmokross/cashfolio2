@@ -203,6 +203,9 @@ submit UX and prevent duplicate requests.
 - Non-equity tabs (`ASSET`, `LIABILITY`) render `Ccy.`, `Symbol`, `Balance`, and
   `Balance (<referenceCurrency>)`.
 - `Balance` is account-level only (group rows are blank), with no aggregation.
+- Currency accounts whose currency matches the account book reference currency
+  leave `Ccy.` and `Balance` blank to avoid duplicating the value already shown
+  in `Balance (<referenceCurrency>)`.
 - `Balance (<referenceCurrency>)` is account-level for leaf accounts across
   `Unit.CURRENCY`, `Unit.CRYPTOCURRENCY`, and `Unit.SECURITY` when a reference
   conversion is available (or the raw balance is 0), and shows aggregated

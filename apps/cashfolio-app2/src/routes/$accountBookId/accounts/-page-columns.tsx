@@ -19,6 +19,43 @@ import {
 } from "./-page-types";
 import { shouldShowReferenceBalanceLoadingIndicator } from "./-reference-balance-loading";
 
+export function getAccountListCurrencyValue(args: {
+  data: AccountsGridRow | undefined;
+  referenceCurrency: string;
+}): string | null | undefined {
+  const { data, referenceCurrency } = args;
+
+  if (!data || isReferenceCurrencyTotalFooterRow(data)) {
+    return undefined;
+  }
+  if (!data.unit) return undefined;
+  switch (data.unit) {
+    case Unit.CURRENCY:
+      return data.currency === referenceCurrency ? undefined : data.currency;
+    case Unit.SECURITY:
+      return data.tradeCurrency;
+    case Unit.CRYPTOCURRENCY:
+      return data.cryptocurrency;
+  }
+}
+
+export function getAccountListBalanceValue(args: {
+  data: AccountsGridRow | undefined;
+  referenceCurrency: string;
+}): number | null {
+  const { data, referenceCurrency } = args;
+
+  if (
+    !data ||
+    isReferenceCurrencyTotalFooterRow(data) ||
+    data.nodeType !== "account" ||
+    (data.unit === Unit.CURRENCY && data.currency === referenceCurrency)
+  ) {
+    return null;
+  }
+  return data.balance;
+}
+
 export function useAccountTreeColumnDefs(params: {
   isArchivedMode: boolean;
   isEquityTab: boolean;
@@ -72,18 +109,10 @@ export function useAccountTreeColumnDefs(params: {
               }: {
                 data: AccountsGridRow | undefined;
               }) => {
-                if (!data || isReferenceCurrencyTotalFooterRow(data)) {
-                  return undefined;
-                }
-                if (!data.unit) return undefined;
-                switch (data.unit) {
-                  case Unit.CURRENCY:
-                    return data.currency;
-                  case Unit.SECURITY:
-                    return data.tradeCurrency;
-                  case Unit.CRYPTOCURRENCY:
-                    return data.cryptocurrency;
-                }
+                return getAccountListCurrencyValue({
+                  data,
+                  referenceCurrency,
+                });
               },
             } satisfies ColDef<AccountsGridRow>,
             {
@@ -102,14 +131,10 @@ export function useAccountTreeColumnDefs(params: {
               }: {
                 data: AccountsGridRow | undefined;
               }) => {
-                if (
-                  !data ||
-                  isReferenceCurrencyTotalFooterRow(data) ||
-                  data.nodeType !== "account"
-                ) {
-                  return null;
-                }
-                return data.balance;
+                return getAccountListBalanceValue({
+                  data,
+                  referenceCurrency,
+                });
               },
             } satisfies ColDef<AccountsGridRow>,
             {

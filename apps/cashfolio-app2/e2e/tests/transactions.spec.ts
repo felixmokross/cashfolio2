@@ -122,7 +122,10 @@ test("create simple transaction", async ({ page }) => {
 
   await page.goto(`/${seeded.accountBookId}/accounts?tab=ASSET&mode=active`);
   const cashRow = agGridRowByText(page, seeded.cashAccount.name);
-  await expect(agGridCellByColId(cashRow, "balance")).toHaveText("-342.00");
+  await expect(agGridCellByColId(cashRow, "balance")).toHaveText(/^\s*$/);
+  await expect(
+    agGridCellByColId(cashRow, "balanceInReferenceCurrency"),
+  ).toHaveText("-342.00");
 });
 
 test("copy simple transaction keeps source date and saves selected copy date", async ({
