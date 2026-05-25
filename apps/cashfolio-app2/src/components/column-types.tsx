@@ -40,6 +40,10 @@ type FormattedNumericColDefConfig = {
   }) => number;
 };
 
+type AccountTreeSelectColDefConfig = {
+  commitOnSelect?: boolean;
+};
+
 function getFormattedNumericConfig(
   colDef: unknown,
 ): FormattedNumericColDefConfig {
@@ -54,6 +58,22 @@ function getFormattedNumericConfig(
 
   return ((context as { formattedNumeric?: FormattedNumericColDefConfig })
     .formattedNumeric ?? {}) as FormattedNumericColDefConfig;
+}
+
+function getAccountTreeSelectConfig(
+  colDef: unknown,
+): AccountTreeSelectColDefConfig {
+  if (typeof colDef !== "object" || colDef === null) {
+    return {};
+  }
+
+  const context = (colDef as { context?: unknown }).context;
+  if (typeof context !== "object" || context === null) {
+    return {};
+  }
+
+  return ((context as { accountTreeSelect?: AccountTreeSelectColDefConfig })
+    .accountTreeSelect ?? {}) as AccountTreeSelectColDefConfig;
 }
 
 function getDefaultDisplayDecimals(data: unknown): number {
@@ -224,6 +244,8 @@ function AccountTreeSelectCellEditor({
       : undefined;
   }, [colDef, isDropdownOpen]);
 
+  const config = getAccountTreeSelectConfig(colDef);
+
   return (
     <AccountTreeSelect
       ref={ref}
@@ -235,7 +257,9 @@ function AccountTreeSelectCellEditor({
       value={value ?? null}
       onChange={(nextValue) => {
         onValueChange(nextValue);
-        stopEditing(true);
+        if (config.commitOnSelect) {
+          stopEditing(true);
+        }
       }}
     />
   );

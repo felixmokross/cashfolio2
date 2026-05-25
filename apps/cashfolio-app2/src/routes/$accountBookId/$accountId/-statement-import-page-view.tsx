@@ -159,6 +159,9 @@ export function AccountStatementImportPageView({
         type: ACCOUNT_TREE_SELECT_COLUMN,
         context: {
           options: counterAccountOptions,
+          accountTreeSelect: {
+            commitOnSelect: true,
+          },
         },
         valueGetter: ({ data }) =>
           data ? getStatementImportCounterAccountId(data) : "",
