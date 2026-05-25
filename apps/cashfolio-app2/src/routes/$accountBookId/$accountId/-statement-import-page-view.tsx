@@ -71,10 +71,14 @@ export function AccountStatementImportPageView({
       new Map(
         drafts.map((draft) => [
           draft.id,
-          getStatementImportDraftStatus({ draft, accounts: accountOptions }),
+          getStatementImportDraftStatus({
+            draft,
+            accounts: accountOptions,
+            accountBookStartDate,
+          }),
         ]),
       ),
-    [accountOptions, drafts],
+    [accountBookStartDate, accountOptions, drafts],
   );
   const readyCount = useMemo(
     () =>

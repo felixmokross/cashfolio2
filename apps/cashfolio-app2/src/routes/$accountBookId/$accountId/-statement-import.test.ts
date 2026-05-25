@@ -14,6 +14,7 @@ import {
   updateStatementImportDraftCounterAccount,
   updateStatementImportDraftTransaction,
   type StatementImportCsvRow,
+  type StatementImportDraft,
 } from "./-statement-import";
 
 const currentAccount = {
@@ -24,6 +25,7 @@ const currentAccount = {
   symbol: null,
   tradeCurrency: null,
 };
+const accountBookStartDate = new Date("2026-01-01T00:00:00.000Z");
 
 const accountOptions: AccountOption[] = [
   {
@@ -68,6 +70,14 @@ function createRow(
     description: "Transfer",
     ...overrides,
   };
+}
+
+function getImportDraftStatus(draft: StatementImportDraft) {
+  return getStatementImportDraftStatus({
+    draft,
+    accounts: accountOptions,
+    accountBookStartDate,
+  });
 }
 
 describe("statement import", () => {
@@ -340,9 +350,7 @@ describe("statement import", () => {
       currentAccount,
     });
 
-    expect(
-      getStatementImportDraftStatus({ draft, accounts: accountOptions }),
-    ).toMatchObject({
+    expect(getImportDraftStatus(draft)).toMatchObject({
       kind: "needs-edit",
       message: "Counter account is required.",
     });
@@ -363,9 +371,7 @@ describe("statement import", () => {
       accountId: "income-1",
     };
 
-    expect(
-      getStatementImportDraftStatus({ draft, accounts: accountOptions }),
-    ).toMatchObject({
+    expect(getImportDraftStatus(draft)).toMatchObject({
       kind: "error",
       message: "The sum of all bookings must be zero.",
     });
@@ -374,9 +380,27 @@ describe("statement import", () => {
       ...draft.transaction.bookings[1],
       value: -100,
     };
-    expect(
-      getStatementImportDraftStatus({ draft, accounts: accountOptions }).kind,
-    ).toBe("ready");
+    expect(getImportDraftStatus(draft).kind).toBe("ready");
+  });
+
+  test("marks drafts before the account book start date as invalid", () => {
+    const draft = createStatementImportDraft({
+      row: createRow({ date: "2025-12-31" }),
+      sourceRowNumber: 2,
+      currentAccount,
+    });
+    const updated = updateStatementImportDraftCounterAccount({
+      draft,
+      selectedAccount: accountOptions.find(
+        (account) => account.value === "income-1",
+      ),
+    });
+
+    expect(getImportDraftStatus(updated)).toMatchObject({
+      kind: "error",
+      message:
+        "Booking 1: Date cannot be before account book start date (2026-01-01).",
+    });
   });
 
   test("direct counter-account edits mark a draft ready", () => {
@@ -400,12 +424,7 @@ describe("statement import", () => {
       value: -92.5,
     });
     expect(updated.counterAccountId).toBe("income-1");
-    expect(
-      getStatementImportDraftStatus({
-        draft: updated,
-        accounts: accountOptions,
-      }).kind,
-    ).toBe("ready");
+    expect(getImportDraftStatus(updated).kind).toBe("ready");
   });
 
   test("direct counter-account edits apply concrete account unit fields", () => {
@@ -660,12 +679,7 @@ describe("statement import", () => {
       },
     });
 
-    expect(
-      getStatementImportDraftStatus({
-        draft: withoutCurrentAccount,
-        accounts: accountOptions,
-      }),
-    ).toMatchObject({
+    expect(getImportDraftStatus(withoutCurrentAccount)).toMatchObject({
       kind: "error",
       message: "Imported transaction must include the current ledger account.",
     });

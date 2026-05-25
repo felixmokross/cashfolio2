@@ -1,4 +1,5 @@
 import { createId } from "@paralleldrive/cuid2";
+import { isBefore } from "date-fns";
 import {
   AccountType,
   type EquityAccountSubtype,
@@ -15,7 +16,7 @@ import {
   isOpeningBalancesAccount,
 } from "@/shared/account-utils";
 import { getBookingUnitFields } from "@/shared/booking-unit-fields";
-import { parseUtcDayDate } from "@/shared/date";
+import { formatUtcDate, parseUtcDayDate, startOfUtcDay } from "@/shared/date";
 import { OPENING_BALANCES_MANAGEMENT_MESSAGE } from "@/shared/opening-balances";
 import type { TransactionMutationValues } from "./-page-view";
 import type {
@@ -95,8 +96,12 @@ export function createStatementImportDraft(args: {
 export function getStatementImportDraftStatus(args: {
   draft: StatementImportDraft;
   accounts: AccountOption[];
+  accountBookStartDate: Date;
 }): StatementImportDraftStatus {
   const bookings = args.draft.transaction.bookings;
+  const accountBookStartDay = startOfUtcDay(args.accountBookStartDate);
+  const accountBookStartDateLabel = formatUtcDate(accountBookStartDay);
+
   if (
     !bookings.some(
       (booking) => booking.accountId === args.draft.currentAccountId,
@@ -127,6 +132,17 @@ export function getStatementImportDraftStatus(args: {
     }
     if (isExpenseAccount(account) && booking.value < 0) {
       return error("Expense accounts cannot have credit entries.");
+    }
+
+    const bookingDate = parseUtcDayDate(booking.date);
+    if (!bookingDate) {
+      return error(`Booking ${index + 1}: date must be a valid UTC day.`);
+    }
+    const bookingDay = startOfUtcDay(bookingDate);
+    if (isBefore(bookingDay, accountBookStartDay)) {
+      return error(
+        `Booking ${index + 1}: Date cannot be before account book start date (${accountBookStartDateLabel}).`,
+      );
     }
 
     if (!booking.unit) {
