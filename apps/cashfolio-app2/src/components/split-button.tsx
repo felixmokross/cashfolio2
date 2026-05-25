@@ -15,6 +15,7 @@ export function SplitButtonGroup(
 }
 
 export type SplitButtonMenuItem = {
+  type?: "item";
   key: string;
   label: string;
   disabledReason?: string;
@@ -22,6 +23,11 @@ export type SplitButtonMenuItem = {
   color?: MantineColor;
   disabled?: boolean;
   onClick: () => void;
+};
+
+export type SplitButtonMenuDivider = {
+  type: "divider";
+  key: string;
 };
 
 export function SplitButton({
@@ -36,7 +42,7 @@ export function SplitButton({
   children: ReactNode;
   leftSection?: ReactNode;
   menuLabel?: string;
-  menuItems: SplitButtonMenuItem[];
+  menuItems: Array<SplitButtonMenuItem | SplitButtonMenuDivider>;
   onClick: () => void;
   variant?: ButtonProps["variant"];
   primaryDisabled?: boolean;
@@ -59,6 +65,10 @@ export function SplitButton({
         </Menu.Target>
         <Menu.Dropdown>
           {menuItems.map((item) => {
+            if (item.type === "divider") {
+              return <Menu.Divider key={item.key} />;
+            }
+
             const menuItem = (
               <Menu.Item
                 color={item.color}

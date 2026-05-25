@@ -60,7 +60,7 @@ function LedgerLayout() {
 
 export function LedgerPageContent() {
   const loaderData = Route.useLoaderData();
-  const { accountBookId } = Route.useParams();
+  const { accountBookId, accountId } = Route.useParams();
   const { transactionId, period } = Route.useSearch();
   const router = useRouter();
   const userLocale = useUserLocale();
@@ -193,6 +193,12 @@ export function LedgerPageContent() {
         to: "/$accountBookId/accounts",
         params: { accountBookId },
         search: { tab, mode },
+      }),
+    onOpenImportPage: () =>
+      navigate({
+        to: "/$accountBookId/$accountId/import-statement",
+        params: { accountBookId, accountId },
+        search: { period: selectedPeriod?.value },
       }),
   });
 

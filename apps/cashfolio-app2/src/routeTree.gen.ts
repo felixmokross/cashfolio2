@@ -29,6 +29,7 @@ import { Route as AccountBookIdTransactionsIndexRouteImport } from './routes/$ac
 import { Route as AccountBookIdReportIndexRouteImport } from './routes/$accountBookId/report/index'
 import { Route as AccountBookIdAccountIdIndexRouteImport } from './routes/$accountBookId/$accountId/index'
 import { Route as ApiLogtoActionRouteImport } from './routes/api/logto/$action'
+import { Route as AccountBookIdAccountIdImportStatementRouteImport } from './routes/$accountBookId/$accountId/import-statement'
 import { Route as AccountBookIdReportGainsLossesAccountIdRouteRouteImport } from './routes/$accountBookId/report/gains-losses/$accountId/route'
 
 const UserSettingsRoute = UserSettingsRouteImport.update({
@@ -141,6 +142,12 @@ const ApiLogtoActionRoute = ApiLogtoActionRouteImport.update({
   path: '/api/logto/$action',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountBookIdAccountIdImportStatementRoute =
+  AccountBookIdAccountIdImportStatementRouteImport.update({
+    id: '/import-statement',
+    path: '/import-statement',
+    getParentRoute: () => AccountBookIdAccountIdRouteRoute,
+  } as any)
 const AccountBookIdReportGainsLossesAccountIdRouteRoute =
   AccountBookIdReportGainsLossesAccountIdRouteRouteImport.update({
     id: '/gains-losses/$accountId',
@@ -165,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/$accountBookId/': typeof AccountBookIdIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/$accountBookId/$accountId/import-statement': typeof AccountBookIdAccountIdImportStatementRoute
   '/api/logto/$action': typeof ApiLogtoActionRoute
   '/$accountBookId/$accountId/': typeof AccountBookIdAccountIdIndexRoute
   '/$accountBookId/report/': typeof AccountBookIdReportIndexRoute
@@ -183,6 +191,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/$accountBookId': typeof AccountBookIdIndexRoute
   '/admin': typeof AdminIndexRoute
+  '/$accountBookId/$accountId/import-statement': typeof AccountBookIdAccountIdImportStatementRoute
   '/api/logto/$action': typeof ApiLogtoActionRoute
   '/$accountBookId/$accountId': typeof AccountBookIdAccountIdIndexRoute
   '/$accountBookId/report': typeof AccountBookIdReportIndexRoute
@@ -207,6 +216,7 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/$accountBookId/': typeof AccountBookIdIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/$accountBookId/$accountId/import-statement': typeof AccountBookIdAccountIdImportStatementRoute
   '/api/logto/$action': typeof ApiLogtoActionRoute
   '/$accountBookId/$accountId/': typeof AccountBookIdAccountIdIndexRoute
   '/$accountBookId/report/': typeof AccountBookIdReportIndexRoute
@@ -232,6 +242,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/$accountBookId/'
     | '/admin/'
+    | '/$accountBookId/$accountId/import-statement'
     | '/api/logto/$action'
     | '/$accountBookId/$accountId/'
     | '/$accountBookId/report/'
@@ -250,6 +261,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/$accountBookId'
     | '/admin'
+    | '/$accountBookId/$accountId/import-statement'
     | '/api/logto/$action'
     | '/$accountBookId/$accountId'
     | '/$accountBookId/report'
@@ -273,6 +285,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/$accountBookId/'
     | '/admin/'
+    | '/$accountBookId/$accountId/import-statement'
     | '/api/logto/$action'
     | '/$accountBookId/$accountId/'
     | '/$accountBookId/report/'
@@ -432,6 +445,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLogtoActionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$accountBookId/$accountId/import-statement': {
+      id: '/$accountBookId/$accountId/import-statement'
+      path: '/import-statement'
+      fullPath: '/$accountBookId/$accountId/import-statement'
+      preLoaderRoute: typeof AccountBookIdAccountIdImportStatementRouteImport
+      parentRoute: typeof AccountBookIdAccountIdRouteRoute
+    }
     '/$accountBookId/report/gains-losses/$accountId': {
       id: '/$accountBookId/report/gains-losses/$accountId'
       path: '/gains-losses/$accountId'
@@ -443,11 +463,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AccountBookIdAccountIdRouteRouteChildren {
+  AccountBookIdAccountIdImportStatementRoute: typeof AccountBookIdAccountIdImportStatementRoute
   AccountBookIdAccountIdIndexRoute: typeof AccountBookIdAccountIdIndexRoute
 }
 
 const AccountBookIdAccountIdRouteRouteChildren: AccountBookIdAccountIdRouteRouteChildren =
   {
+    AccountBookIdAccountIdImportStatementRoute:
+      AccountBookIdAccountIdImportStatementRoute,
     AccountBookIdAccountIdIndexRoute: AccountBookIdAccountIdIndexRoute,
   }
 

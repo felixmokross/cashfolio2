@@ -336,6 +336,11 @@ function LedgerPageStoryHarness({
             ? "Cannot delete account because it has bookings"
             : "Delete"
         }
+        statementImportDisabledReason={
+          accountType === AccountType.EQUITY
+            ? "Statement imports are only available for asset and liability accounts."
+            : null
+        }
         periodFilterControls={
           includePeriodFilterControls ? (
             <PeriodFilterAction
@@ -468,6 +473,7 @@ function LedgerPageStoryHarness({
         ) => {
           setSimpleModalOpened(false);
         }}
+        onOpenImportPage={() => undefined}
         onCloseSplitModal={() => setSplitModalOpened(false)}
         onCreateSplitSubmittingChange={setIsCreateSplitSubmitting}
         onSubmitCreateTransaction={async (
@@ -555,6 +561,11 @@ export const AccountActionsMenu: Story = {
     );
 
     await waitFor(() => {
+      expect(
+        screen.getByRole("menuitem", { name: "Import Statement" }),
+      ).toBeVisible();
+    });
+    await waitFor(() => {
       expect(screen.getByRole("menuitem", { name: "Archive" })).toBeVisible();
     });
     await waitFor(() => {
@@ -584,6 +595,11 @@ export const ArchivedAccountActionsMenu: Story = {
     );
 
     await waitFor(() => {
+      expect(
+        screen.getByRole("menuitem", { name: "Import Statement" }),
+      ).toBeVisible();
+    });
+    await waitFor(() => {
       expect(screen.getByRole("menuitem", { name: "Unarchive" })).toBeVisible();
     });
     await waitFor(() => {
@@ -601,6 +617,11 @@ export const DisabledAccountActionsMenu: Story = {
       canvas.getByRole("button", { name: "Account actions" }),
     );
 
+    await waitFor(() => {
+      expect(
+        screen.getByRole("menuitem", { name: "Import Statement" }),
+      ).toBeVisible();
+    });
     await waitFor(() => {
       expect(screen.getByRole("menuitem", { name: "Archive" })).toBeVisible();
     });

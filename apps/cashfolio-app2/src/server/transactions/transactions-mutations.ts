@@ -10,6 +10,7 @@ import { invalidatePeriodBaseDataCacheForAccountBook } from "../period/period-ba
 import {
   createSimpleTransactionOperation,
   createTransactionOperation,
+  createTransactionsOperation,
   deleteTransactionOperation,
   rebookBookingOperation,
   updateTransactionOperation,
@@ -18,6 +19,7 @@ import {
 import type {
   CreateSimpleTransactionInput,
   CreateTransactionInput,
+  CreateTransactionsInput,
   RebookBookingInput,
 } from "./transactions-types";
 
@@ -26,6 +28,15 @@ function validateCreateTransactionInput(data: unknown): CreateTransactionInput {
   requireStringField(data, "accountBookId", "Account book id is required.");
   requireArrayField(data, "bookings", "Bookings are required.");
   return data as CreateTransactionInput;
+}
+
+function validateCreateTransactionsInput(
+  data: unknown,
+): CreateTransactionsInput {
+  assertRecord(data);
+  requireStringField(data, "accountBookId", "Account book id is required.");
+  requireArrayField(data, "transactions", "Transactions are required.");
+  return data as CreateTransactionsInput;
 }
 
 function validateUpdateTransactionInput(
@@ -117,6 +128,14 @@ export const createTransaction = createServerFn({ method: "POST" })
   .handler(async ({ data }) =>
     runTransactionMutation(data.accountBookId, () =>
       createTransactionOperation(data),
+    ),
+  );
+
+export const createTransactions = createServerFn({ method: "POST" })
+  .inputValidator(validateCreateTransactionsInput)
+  .handler(async ({ data }) =>
+    runTransactionMutation(data.accountBookId, () =>
+      createTransactionsOperation(data),
     ),
   );
 

@@ -31,6 +31,12 @@ export const AccountAction: Story = {
       onClick={() => undefined}
       menuItems={[
         {
+          key: "import",
+          label: "Import Statement",
+          onClick: () => undefined,
+        },
+        { type: "divider", key: "danger-divider" },
+        {
           key: "delete",
           label: "Delete",
           color: "red",

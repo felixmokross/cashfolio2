@@ -443,6 +443,36 @@ eligible edit of two-booking transactions from the ledger route
   - exactly one booking belongs to the current ledger account
 - Server-side validation re-checks all constraints before creation
 
+## Account Statement Import
+
+The account ledger exposes `Import Statement` in the account actions menu for
+asset and liability accounts with complete unit metadata. The action opens a
+dedicated import page. The v1 importer accepts a strict CSV with a header row,
+but header names are ignored. The first six columns must be ordered as: `date`,
+`amount`, `original amount`, `original currency`, `exchange rate`, and
+`description`. Comma and semicolon delimiters are supported, and extra trailing
+columns are ignored. The fifth `exchange rate` column is reserved for source CSV
+compatibility but ignored by the importer.
+
+- Imported rows are virtual transaction drafts until the user confirms import.
+- CSV `amount` is signed from the current ledger account perspective: positive
+  values debit the current account and negative values credit it.
+- The current-account booking uses the ledger account unit. The counter booking
+  starts as a currency booking using `original amount` and `original currency`
+  when both are present. If they are blank, the counter booking uses the current
+  account unit and the opposite `amount`.
+- Drafts are reviewed in a separate grid on the import page, not directly in the
+  ledger grid.
+- The counter account is editable directly in the review grid. Full draft edits
+  still use `EditTransactionModal`.
+- Drafts with zero or multiple non-current-account bookings show a `Multiple`
+  badge in the counter account cell and must be edited through the row action.
+- Import uses a batch server mutation so either all reviewed drafts are created
+  or none are.
+- For imported mixed-currency drafts, `EditTransactionModal` preserves the
+  prefilled counter booking unit when the user selects a unitless equity counter
+  account.
+
 ### Conditional Editability Affordance
 
 - Conditionally non-editable data cells use `cellClassRules` to apply

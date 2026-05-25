@@ -2,6 +2,7 @@ import {
   IconArchive,
   IconArchiveOff,
   IconBolt,
+  IconFileImport,
   IconPencil,
   IconTrash,
 } from "@tabler/icons-react";
@@ -143,6 +144,7 @@ export type LedgerPageViewProps = {
   accountUnarchiveLabel: string;
   accountDeletable: boolean;
   accountDeleteLabel: string;
+  statementImportDisabledReason: string | null;
   periodFilterControls?: ReactNode;
   onRowDataUpdated: AgGridReactProps<LedgerRow>["onRowDataUpdated"];
   onOpenAccountEdit: () => void;
@@ -163,6 +165,7 @@ export type LedgerPageViewProps = {
   onSubmitCreateSimpleTransaction: (
     values: SimpleTransactionValues,
   ) => Promise<void>;
+  onOpenImportPage: () => void;
   onCloseSplitModal: () => void;
   onCreateSplitSubmittingChange: (isSubmitting: boolean) => void;
   onSubmitCreateTransaction: (
@@ -232,6 +235,7 @@ export function LedgerPageView({
   accountUnarchiveLabel,
   accountDeletable,
   accountDeleteLabel,
+  statementImportDisabledReason,
   periodFilterControls,
   onRowDataUpdated,
   onOpenAccountEdit,
@@ -250,6 +254,7 @@ export function LedgerPageView({
   onSimpleSubmittingChange,
   onSwitchCreateToSplit,
   onSubmitCreateSimpleTransaction,
+  onOpenImportPage,
   onCloseSplitModal,
   onCreateSplitSubmittingChange,
   onSubmitCreateTransaction,
@@ -312,6 +317,19 @@ export function LedgerPageView({
                   onClick={onOpenAccountEdit}
                   primaryDisabled={!!accountEditDisabledReason}
                   menuItems={[
+                    {
+                      key: "import-statement",
+                      label: "Import Statement",
+                      disabledReason:
+                        statementImportDisabledReason ?? undefined,
+                      disabled: !!statementImportDisabledReason,
+                      leftSection: <IconFileImport size={16} />,
+                      onClick: onOpenImportPage,
+                    },
+                    {
+                      type: "divider",
+                      key: "danger-actions-divider",
+                    },
                     account.isActive
                       ? {
                           key: "archive",

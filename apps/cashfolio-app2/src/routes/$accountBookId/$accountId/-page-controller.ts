@@ -31,6 +31,7 @@ import {
   type LedgerTransactionApi,
 } from "./-page-mutation-actions";
 import { useLedgerRebookFlow } from "./-page-rebook-flow";
+import { getStatementImportDisabledReason } from "./-statement-import";
 import {
   type EditMode,
   type LedgerPageViewProps,
@@ -54,6 +55,7 @@ export function useLedgerPageController(args: {
     tab: LedgerPageViewProps["backTab"];
     mode: "active" | "archived";
   }) => void | Promise<void>;
+  onOpenImportPage: () => void;
 }): Omit<LedgerPageViewProps, "onRowDataUpdated"> {
   const { account, accounts, accountGroups, accountTreeRow, existingNodes } =
     args.loaderData;
@@ -324,6 +326,8 @@ export function useLedgerPageController(args: {
   });
 
   const unitLabel = getUnitLabel(account);
+  const statementImportDisabledReason =
+    getStatementImportDisabledReason(account);
   const accountBookStartDate = new Date(
     args.loaderData.periodBounds.minBookingDate,
   );
@@ -430,6 +434,7 @@ export function useLedgerPageController(args: {
     simpleCounterAccountOptions,
     editSimpleCounterAccountOptions,
     rebookTargetAccountOptions,
+    statementImportDisabledReason,
     onOpenAccountEdit: () => setAccountEditModalOpened(true),
     onCloseAccountEdit: () => setAccountEditModalOpened(false),
     onSubmitUpdateAccount: (values: TransformedFormValues) =>
@@ -468,6 +473,7 @@ export function useLedgerPageController(args: {
       await actions.handleCreateSimpleTransaction(values);
       setCreateSplitInitialValuesSource(undefined);
     },
+    onOpenImportPage: args.onOpenImportPage,
     onCloseSplitModal: () => {
       setModalOpened(false);
       setCreateSplitInitialValues(undefined);
