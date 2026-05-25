@@ -204,6 +204,7 @@ function AccountTreeSelectCellEditor({
   colDef,
   value,
   onValueChange,
+  stopEditing,
 }: CustomCellEditorProps) {
   const options = colDef.context?.options ?? [];
   const ref = useRef<HTMLInputElement>(null);
@@ -232,7 +233,10 @@ function AccountTreeSelectCellEditor({
       onDropdownOpen={() => setIsDropdownOpen(true)}
       onDropdownClose={() => setIsDropdownOpen(false)}
       value={value ?? null}
-      onChange={(nextValue) => onValueChange(nextValue)}
+      onChange={(nextValue) => {
+        onValueChange(nextValue);
+        stopEditing(true);
+      }}
     />
   );
 }
