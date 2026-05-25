@@ -12,7 +12,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { IconArrowLeft, IconFileImport, IconUpload } from "@tabler/icons-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { DataGrid } from "@/components/data-grid";
 import {
   EditTransactionModal,
@@ -60,6 +60,7 @@ export function AccountStatementImportPageView({
   const [drafts, setDrafts] = useState<StatementImportDraft[]>([]);
   const [editingDraftId, setEditingDraftId] = useState<string | undefined>();
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const fileReadRequestId = useRef(0);
 
   const counterAccountOptions = useMemo(
     () => accountOptions.filter((option) => option.value !== account.id),
@@ -97,16 +98,27 @@ export function AccountStatementImportPageView({
   });
 
   async function handleFileChange(nextFile: File | null) {
+    const requestId = fileReadRequestId.current + 1;
+    fileReadRequestId.current = requestId;
     setFile(nextFile);
     setParseErrors([]);
     setDrafts([]);
     setEditingDraftId(undefined);
     if (!nextFile) return;
 
+    const text = await nextFile.text();
+    if (requestId !== fileReadRequestId.current) {
+      return;
+    }
+
     const result = parseStatementImportCsv({
-      text: await nextFile.text(),
+      text,
       currentAccount: account,
     });
+    if (requestId !== fileReadRequestId.current) {
+      return;
+    }
+
     setParseErrors(result.errors);
     setDrafts(result.drafts);
   }

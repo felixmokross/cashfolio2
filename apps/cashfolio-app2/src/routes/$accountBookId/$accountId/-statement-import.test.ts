@@ -286,6 +286,21 @@ describe("statement import", () => {
     );
   });
 
+  test("rejects headerless CSVs when the first row has localized date and amount values", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      text: [
+        "03.02.2026;100,25;92,50;EUR;ignored;First transaction",
+        "2026-02-04;80.00;75.00;EUR;ignored;Second transaction",
+      ].join("\n"),
+    });
+
+    expect(result.drafts).toEqual([]);
+    expect(result.errors).toContain(
+      "CSV must include a header row before transaction rows.",
+    );
+  });
+
   test("rejects invalid dates and numeric fields", () => {
     const result = parseStatementImportCsv({
       currentAccount,

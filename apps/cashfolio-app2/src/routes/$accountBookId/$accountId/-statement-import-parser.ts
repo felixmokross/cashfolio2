@@ -10,6 +10,8 @@ import {
 } from "./-statement-import-types";
 
 const STRICT_DECIMAL_PATTERN = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/;
+const DATE_LIKE_PATTERN = /^\d{1,4}[-./]\d{1,2}[-./]\d{1,4}$/;
+const NUMBER_LIKE_PATTERN = /^-?[\d\s'.,]+$/;
 const CURRENCY_PATTERN = /^[A-Z]{3}$/;
 const REQUIRED_COLUMN_COUNT = STATEMENT_IMPORT_CSV_HEADERS.length;
 
@@ -83,9 +85,13 @@ function toStatementImportCsvRow(row: string[]): StatementImportCsvRow {
 
 function isLikelyHeaderlessDataRow(row: string[]): boolean {
   const candidate = toStatementImportCsvRow(row);
+  const date = candidate.date.trim();
+  const amount = candidate.amount.trim();
   return (
-    parseUtcDayDate(candidate.date.trim()) != null ||
-    STRICT_DECIMAL_PATTERN.test(candidate.amount.trim())
+    parseUtcDayDate(date) != null ||
+    DATE_LIKE_PATTERN.test(date) ||
+    STRICT_DECIMAL_PATTERN.test(amount) ||
+    (NUMBER_LIKE_PATTERN.test(amount) && /\d/.test(amount))
   );
 }
 
