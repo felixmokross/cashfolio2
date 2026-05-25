@@ -430,7 +430,8 @@ eligible edit of two-booking transactions from the ledger route
 The account ledger exposes `Import Statement` for asset and liability accounts
 with complete unit metadata. The v1 importer accepts a strict CSV with exact
 headers: `date`, `amount`, `original amount`, `original currency`,
-`exchange rate`, and `description`.
+`exchange rate`, and `description`. Comma and semicolon delimiters are
+supported.
 
 - Imported rows are virtual transaction drafts until the user confirms import.
 - CSV `amount` is signed from the current ledger account perspective: positive

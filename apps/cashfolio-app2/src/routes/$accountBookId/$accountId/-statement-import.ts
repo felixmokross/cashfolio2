@@ -79,8 +79,8 @@ export function parseStatementImportCsv(args: {
   currentAccount: CurrentAccountForStatementImport;
 }): StatementImportParseResult {
   const parsed = Papa.parse<StatementImportCsvRow>(args.text, {
-    delimiter: ",",
     header: true,
+    delimitersToGuess: [",", ";"],
     skipEmptyLines: "greedy",
   });
   const errors = parsed.errors.map((error) =>

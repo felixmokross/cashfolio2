@@ -98,6 +98,25 @@ describe("statement import", () => {
     });
   });
 
+  test("parses semicolon-delimited CSV with quoted descriptions", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      text: [
+        "date;amount;original amount;original currency;exchange rate;description",
+        '2026-02-03;100.25;92.50;EUR;1.083784;"Transfer; incoming"',
+      ].join("\n"),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.drafts).toHaveLength(1);
+    expect(result.drafts[0]).toMatchObject({
+      amount: 100.25,
+      originalAmount: 92.5,
+      originalCurrency: "EUR",
+      description: "Transfer; incoming",
+    });
+  });
+
   test("rejects non-exact headers", () => {
     const result = parseStatementImportCsv({
       currentAccount,
