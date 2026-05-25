@@ -16,6 +16,11 @@ export type CreateTransactionInput = {
   }[];
 };
 
+export type CreateTransactionsInput = {
+  accountBookId: string;
+  transactions: Omit<CreateTransactionInput, "accountBookId">[];
+};
+
 export type CreateSimpleTransactionInput = {
   accountBookId: string;
   accountId: string;

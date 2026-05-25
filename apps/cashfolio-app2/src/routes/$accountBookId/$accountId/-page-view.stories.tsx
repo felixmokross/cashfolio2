@@ -142,6 +142,7 @@ function LedgerPageStoryHarness({
   const [editModalOpened, setEditModalOpened] = useState(startWithEditModal);
   const [isSimpleSubmitting, setIsSimpleSubmitting] = useState(false);
   const [isCreateSplitSubmitting, setIsCreateSplitSubmitting] = useState(false);
+  const [isImportSubmitting, setIsImportSubmitting] = useState(false);
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const [isRebookSubmitting, setIsRebookSubmitting] = useState(false);
   const [editMode, setEditMode] = useState<EditMode>("SPLIT");
@@ -164,6 +165,7 @@ function LedgerPageStoryHarness({
     { id: string; description: string } | undefined
   >();
   const [rebooking, setRebooking] = useState<RebookingState | undefined>();
+  const [importModalOpened, setImportModalOpened] = useState(false);
   const [pickerOpened, setPickerOpened] = useState(false);
   const [unfilteredPeriodMode, setUnfilteredPeriodMode] =
     useState<PeriodMode>("month");
@@ -278,6 +280,7 @@ function LedgerPageStoryHarness({
         simpleTransactionDisabledReason={null}
         simpleModalOpened={simpleModalOpened}
         splitModalOpened={splitModalOpened}
+        importModalOpened={importModalOpened}
         accountEditModalOpened={accountEditModalOpened}
         accountEditInitialValues={{
           name: account.name,
@@ -295,6 +298,7 @@ function LedgerPageStoryHarness({
         editModalOpened={editModalOpened}
         isSimpleSubmitting={isSimpleSubmitting}
         isCreateSplitSubmitting={isCreateSplitSubmitting}
+        isImportSubmitting={isImportSubmitting}
         isEditSubmitting={isEditSubmitting}
         isRebookSubmitting={isRebookSubmitting}
         editMode={editMode}
@@ -335,6 +339,11 @@ function LedgerPageStoryHarness({
           accountActionsDisabled
             ? "Cannot delete account because it has bookings"
             : "Delete"
+        }
+        statementImportDisabledReason={
+          accountType === AccountType.EQUITY
+            ? "Statement imports are only available for asset and liability accounts."
+            : null
         }
         periodFilterControls={
           includePeriodFilterControls ? (
@@ -467,6 +476,12 @@ function LedgerPageStoryHarness({
           _values: SimpleTransactionValues,
         ) => {
           setSimpleModalOpened(false);
+        }}
+        onOpenImportModal={() => setImportModalOpened(true)}
+        onCloseImportModal={() => setImportModalOpened(false)}
+        onImportSubmittingChange={setIsImportSubmitting}
+        onSubmitImportTransactions={async () => {
+          setImportModalOpened(false);
         }}
         onCloseSplitModal={() => setSplitModalOpened(false)}
         onCreateSplitSubmittingChange={setIsCreateSplitSubmitting}

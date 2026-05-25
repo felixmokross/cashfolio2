@@ -75,6 +75,7 @@ vi.mock("../period/period-base-data-cache", () => ({
 import {
   createSimpleTransaction,
   createTransaction,
+  createTransactions,
   deleteTransaction,
   rebookBooking,
   updateTransaction,
@@ -436,6 +437,65 @@ describe("transactions mutations", () => {
     expect(invalidatePeriodBaseDataCacheForAccountBook).toHaveBeenCalledWith(
       "book-1",
     );
+  });
+
+  it("creates statement-import transactions in a single batch", async () => {
+    const created = [{ id: "tx-1" }, { id: "tx-2" }];
+    prisma.$transaction.mockImplementationOnce(async (callback) =>
+      callback(prisma),
+    );
+    prisma.transaction.create
+      .mockResolvedValueOnce(created[0])
+      .mockResolvedValueOnce(created[1]);
+
+    await expect(
+      createTransactions({
+        data: {
+          accountBookId: "book-1",
+          transactions: [
+            createTransactionInput({ description: "First" }),
+            createTransactionInput({ description: "Second" }),
+          ].map(
+            ({ accountBookId: _accountBookId, ...transaction }) => transaction,
+          ),
+        },
+      }),
+    ).resolves.toEqual(created);
+
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(prisma.transaction.create).toHaveBeenCalledTimes(2);
+    expect(invalidatePeriodBaseDataCacheForAccountBook).toHaveBeenCalledWith(
+      "book-1",
+    );
+  });
+
+  it("rejects invalid statement-import batches before creating any transaction", async () => {
+    await expect(
+      createTransactions({
+        data: {
+          accountBookId: "book-1",
+          transactions: [
+            {
+              description: "Invalid",
+              bookings: [
+                {
+                  date: BASE_DATE,
+                  accountId: "asset-1",
+                  description: "",
+                  unit: Unit.CURRENCY,
+                  currency: "CHF",
+                  value: 50,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).rejects.toThrow("At least two bookings are required.");
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.transaction.create).not.toHaveBeenCalled();
+    expect(invalidatePeriodBaseDataCacheForAccountBook).not.toHaveBeenCalled();
   });
 
   it("rejects full transactions with non-canonical time-bearing dates", async () => {

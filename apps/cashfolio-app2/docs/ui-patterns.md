@@ -425,6 +425,28 @@ eligible edit of two-booking transactions from the ledger route
   - exactly one booking belongs to the current ledger account
 - Server-side validation re-checks all constraints before creation
 
+## Account Statement Import
+
+The account ledger exposes `Import Statement` for asset and liability accounts
+with complete unit metadata. The v1 importer accepts a strict CSV with exact
+headers: `date`, `amount`, `original amount`, `original currency`,
+`exchange rate`, and `description`.
+
+- Imported rows are virtual transaction drafts until the user confirms import.
+- CSV `amount` is signed from the current ledger account perspective: positive
+  values debit the current account and negative values credit it.
+- The current-account booking uses the ledger account unit. The counter booking
+  starts as a currency booking using `original amount` and `original currency`;
+  the user must choose its counter account before import.
+- `exchange rate` is displayed for review but is not persisted.
+- Drafts are reviewed in a separate grid and edited through
+  `EditTransactionModal`, not directly in the ledger grid.
+- Import uses a batch server mutation so either all reviewed drafts are created
+  or none are.
+- For imported mixed-currency drafts, `EditTransactionModal` preserves the
+  prefilled counter booking unit when the user selects a unitless equity counter
+  account.
+
 ### Conditional Editability Affordance
 
 - Conditionally non-editable data cells use `cellClassRules` to apply

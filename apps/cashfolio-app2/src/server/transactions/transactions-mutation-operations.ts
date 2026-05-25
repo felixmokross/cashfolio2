@@ -18,6 +18,7 @@ import {
 import type {
   CreateSimpleTransactionInput,
   CreateTransactionInput,
+  CreateTransactionsInput,
   RebookBookingInput,
 } from "./transactions-types";
 
@@ -107,6 +108,35 @@ export async function createTransactionOperation(data: CreateTransactionInput) {
     data: buildTransactionCreateData(data),
   });
   return { data: transaction, invalidatePeriodCache: true };
+}
+
+export async function createTransactionsOperation(
+  data: CreateTransactionsInput,
+) {
+  const createInputs = data.transactions.map((transaction) => ({
+    accountBookId: data.accountBookId,
+    ...transaction,
+  }));
+
+  for (const createInput of createInputs) {
+    validateCreateTransaction(createInput);
+    await validateAccountTypeBookings(
+      createInput.bookings,
+      createInput.accountBookId,
+    );
+  }
+
+  const transactions = await prisma.$transaction((tx) =>
+    Promise.all(
+      createInputs.map((createInput) =>
+        tx.transaction.create({
+          data: buildTransactionCreateData(createInput),
+        }),
+      ),
+    ),
+  );
+
+  return { data: transactions, invalidatePeriodCache: transactions.length > 0 };
 }
 
 export async function createSimpleTransactionOperation(

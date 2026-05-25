@@ -49,6 +49,7 @@ export function EditTransactionModal({
   unitUsage,
   currentAccountId,
   autoFocusDate,
+  preserveBookingUnitOnUnitlessEquityAccountChange,
   onClose,
   onSubmittingChange,
   onSubmit,
@@ -63,6 +64,7 @@ export function EditTransactionModal({
   unitUsage?: AccountBookUnitUsage;
   currentAccountId?: string;
   autoFocusDate?: boolean;
+  preserveBookingUnitOnUnitlessEquityAccountChange?: boolean;
   onClose: () => void;
   onSubmittingChange?: (isSubmitting: boolean) => void;
   onSubmit: (values: {
@@ -359,6 +361,9 @@ export function EditTransactionModal({
                 const bookingUnitDefaults = createBookingUnitDefaults({
                   selectedAccount,
                   lockedBooking,
+                  currentBooking,
+                  preserveCurrentBookingUnitForUnitlessEquity:
+                    preserveBookingUnitOnUnitlessEquityAccountChange,
                 });
 
                 const nextBooking: BookingValues = {

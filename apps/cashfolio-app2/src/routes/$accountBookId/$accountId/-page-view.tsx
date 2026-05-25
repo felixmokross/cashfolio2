@@ -2,6 +2,7 @@ import {
   IconArchive,
   IconArchiveOff,
   IconBolt,
+  IconFileImport,
   IconPencil,
   IconTrash,
 } from "@tabler/icons-react";
@@ -34,6 +35,7 @@ import { SplitButton } from "@/components/split-button";
 import { getTransactionCreateDialogText } from "@/components/transaction-create-dialog-text";
 import { TopPageHeader } from "@/components/top-page-header";
 import { PageShell } from "@/components/page-shell";
+import { AccountStatementImportModal } from "./-statement-import-modal";
 import type { ReactNode } from "react";
 import type { Unit } from "@/.prisma-client/enums";
 import type { AccountBookUnitUsage } from "@/shared/account-book-unit-usage";
@@ -110,9 +112,11 @@ export type LedgerPageViewProps = {
   accountEditInitialValues: AccountInitialValues;
   accountEditDisabledReason?: string;
   editModalOpened: boolean;
+  importModalOpened: boolean;
   isSimpleSubmitting: boolean;
   isCreateSplitSubmitting: boolean;
   isEditSubmitting: boolean;
+  isImportSubmitting: boolean;
   isRebookSubmitting: boolean;
   editMode: EditMode;
   createSimpleInitialValues?: SimpleTransactionInitialValues;
@@ -143,6 +147,7 @@ export type LedgerPageViewProps = {
   accountUnarchiveLabel: string;
   accountDeletable: boolean;
   accountDeleteLabel: string;
+  statementImportDisabledReason: string | null;
   periodFilterControls?: ReactNode;
   onRowDataUpdated: AgGridReactProps<LedgerRow>["onRowDataUpdated"];
   onOpenAccountEdit: () => void;
@@ -162,6 +167,12 @@ export type LedgerPageViewProps = {
   onSwitchCreateToSplit: (draft: SimpleTransactionDraftValues) => void;
   onSubmitCreateSimpleTransaction: (
     values: SimpleTransactionValues,
+  ) => Promise<void>;
+  onOpenImportModal: () => void;
+  onCloseImportModal: () => void;
+  onImportSubmittingChange: (isSubmitting: boolean) => void;
+  onSubmitImportTransactions: (
+    values: TransactionMutationValues[],
   ) => Promise<void>;
   onCloseSplitModal: () => void;
   onCreateSplitSubmittingChange: (isSubmitting: boolean) => void;
@@ -203,9 +214,11 @@ export function LedgerPageView({
   accountEditInitialValues,
   accountEditDisabledReason,
   editModalOpened,
+  importModalOpened,
   isSimpleSubmitting,
   isCreateSplitSubmitting,
   isEditSubmitting,
+  isImportSubmitting,
   isRebookSubmitting,
   editMode,
   createSimpleInitialValues,
@@ -232,6 +245,7 @@ export function LedgerPageView({
   accountUnarchiveLabel,
   accountDeletable,
   accountDeleteLabel,
+  statementImportDisabledReason,
   periodFilterControls,
   onRowDataUpdated,
   onOpenAccountEdit,
@@ -250,6 +264,10 @@ export function LedgerPageView({
   onSimpleSubmittingChange,
   onSwitchCreateToSplit,
   onSubmitCreateSimpleTransaction,
+  onOpenImportModal,
+  onCloseImportModal,
+  onImportSubmittingChange,
+  onSubmitImportTransactions,
   onCloseSplitModal,
   onCreateSplitSubmittingChange,
   onSubmitCreateTransaction,
@@ -362,6 +380,23 @@ export function LedgerPageView({
                 </Button>
               </span>
             </Tooltip>
+            <Tooltip
+              label={
+                statementImportDisabledReason ?? "Import account statement"
+              }
+              disabled={!statementImportDisabledReason}
+            >
+              <span>
+                <Button
+                  variant="default"
+                  leftSection={<IconFileImport size={16} />}
+                  disabled={!!statementImportDisabledReason}
+                  onClick={onOpenImportModal}
+                >
+                  Import Statement
+                </Button>
+              </span>
+            </Tooltip>
           </Group>
         }
       />
@@ -442,6 +477,18 @@ export function LedgerPageView({
           onSubmit={onSubmitCreateTransaction}
         />
       </Modal>
+
+      <AccountStatementImportModal
+        opened={importModalOpened}
+        account={account}
+        accountBookStartDate={accountBookStartDate}
+        accountOptions={accountOptions}
+        unitUsage={unitUsage}
+        isSubmitting={isImportSubmitting}
+        onClose={onCloseImportModal}
+        onSubmittingChange={onImportSubmittingChange}
+        onSubmit={onSubmitImportTransactions}
+      />
 
       <Modal
         opened={editModalOpened}

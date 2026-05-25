@@ -7,6 +7,8 @@ import type {
 export function createBookingUnitDefaults(args: {
   selectedAccount: AccountOption;
   lockedBooking: BookingValues | undefined;
+  currentBooking?: BookingValues;
+  preserveCurrentBookingUnitForUnitlessEquity?: boolean;
 }): Pick<
   BookingValues,
   "unit" | "currency" | "cryptocurrency" | "symbol" | "tradeCurrency"
@@ -15,6 +17,16 @@ export function createBookingUnitDefaults(args: {
     args.selectedAccount.type === AccountType.EQUITY &&
     args.selectedAccount.unit == null
   ) {
+    if (args.preserveCurrentBookingUnitForUnitlessEquity) {
+      return {
+        unit: args.currentBooking?.unit,
+        currency: args.currentBooking?.currency,
+        cryptocurrency: args.currentBooking?.cryptocurrency,
+        symbol: args.currentBooking?.symbol,
+        tradeCurrency: args.currentBooking?.tradeCurrency,
+      };
+    }
+
     return {
       unit: args.lockedBooking?.unit,
       currency: args.lockedBooking?.currency,

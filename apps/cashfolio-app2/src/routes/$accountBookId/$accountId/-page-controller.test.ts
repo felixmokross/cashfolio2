@@ -10,6 +10,7 @@ vi.mock("@/server/accounts", () => ({
 vi.mock("@/server/transactions", () => ({
   createSimpleTransaction: vi.fn(),
   createTransaction: vi.fn(),
+  createTransactions: vi.fn(),
   deleteTransaction: vi.fn(),
   getTransaction: vi.fn(),
   rebookBooking: vi.fn(),
@@ -227,6 +228,140 @@ describe("createLedgerMutationActions", () => {
     expect(setPeriodFilter).toHaveBeenCalledWith("2026-03");
     expect(invalidate).not.toHaveBeenCalled();
     expect(pendingScrollRef.current).toBe("tx-future");
+  });
+
+  test("imports transactions in a batch and moves filtered ledgers to latest imported period", async () => {
+    const invalidate = vi.fn();
+    const setPeriodFilter = vi.fn();
+    const pendingScrollRef: { current: string | undefined } = {
+      current: undefined,
+    };
+    const state = {
+      getEditingTransactionId: () => undefined,
+      getDeletingTransaction: () => undefined,
+      getRebooking: () => undefined,
+      setModalOpened: vi.fn(),
+      setSimpleModalOpened: vi.fn(),
+      setEditModalOpened: vi.fn(),
+      setCreateSplitInitialValues: vi.fn(),
+      setCreateSimpleInitialValues: vi.fn(),
+      setImportModalOpened: vi.fn(),
+      setDeletingTransaction: vi.fn(),
+      setRebookModalOpened: vi.fn(),
+    };
+    const api = {
+      createTransaction: vi.fn(),
+      createTransactions: vi
+        .fn()
+        .mockResolvedValue([{ id: "tx-import-1" }, { id: "tx-import-2" }]),
+      createSimpleTransaction: vi.fn(),
+      updateTransaction: vi.fn(),
+      deleteTransaction: vi.fn(),
+      getTransaction: vi.fn(),
+      rebookBooking: vi.fn(),
+    };
+    const actions = createActions({
+      state,
+      api,
+      invalidate,
+      selectedPeriodValue: "2026-01",
+      setPeriodFilter,
+      pendingScrollRef,
+    });
+    const transactions = [
+      {
+        description: "Earlier",
+        bookings: [
+          {
+            date: "2026-02-05T00:00:00.000Z",
+            accountId: "account-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: 10,
+          },
+          {
+            date: "2026-02-05T00:00:00.000Z",
+            accountId: "counter-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: -10,
+          },
+        ],
+      },
+      {
+        description: "Later",
+        bookings: [
+          {
+            date: "2026-03-05T00:00:00.000Z",
+            accountId: "account-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: -20,
+          },
+          {
+            date: "2026-03-05T00:00:00.000Z",
+            accountId: "counter-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: 20,
+          },
+        ],
+      },
+    ];
+
+    await actions.handleImportTransactions(transactions);
+
+    expect(api.createTransactions).toHaveBeenCalledWith({
+      data: { accountBookId: "book-1", transactions },
+    });
+    expect(state.setImportModalOpened).toHaveBeenCalledWith(false);
+    expect(pendingScrollRef.current).toBe("tx-import-2");
+    expect(setPeriodFilter).toHaveBeenCalledWith("2026-03");
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  test("does not call batch import API for empty imports", async () => {
+    const invalidate = vi.fn();
+    const pendingScrollRef: { current: string | undefined } = {
+      current: undefined,
+    };
+    const state = {
+      getEditingTransactionId: () => undefined,
+      getDeletingTransaction: () => undefined,
+      getRebooking: () => undefined,
+      setModalOpened: vi.fn(),
+      setSimpleModalOpened: vi.fn(),
+      setEditModalOpened: vi.fn(),
+      setCreateSplitInitialValues: vi.fn(),
+      setCreateSimpleInitialValues: vi.fn(),
+      setImportModalOpened: vi.fn(),
+      setDeletingTransaction: vi.fn(),
+      setRebookModalOpened: vi.fn(),
+    };
+    const api = {
+      createTransaction: vi.fn(),
+      createTransactions: vi.fn(),
+      createSimpleTransaction: vi.fn(),
+      updateTransaction: vi.fn(),
+      deleteTransaction: vi.fn(),
+      getTransaction: vi.fn(),
+      rebookBooking: vi.fn(),
+    };
+
+    await createActions({
+      state,
+      api,
+      invalidate,
+      pendingScrollRef,
+    }).handleImportTransactions([]);
+
+    expect(api.createTransactions).not.toHaveBeenCalled();
+    expect(state.setImportModalOpened).not.toHaveBeenCalled();
+    expect(invalidate).not.toHaveBeenCalled();
   });
 
   test("updates transaction only when an editing transaction id exists", async () => {
