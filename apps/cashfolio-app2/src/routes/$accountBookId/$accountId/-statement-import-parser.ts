@@ -43,18 +43,28 @@ export function parseStatementImportCsv(args: {
   }
 
   const rows = dataRows
-    .filter((row) =>
+    .map((row, index) => ({ row, sourceRowNumber: index + 2 }))
+    .filter(({ row }) =>
       row.slice(0, REQUIRED_COLUMN_COUNT).some((value) => value?.trim() !== ""),
-    )
-    .map(toStatementImportCsvRow);
+    );
   if (rows.length === 0) {
     errors.push("CSV must contain at least one transaction row.");
   }
 
   const drafts: StatementImportDraft[] = [];
-  rows.forEach((row, index) => {
-    const sourceRowNumber = index + 2;
-    const rowErrors = validateCsvRow(row, sourceRowNumber);
+  rows.forEach(({ row, sourceRowNumber }) => {
+    const rowShapeErrors = validateCsvRowShape({
+      row,
+      headerColumnCount: headerRow.length,
+      sourceRowNumber,
+    });
+    if (rowShapeErrors.length > 0) {
+      errors.push(...rowShapeErrors);
+      return;
+    }
+
+    const csvRow = toStatementImportCsvRow(row);
+    const rowErrors = validateCsvRow(csvRow, sourceRowNumber);
     if (rowErrors.length > 0) {
       errors.push(...rowErrors);
       return;
@@ -62,7 +72,7 @@ export function parseStatementImportCsv(args: {
 
     drafts.push(
       createStatementImportDraft({
-        row,
+        row: csvRow,
         sourceRowNumber,
         currentAccount: args.currentAccount,
       }),
@@ -81,6 +91,26 @@ function toStatementImportCsvRow(row: string[]): StatementImportCsvRow {
     "exchange rate": row[4] ?? "",
     description: row[5] ?? "",
   };
+}
+
+function validateCsvRowShape(args: {
+  row: string[];
+  headerColumnCount: number;
+  sourceRowNumber: number;
+}): string[] {
+  const errors: string[] = [];
+  if (args.row.length < REQUIRED_COLUMN_COUNT) {
+    errors.push(
+      `Row ${args.sourceRowNumber}: CSV row must include at least ${REQUIRED_COLUMN_COUNT} columns.`,
+    );
+  }
+  if (args.row.length > args.headerColumnCount) {
+    errors.push(
+      `Row ${args.sourceRowNumber}: CSV row has more columns than the header row; check for unquoted delimiters in values.`,
+    );
+  }
+
+  return errors;
 }
 
 function isLikelyHeaderlessDataRow(row: string[]): boolean {

@@ -179,9 +179,9 @@ describe("statement import", () => {
     const result = parseStatementImportCsv({
       currentAccount,
       text: [
-        "date,amount,original amount,original currency,exchange rate,description",
-        "2026-02-03,100.25,92.50,EUR,not a rate,Transfer",
-        "2026-02-04,80.00,75.00,EUR,1,25,Transfer",
+        "date;amount;original amount;original currency;exchange rate;description",
+        "2026-02-03;100.25;92.50;EUR;not a rate;Transfer",
+        "2026-02-04;80.00;75.00;EUR;1,25;Payment",
       ].join("\n"),
     });
 
@@ -193,6 +193,27 @@ describe("statement import", () => {
       originalCurrency: "EUR",
       description: "Transfer",
     });
+    expect(result.drafts[1]).toMatchObject({
+      amount: 80,
+      originalAmount: 75,
+      originalCurrency: "EUR",
+      description: "Payment",
+    });
+  });
+
+  test("rejects rows with extra columns not declared by the header", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      text: [
+        "date,amount,original amount,original currency,exchange rate,description",
+        "2026-02-03,100.25,92.50,EUR,1,25,Transfer",
+      ].join("\n"),
+    });
+
+    expect(result.drafts).toEqual([]);
+    expect(result.errors).toContain(
+      "Row 2: CSV row has more columns than the header row; check for unquoted delimiters in values.",
+    );
   });
 
   test("allows blank original amount and original currency", () => {
