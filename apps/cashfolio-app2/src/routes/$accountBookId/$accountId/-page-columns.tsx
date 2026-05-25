@@ -17,9 +17,19 @@ import {
   getCurrencyDecimals,
   getUnitDisplayDecimals,
 } from "@/shared/unit-format";
+import {
+  getUniqueMultiValueFilterLabels,
+  multiValueSetFilterColumn,
+} from "@/components/multi-value-set-filter";
 import type { LedgerRow } from "./-page-types";
 import { OPENING_BALANCES_MANAGEMENT_MESSAGE } from "@/shared/opening-balances";
 import { buildCounterpartyLedgerSearch } from "./-counterparty-ledger-search";
+
+export function getLedgerCounterpartyAccountFilterValues(
+  accounts: Array<{ name: string }> | null | undefined,
+): string[] {
+  return getUniqueMultiValueFilterLabels(accounts, (account) => account.name);
+}
 
 export function useLedgerColumnDefs(args: {
   accountBookId: string;
@@ -76,6 +86,9 @@ export function useLedgerColumnDefs(args: {
         field: "counterpartyAccounts",
         headerName: "Account(s)",
         width: 240,
+        ...multiValueSetFilterColumn,
+        filterValueGetter: ({ data }) =>
+          getLedgerCounterpartyAccountFilterValues(data?.counterpartyAccounts),
         cellRenderer: ({
           value,
           data,
