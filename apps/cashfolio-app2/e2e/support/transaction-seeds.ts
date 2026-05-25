@@ -42,6 +42,18 @@ export async function getTransactionBookingsByDescription(args: {
   }));
 }
 
+export async function countTransactionsByDescription(args: {
+  accountBookId: string;
+  description: string;
+}): Promise<number> {
+  return prisma.transaction.count({
+    where: {
+      accountBookId: args.accountBookId,
+      description: args.description,
+    },
+  });
+}
+
 export async function seedThreeBookingSplitTransaction(args: {
   accountBookId: string;
   description: string;

@@ -1,6 +1,6 @@
 import type { ColDef, ICellRendererParams } from "ag-grid-enterprise";
 import { ActionIcon, Badge, Group, Tooltip } from "@mantine/core";
-import { IconPencil, IconTrash } from "@tabler/icons-react";
+import { IconEye, IconEyeOff, IconPencil } from "@tabler/icons-react";
 import { useMemo } from "react";
 import {
   ACCOUNT_TREE_SELECT_COLUMN,
@@ -20,13 +20,13 @@ export function useStatementImportColumnDefs(args: {
   isSubmitting: boolean;
   statuses: Map<string, StatementImportDraftStatus>;
   onEditDraft: (draftId: string) => void;
-  onRemoveDraft: (draftId: string) => void;
+  onToggleDraftIgnored: (draftId: string) => void;
 }): ColDef<StatementImportDraft>[] {
   const {
     counterAccountOptions,
     isSubmitting,
     onEditDraft,
-    onRemoveDraft,
+    onToggleDraftIgnored,
     statuses,
   } = args;
 
@@ -78,7 +78,7 @@ export function useStatementImportColumnDefs(args: {
         headerName: "Description",
         minWidth: 240,
         flex: 1,
-        editable: !isSubmitting,
+        editable: ({ data }) => !isSubmitting && data != null && !data.ignored,
         type: TEXT_COLUMN,
       },
       {
@@ -88,6 +88,7 @@ export function useStatementImportColumnDefs(args: {
         editable: ({ data }) =>
           !isSubmitting &&
           data != null &&
+          !data.ignored &&
           hasStatementImportSingleCounterBooking(data),
         cellRenderer: ({
           data,
@@ -124,29 +125,39 @@ export function useStatementImportColumnDefs(args: {
         cellClass: "actions-cell",
         cellRenderer: ({ data }: ICellRendererParams<StatementImportDraft>) => {
           if (!data) return null;
+          const editDisabled = isSubmitting || data.ignored;
+          const toggleIgnoredLabel = data.ignored
+            ? "Unignore Imported Transaction"
+            : "Ignore Imported Transaction";
           return (
             <Group gap={4} wrap="nowrap" h="100%" align="center">
-              <Tooltip label="Edit">
+              <Tooltip
+                label={data.ignored ? "Ignored rows cannot be edited" : "Edit"}
+              >
                 <ActionIcon
                   variant="subtle"
                   size="sm"
-                  disabled={isSubmitting}
+                  disabled={editDisabled}
                   onClick={() => onEditDraft(data.id)}
                   aria-label="Edit Imported Transaction"
                 >
                   <IconPencil size={16} />
                 </ActionIcon>
               </Tooltip>
-              <Tooltip label="Remove">
+              <Tooltip label={toggleIgnoredLabel}>
                 <ActionIcon
                   variant="subtle"
-                  color="red"
+                  color="blue"
                   size="sm"
                   disabled={isSubmitting}
-                  onClick={() => onRemoveDraft(data.id)}
-                  aria-label="Remove Imported Transaction"
+                  onClick={() => onToggleDraftIgnored(data.id)}
+                  aria-label={toggleIgnoredLabel}
                 >
-                  <IconTrash size={16} />
+                  {data.ignored ? (
+                    <IconEye size={16} />
+                  ) : (
+                    <IconEyeOff size={16} />
+                  )}
                 </ActionIcon>
               </Tooltip>
             </Group>
@@ -154,6 +165,12 @@ export function useStatementImportColumnDefs(args: {
         },
       },
     ],
-    [counterAccountOptions, isSubmitting, onEditDraft, onRemoveDraft, statuses],
+    [
+      counterAccountOptions,
+      isSubmitting,
+      onEditDraft,
+      onToggleDraftIgnored,
+      statuses,
+    ],
   );
 }

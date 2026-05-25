@@ -4,10 +4,12 @@ import { Unit } from "../../src/.prisma-client/enums";
 import {
   agGridCellByColId,
   agGridRowByText,
+  clickPinnedRowAction,
   setGridCellValue,
   setGridAccountTreeCellValue,
 } from "../support/grid";
 import {
+  countTransactionsByDescription,
   getTransactionBookingsByDescription,
   seedDatabase,
   type SeededData,
@@ -143,7 +145,10 @@ test("shows multiple for drafts with several counter bookings", async ({
 
   const draftRow = agGridRowByText(page, importedDescription);
   await expect(draftRow).toBeVisible();
-  await page.getByRole("button", { name: "Edit Imported Transaction" }).click();
+  await clickPinnedRowAction({
+    row: draftRow,
+    actionLabel: "Edit Imported Transaction",
+  });
 
   const editDialog = page.getByRole("dialog", {
     name: "Edit Imported Transaction",
@@ -203,4 +208,86 @@ test("shows multiple for drafts with several counter bookings", async ({
       }),
     ]),
   );
+});
+
+test("keeps ignored statement rows visible and skips them during import", async ({
+  page,
+}) => {
+  const importedDescription = "E2E Statement Import Included";
+  const ignoredDescription = "E2E Statement Import Ignored";
+  const csv = [
+    "Booked;Cashflow;Original;Currency;Rate;Text;Ignored",
+    `2026-05-16;-12.35;;;ignored;${importedDescription};extra value`,
+    `2026-05-17;-98.75;;;ignored;${ignoredDescription};extra value`,
+  ].join("\n");
+
+  await page.goto(
+    `/${seeded.accountBookId}/${seeded.cashAccount.id}?period=2026-04`,
+  );
+  await openStatementImportPage(page);
+
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "statement-import-ignore.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(csv),
+  });
+
+  const includedRow = agGridRowByText(page, importedDescription);
+  const ignoredRow = agGridRowByText(page, ignoredDescription);
+  await expect(includedRow).toBeVisible();
+  await expect(ignoredRow).toBeVisible();
+
+  await clickPinnedRowAction({
+    row: ignoredRow,
+    actionLabel: "Ignore Imported Transaction",
+  });
+  await expect(agGridCellByColId(ignoredRow, "status")).toContainText(
+    "Ignored",
+  );
+  await expect(page.getByText("0 of 2 ready, 1 ignored")).toBeVisible();
+
+  await clickPinnedRowAction({
+    row: ignoredRow,
+    actionLabel: "Unignore Imported Transaction",
+  });
+  await expect(agGridCellByColId(ignoredRow, "status")).toContainText(
+    "Needs edit",
+  );
+
+  await clickPinnedRowAction({
+    row: ignoredRow,
+    actionLabel: "Ignore Imported Transaction",
+  });
+  await expect(ignoredRow).toBeVisible();
+
+  await setGridAccountTreeCellValue({
+    root: page,
+    rowIndex: 0,
+    colId: "counterAccountId",
+    accountName: seeded.expenseAccount.name,
+  });
+
+  await expect(agGridCellByColId(includedRow, "status")).toContainText("Ready");
+  await expect(page.getByText("1 of 2 ready, 1 ignored")).toBeVisible();
+
+  await page.getByRole("button", { name: "Import Transactions" }).click();
+  await expect(page).toHaveURL(
+    ledgerUrlPattern({
+      accountBookId: seeded.accountBookId,
+      accountId: seeded.cashAccount.id,
+    }),
+  );
+  await expect(agGridRowByText(page, importedDescription)).toBeVisible();
+
+  const includedBookings = await getTransactionBookingsByDescription({
+    accountBookId: seeded.accountBookId,
+    description: importedDescription,
+  });
+  expect(includedBookings).toHaveLength(2);
+
+  const ignoredTransactionCount = await countTransactionsByDescription({
+    accountBookId: seeded.accountBookId,
+    description: ignoredDescription,
+  });
+  expect(ignoredTransactionCount).toBe(0);
 });

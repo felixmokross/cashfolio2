@@ -94,6 +94,7 @@ describe("statement import", () => {
     expect(result.errors).toEqual([]);
     expect(result.drafts).toHaveLength(1);
     expect(result.drafts[0]).toMatchObject({
+      ignored: false,
       date: "2026-02-03T00:00:00.000Z",
       amount: 100.25,
       originalAmount: 92.5,
@@ -390,6 +391,20 @@ describe("statement import", () => {
     expect(getImportDraftStatus(draft)).toMatchObject({
       kind: "needs-edit",
       message: "Counter account is required.",
+    });
+  });
+
+  test("marks ignored drafts as ignored before validating edits", () => {
+    const draft = createStatementImportDraft({
+      row: createRow(),
+      sourceRowNumber: 2,
+      currentAccount,
+    });
+
+    expect(getImportDraftStatus({ ...draft, ignored: true })).toMatchObject({
+      kind: "ignored",
+      label: "Ignored",
+      message: "This row will not be imported.",
     });
   });
 

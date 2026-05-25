@@ -30,6 +30,26 @@ export async function clickRowAction(
   await row.getByRole("button", { name: actionLabel }).click();
 }
 
+export async function clickPinnedRowAction(args: {
+  row: Locator;
+  actionLabel: string;
+}) {
+  const rowIndex = await args.row.getAttribute("row-index");
+  if (rowIndex == null) {
+    throw new Error(
+      "Cannot click pinned row action without AG Grid row-index.",
+    );
+  }
+
+  await args.row.hover();
+  const pinnedRow = args.row
+    .page()
+    .locator(`.ag-pinned-right-cols-container .ag-row[row-index="${rowIndex}"]`)
+    .first();
+  await expect(pinnedRow).toBeVisible();
+  await pinnedRow.getByRole("button", { name: args.actionLabel }).click();
+}
+
 export async function setGridCellValue(
   root: Page | Locator,
   rowIndex: number,

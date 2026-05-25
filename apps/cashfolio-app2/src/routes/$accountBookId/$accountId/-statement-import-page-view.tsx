@@ -34,6 +34,14 @@ import {
 } from "./-statement-import";
 import type { LedgerAccount } from "./-page-types";
 import { useStatementImportColumnDefs } from "./-statement-import-page-columns";
+import {
+  getStatementImportIgnoredCount,
+  getStatementImportReadyCount,
+  getStatementImportSummaryText,
+  getStatementImportTransactionsToSubmit,
+  isStatementImportDisabled,
+  toggleStatementImportDraftIgnored,
+} from "./-statement-import-page-controller";
 
 type StatementImportPageViewProps = {
   account: LedgerAccount;
@@ -83,23 +91,39 @@ export function AccountStatementImportPageView({
   );
   const readyCount = useMemo(
     () =>
-      drafts.filter((draft) => statuses.get(draft.id)?.kind === "ready").length,
+      getStatementImportReadyCount({
+        drafts,
+        statuses,
+      }),
     [drafts, statuses],
   );
+  const ignoredCount = useMemo(
+    () => getStatementImportIgnoredCount(drafts),
+    [drafts],
+  );
+  const summaryText = getStatementImportSummaryText({
+    drafts,
+    readyCount,
+    ignoredCount,
+  });
+  const includedCount = drafts.length - ignoredCount;
   const editingDraft = drafts.find((draft) => draft.id === editingDraftId);
-  const importDisabled =
-    isSubmitting ||
-    isEditSubmitting ||
-    drafts.length === 0 ||
-    readyCount !== drafts.length;
+  const importDisabled = isStatementImportDisabled({
+    drafts,
+    readyCount,
+    isSubmitting,
+    isEditSubmitting,
+  });
 
   const columnDefs = useStatementImportColumnDefs({
     counterAccountOptions,
     isSubmitting,
     statuses,
     onEditDraft: setEditingDraftId,
-    onRemoveDraft: (draftId) =>
-      setDrafts((current) => current.filter((draft) => draft.id !== draftId)),
+    onToggleDraftIgnored: (draftId) =>
+      setDrafts((current) =>
+        toggleStatementImportDraftIgnored(current, draftId),
+      ),
   });
 
   async function handleFileChange(nextFile: File | null) {
@@ -131,7 +155,7 @@ export function AccountStatementImportPageView({
   async function handleImport() {
     onSubmittingChange(true);
     try {
-      await onSubmit(drafts.map((draft) => draft.transaction));
+      await onSubmit(getStatementImportTransactionsToSubmit(drafts));
     } finally {
       onSubmittingChange(false);
     }
@@ -141,6 +165,9 @@ export function AccountStatementImportPageView({
     event: CellValueChangedEvent<StatementImportDraft>,
   ) {
     if (!event.data) {
+      return;
+    }
+    if (event.data.ignored) {
       return;
     }
 
@@ -230,9 +257,7 @@ export function AccountStatementImportPageView({
             onChange={(nextFile) => void handleFileChange(nextFile)}
           />
           <Text c="dimmed" size="sm">
-            {drafts.length > 0
-              ? `${readyCount} of ${drafts.length} ready`
-              : "No statement loaded"}
+            {summaryText}
           </Text>
         </Group>
 
@@ -258,6 +283,9 @@ export function AccountStatementImportPageView({
             sortable: false,
             suppressHeaderMenuButton: true,
           }}
+          rowClassRules={{
+            "statement-import-row-ignored": ({ data }) => !!data?.ignored,
+          }}
           onCellValueChanged={handleDraftCellChange}
         />
 
@@ -272,7 +300,9 @@ export function AccountStatementImportPageView({
           <Tooltip
             label={
               importDisabled && drafts.length > 0
-                ? "All imported transactions must be ready."
+                ? includedCount === 0
+                  ? "At least one non-ignored imported transaction is required."
+                  : "All non-ignored imported transactions must be ready."
                 : "Create transactions"
             }
             disabled={!importDisabled || drafts.length === 0}

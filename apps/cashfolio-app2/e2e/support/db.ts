@@ -10,6 +10,7 @@ export {
 export { seedDatabase } from "./seed-database";
 export type { SeededData } from "./seed-database";
 export {
+  countTransactionsByDescription,
   getTransactionBookingsByDescription,
   seedTransactionsPageScenario,
   seedNonZeroConvertibleArchivedAndLiabilityBalances,

@@ -65,6 +65,7 @@ export function createStatementImportDraft(args: {
     id: createId(),
     sourceRowNumber: args.sourceRowNumber,
     currentAccountId: args.currentAccount.id,
+    ignored: false,
     date: isoDate,
     amount,
     originalAmount,
@@ -98,6 +99,15 @@ export function getStatementImportDraftStatus(args: {
   accounts: AccountOption[];
   accountBookStartDate: Date;
 }): StatementImportDraftStatus {
+  if (args.draft.ignored) {
+    return {
+      kind: "ignored",
+      label: "Ignored",
+      color: "gray",
+      message: "This row will not be imported.",
+    };
+  }
+
   const bookings = args.draft.transaction.bookings;
   const accountBookStartDay = startOfUtcDay(args.accountBookStartDate);
   const accountBookStartDateLabel = formatUtcDate(accountBookStartDay);

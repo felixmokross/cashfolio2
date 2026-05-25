@@ -4,6 +4,10 @@ import {
 } from "@/shared/transaction-period";
 import type { LedgerSearch } from "./-page-types";
 import type { TransactionMutationValues } from "./-page-view";
+import type {
+  StatementImportDraft,
+  StatementImportDraftStatus,
+} from "./-statement-import";
 
 export function getStatementImportSuccessLedgerSearch(args: {
   selectedPeriodValue?: string;
@@ -39,4 +43,71 @@ export function getStatementImportSuccessLedgerSearch(args: {
     period,
     transactionId,
   };
+}
+
+export function getStatementImportIncludedDrafts(
+  drafts: StatementImportDraft[],
+): StatementImportDraft[] {
+  return drafts.filter((draft) => !draft.ignored);
+}
+
+export function getStatementImportReadyCount(args: {
+  drafts: StatementImportDraft[];
+  statuses: Map<string, StatementImportDraftStatus>;
+}): number {
+  return getStatementImportIncludedDrafts(args.drafts).filter(
+    (draft) => args.statuses.get(draft.id)?.kind === "ready",
+  ).length;
+}
+
+export function getStatementImportIgnoredCount(
+  drafts: StatementImportDraft[],
+): number {
+  return drafts.length - getStatementImportIncludedDrafts(drafts).length;
+}
+
+export function getStatementImportSummaryText(args: {
+  drafts: StatementImportDraft[];
+  readyCount: number;
+  ignoredCount: number;
+}): string {
+  if (args.drafts.length === 0) {
+    return "No statement loaded";
+  }
+
+  const ignoredSuffix =
+    args.ignoredCount > 0 ? `, ${args.ignoredCount} ignored` : "";
+  return `${args.readyCount} of ${args.drafts.length} ready${ignoredSuffix}`;
+}
+
+export function getStatementImportTransactionsToSubmit(
+  drafts: StatementImportDraft[],
+): TransactionMutationValues[] {
+  return getStatementImportIncludedDrafts(drafts).map(
+    (draft) => draft.transaction,
+  );
+}
+
+export function isStatementImportDisabled(args: {
+  drafts: StatementImportDraft[];
+  readyCount: number;
+  isSubmitting: boolean;
+  isEditSubmitting: boolean;
+}): boolean {
+  const includedDrafts = getStatementImportIncludedDrafts(args.drafts);
+  return (
+    args.isSubmitting ||
+    args.isEditSubmitting ||
+    includedDrafts.length === 0 ||
+    args.readyCount !== includedDrafts.length
+  );
+}
+
+export function toggleStatementImportDraftIgnored(
+  drafts: StatementImportDraft[],
+  draftId: string,
+): StatementImportDraft[] {
+  return drafts.map((draft) =>
+    draft.id === draftId ? { ...draft, ignored: !draft.ignored } : draft,
+  );
 }
