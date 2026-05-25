@@ -12,6 +12,7 @@ import {
   parseStatementImportCsv,
   shouldIncludeStatementImportAccountOption,
   updateStatementImportDraftCounterAccount,
+  updateStatementImportDraftDescription,
   updateStatementImportDraftTransaction,
   type StatementImportCsvRow,
   type StatementImportDraft,
@@ -461,6 +462,51 @@ describe("statement import", () => {
     });
     expect(updated.counterAccountId).toBe("income-1");
     expect(getImportDraftStatus(updated).kind).toBe("ready");
+  });
+
+  test("direct description edits update the draft and transaction description", () => {
+    const draft = createStatementImportDraft({
+      row: createRow(),
+      sourceRowNumber: 2,
+      currentAccount,
+    });
+
+    const updated = updateStatementImportDraftDescription({
+      draft,
+      description: "Renamed transfer",
+    });
+
+    expect(updated.description).toBe("Renamed transfer");
+    expect(updated.transaction.description).toBe("Renamed transfer");
+  });
+
+  test("direct description edits do not alter booking descriptions", () => {
+    const draft = createStatementImportDraft({
+      row: createRow(),
+      sourceRowNumber: 2,
+      currentAccount,
+    });
+    const withBookingDescriptions = updateStatementImportDraftTransaction({
+      draft,
+      transaction: {
+        ...draft.transaction,
+        bookings: draft.transaction.bookings.map((booking, index) => ({
+          ...booking,
+          description: index === 0 ? "Bank leg" : "Counter leg",
+        })),
+      },
+    });
+
+    const updated = updateStatementImportDraftDescription({
+      draft: withBookingDescriptions,
+      description: "",
+    });
+
+    expect(updated.description).toBe("");
+    expect(updated.transaction.description).toBe("");
+    expect(
+      updated.transaction.bookings.map((booking) => booking.description),
+    ).toEqual(["Bank leg", "Counter leg"]);
   });
 
   test("direct counter-account edits apply concrete account unit fields", () => {

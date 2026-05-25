@@ -8,6 +8,7 @@ export {
   shouldIncludeStatementImportAccountOption,
   toStatementImportEditInitialValues,
   updateStatementImportDraftCounterAccount,
+  updateStatementImportDraftDescription,
   updateStatementImportDraftTransaction,
 } from "./-statement-import-draft";
 export {

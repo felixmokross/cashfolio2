@@ -231,6 +231,20 @@ export function updateStatementImportDraftTransaction(args: {
   };
 }
 
+export function updateStatementImportDraftDescription(args: {
+  draft: StatementImportDraft;
+  description: string;
+}): StatementImportDraft {
+  return {
+    ...args.draft,
+    description: args.description,
+    transaction: {
+      ...args.draft.transaction,
+      description: args.description,
+    },
+  };
+}
+
 export function updateStatementImportDraftCounterAccount(args: {
   draft: StatementImportDraft;
   selectedAccount: AccountOption | undefined;
