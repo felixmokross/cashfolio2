@@ -143,10 +143,7 @@ test("shows multiple for drafts with several counter bookings", async ({
 
   const draftRow = agGridRowByText(page, importedDescription);
   await expect(draftRow).toBeVisible();
-  await draftRow.hover();
-  await draftRow
-    .getByRole("button", { name: "Edit Imported Transaction" })
-    .click();
+  await page.getByRole("button", { name: "Edit Imported Transaction" }).click();
 
   const editDialog = page.getByRole("dialog", {
     name: "Edit Imported Transaction",
