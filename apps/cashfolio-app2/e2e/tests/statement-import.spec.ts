@@ -39,7 +39,7 @@ test("imports a statement after selecting the counter account in the review grid
     page.getByRole("heading", { name: "Import Statement" }),
   ).toBeVisible();
 
-  await page.getByLabel("CSV File").setInputFiles({
+  await page.locator('input[type="file"]').setInputFiles({
     name: "statement-import.csv",
     mimeType: "text/csv",
     buffer: Buffer.from(csv),
