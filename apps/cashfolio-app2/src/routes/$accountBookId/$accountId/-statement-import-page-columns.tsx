@@ -6,6 +6,7 @@ import {
   ACCOUNT_TREE_SELECT_COLUMN,
   DATE_COLUMN,
   FORMATTED_NUMERIC_COLUMN,
+  TEXT_COLUMN,
 } from "@/components/column-types";
 import type { AccountOption } from "@/components/edit-transaction-modal";
 import type {
@@ -77,6 +78,8 @@ export function useStatementImportColumnDefs(args: {
         headerName: "Description",
         minWidth: 240,
         flex: 1,
+        editable: !isSubmitting,
+        type: TEXT_COLUMN,
       },
       {
         field: "counterAccountId",

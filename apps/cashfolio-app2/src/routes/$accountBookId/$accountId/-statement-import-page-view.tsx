@@ -28,6 +28,7 @@ import {
   parseStatementImportCsv,
   toStatementImportEditInitialValues,
   updateStatementImportDraftCounterAccount,
+  updateStatementImportDraftDescription,
   updateStatementImportDraftTransaction,
   type StatementImportDraft,
 } from "./-statement-import";
@@ -136,29 +137,46 @@ export function AccountStatementImportPageView({
     }
   }
 
-  function handleCounterAccountChange(
+  function handleDraftCellChange(
     event: CellValueChangedEvent<StatementImportDraft>,
   ) {
-    if (event.colDef.field !== "counterAccountId" || !event.data) {
-      return;
-    }
-    if (!hasStatementImportSingleCounterBooking(event.data)) {
+    if (!event.data) {
       return;
     }
 
-    const selectedAccount = counterAccountOptions.find(
-      (option) => option.value === event.newValue,
-    );
-    setDrafts((current) =>
-      current.map((draft) =>
-        draft.id === event.data?.id
-          ? updateStatementImportDraftCounterAccount({
-              draft,
-              selectedAccount,
-            })
-          : draft,
-      ),
-    );
+    if (event.colDef.field === "description") {
+      setDrafts((current) =>
+        current.map((draft) =>
+          draft.id === event.data?.id
+            ? updateStatementImportDraftDescription({
+                draft,
+                description: String(event.newValue ?? ""),
+              })
+            : draft,
+        ),
+      );
+      return;
+    }
+
+    if (event.colDef.field === "counterAccountId") {
+      if (!hasStatementImportSingleCounterBooking(event.data)) {
+        return;
+      }
+
+      const selectedAccount = counterAccountOptions.find(
+        (option) => option.value === event.newValue,
+      );
+      setDrafts((current) =>
+        current.map((draft) =>
+          draft.id === event.data?.id
+            ? updateStatementImportDraftCounterAccount({
+                draft,
+                selectedAccount,
+              })
+            : draft,
+        ),
+      );
+    }
   }
 
   function handleSaveDraft(values: TransactionMutationValues) {
@@ -240,7 +258,7 @@ export function AccountStatementImportPageView({
             sortable: false,
             suppressHeaderMenuButton: true,
           }}
-          onCellValueChanged={handleCounterAccountChange}
+          onCellValueChanged={handleDraftCellChange}
         />
 
         <Group justify="end">
