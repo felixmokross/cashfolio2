@@ -21,6 +21,7 @@ import {
   getUniqueMultiValueFilterLabels,
   multiValueSetFilterColumn,
 } from "@/components/multi-value-set-filter";
+import { isReferenceCurrencyUnit } from "@/shared/reference-currency-display";
 import type { LedgerRow } from "./-page-types";
 import { OPENING_BALANCES_MANAGEMENT_MESSAGE } from "@/shared/opening-balances";
 import { buildCounterpartyLedgerSearch } from "./-counterparty-ledger-search";
@@ -29,6 +30,55 @@ export function getLedgerCounterpartyAccountFilterValues(
   accounts: Array<{ name: string }> | null | undefined,
 ): string[] {
   return getUniqueMultiValueFilterLabels(accounts, (account) => account.name);
+}
+
+export function getLedgerUnitIdentifierDisplayValue(args: {
+  data: LedgerRow | undefined;
+  referenceCurrency: string | null;
+}): string | null {
+  const { data, referenceCurrency } = args;
+  if (!data) return null;
+  if (
+    isReferenceCurrencyUnit({
+      unit: data.unit,
+      currency: data.currency,
+      referenceCurrency,
+    })
+  ) {
+    return null;
+  }
+
+  switch (data.unit) {
+    case Unit.CURRENCY:
+      return data.currency;
+    case Unit.CRYPTOCURRENCY:
+      return data.cryptocurrency;
+    case Unit.SECURITY:
+      return data.symbol;
+    default:
+      return null;
+  }
+}
+
+export function getLedgerBookingAmountDisplayValue(args: {
+  data: LedgerRow | undefined;
+  hideReferenceCurrencyAmount: boolean;
+  referenceCurrency: string | null;
+  value: number | null | undefined;
+}): number | null {
+  const { data, hideReferenceCurrencyAmount, referenceCurrency, value } = args;
+  if (!data || value == null) return null;
+  if (
+    hideReferenceCurrencyAmount &&
+    isReferenceCurrencyUnit({
+      unit: data.unit,
+      currency: data.currency,
+      referenceCurrency,
+    })
+  ) {
+    return null;
+  }
+  return value;
 }
 
 export function useLedgerColumnDefs(args: {
@@ -130,17 +180,10 @@ export function useLedgerColumnDefs(args: {
               width: 130,
               filter: true,
               valueGetter: ({ data }: { data?: LedgerRow }) => {
-                if (!data) return null;
-                switch (data.unit) {
-                  case Unit.CURRENCY:
-                    return data.currency;
-                  case Unit.CRYPTOCURRENCY:
-                    return data.cryptocurrency;
-                  case Unit.SECURITY:
-                    return data.symbol;
-                  default:
-                    return null;
-                }
+                return getLedgerUnitIdentifierDisplayValue({
+                  data,
+                  referenceCurrency,
+                });
               },
             },
           ]
@@ -154,6 +197,13 @@ export function useLedgerColumnDefs(args: {
               width: 130,
               type: FORMATTED_NUMERIC_COLUMN,
               filter: "agNumberColumnFilter",
+              valueGetter: ({ data }: { data?: LedgerRow }) =>
+                getLedgerBookingAmountDisplayValue({
+                  data,
+                  hideReferenceCurrencyAmount: isEquity && !isOpeningBalances,
+                  referenceCurrency,
+                  value: data?.debit,
+                }),
             },
           ]),
       ...(isExpense
@@ -165,6 +215,13 @@ export function useLedgerColumnDefs(args: {
               width: 130,
               type: FORMATTED_NUMERIC_COLUMN,
               filter: "agNumberColumnFilter",
+              valueGetter: ({ data }: { data?: LedgerRow }) =>
+                getLedgerBookingAmountDisplayValue({
+                  data,
+                  hideReferenceCurrencyAmount: isEquity && !isOpeningBalances,
+                  referenceCurrency,
+                  value: data?.credit,
+                }),
             },
           ]),
       ...(isEquity && !isOpeningBalances && !isIncome
