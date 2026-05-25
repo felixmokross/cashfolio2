@@ -40,10 +40,6 @@ type FormattedNumericColDefConfig = {
   }) => number;
 };
 
-type AccountTreeSelectColDefConfig = {
-  commitOnSelect?: boolean;
-};
-
 function getFormattedNumericConfig(
   colDef: unknown,
 ): FormattedNumericColDefConfig {
@@ -58,22 +54,6 @@ function getFormattedNumericConfig(
 
   return ((context as { formattedNumeric?: FormattedNumericColDefConfig })
     .formattedNumeric ?? {}) as FormattedNumericColDefConfig;
-}
-
-function getAccountTreeSelectConfig(
-  colDef: unknown,
-): AccountTreeSelectColDefConfig {
-  if (typeof colDef !== "object" || colDef === null) {
-    return {};
-  }
-
-  const context = (colDef as { context?: unknown }).context;
-  if (typeof context !== "object" || context === null) {
-    return {};
-  }
-
-  return ((context as { accountTreeSelect?: AccountTreeSelectColDefConfig })
-    .accountTreeSelect ?? {}) as AccountTreeSelectColDefConfig;
 }
 
 function getDefaultDisplayDecimals(data: unknown): number {
@@ -224,7 +204,6 @@ function AccountTreeSelectCellEditor({
   colDef,
   value,
   onValueChange,
-  stopEditing,
 }: CustomCellEditorProps) {
   const options = colDef.context?.options ?? [];
   const ref = useRef<HTMLInputElement>(null);
@@ -244,8 +223,6 @@ function AccountTreeSelectCellEditor({
       : undefined;
   }, [colDef, isDropdownOpen]);
 
-  const config = getAccountTreeSelectConfig(colDef);
-
   return (
     <AccountTreeSelect
       ref={ref}
@@ -255,12 +232,7 @@ function AccountTreeSelectCellEditor({
       onDropdownOpen={() => setIsDropdownOpen(true)}
       onDropdownClose={() => setIsDropdownOpen(false)}
       value={value ?? null}
-      onChange={(nextValue) => {
-        onValueChange(nextValue);
-        if (config.commitOnSelect) {
-          stopEditing(true);
-        }
-      }}
+      onChange={(nextValue) => onValueChange(nextValue)}
     />
   );
 }

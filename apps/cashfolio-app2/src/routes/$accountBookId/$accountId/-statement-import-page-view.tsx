@@ -1,8 +1,4 @@
-import type {
-  CellValueChangedEvent,
-  ColDef,
-  ICellRendererParams,
-} from "ag-grid-enterprise";
+import type { ColDef, ICellRendererParams } from "ag-grid-enterprise";
 import {
   ActionIcon,
   Alert,
@@ -25,10 +21,10 @@ import {
 } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import {
-  ACCOUNT_TREE_SELECT_COLUMN,
   DATE_COLUMN,
   FORMATTED_NUMERIC_COLUMN,
 } from "@/components/column-types";
+import { AccountTreeSelect } from "@/components/account-tree-select";
 import { DataGrid } from "@/components/data-grid";
 import {
   EditTransactionModal,
@@ -155,17 +151,33 @@ export function AccountStatementImportPageView({
         colId: "counterAccount",
         headerName: "Counter Account",
         width: 260,
-        editable: !isSubmitting,
-        type: ACCOUNT_TREE_SELECT_COLUMN,
-        context: {
-          options: counterAccountOptions,
-          accountTreeSelect: {
-            commitOnSelect: true,
-          },
+        cellRenderer: ({ data }: ICellRendererParams<StatementImportDraft>) => {
+          if (!data) return null;
+          return (
+            <AccountTreeSelect
+              variant="unstyled"
+              size="xs"
+              accounts={counterAccountOptions}
+              disabled={isSubmitting}
+              value={getStatementImportCounterAccountId(data) || null}
+              onChange={(nextAccountId) => {
+                const selectedAccount = counterAccountOptions.find(
+                  (option) => option.value === nextAccountId,
+                );
+                setDrafts((current) =>
+                  current.map((draft) =>
+                    draft.id === data.id
+                      ? updateStatementImportDraftCounterAccount({
+                          draft,
+                          selectedAccount,
+                        })
+                      : draft,
+                  ),
+                );
+              }}
+            />
+          );
         },
-        valueGetter: ({ data }) =>
-          data ? getStatementImportCounterAccountId(data) : "",
-        valueSetter: () => true,
       },
       {
         colId: "actions",
@@ -237,28 +249,6 @@ export function AccountStatementImportPageView({
     } finally {
       onSubmittingChange(false);
     }
-  }
-
-  function handleCounterAccountChange(
-    event: CellValueChangedEvent<StatementImportDraft>,
-  ) {
-    if (event.colDef.colId !== "counterAccount" || !event.data) {
-      return;
-    }
-
-    const selectedAccount = counterAccountOptions.find(
-      (option) => option.value === event.newValue,
-    );
-    setDrafts((current) =>
-      current.map((draft) =>
-        draft.id === event.data?.id
-          ? updateStatementImportDraftCounterAccount({
-              draft,
-              selectedAccount,
-            })
-          : draft,
-      ),
-    );
   }
 
   function handleSaveDraft(values: TransactionMutationValues) {
@@ -340,7 +330,6 @@ export function AccountStatementImportPageView({
             sortable: false,
             suppressHeaderMenuButton: true,
           }}
-          onCellValueChanged={handleCounterAccountChange}
         />
 
         <Group justify="end">
