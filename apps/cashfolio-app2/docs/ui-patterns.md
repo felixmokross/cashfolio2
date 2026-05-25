@@ -427,14 +427,14 @@ eligible edit of two-booking transactions from the ledger route
 
 ## Account Statement Import
 
-The account ledger exposes `Import Statement` for asset and liability accounts
-with complete unit metadata. The action opens a dedicated import page. The v1
-importer accepts a strict CSV with a header row, but header names are ignored.
-The first six columns must be ordered as: `date`, `amount`, `original amount`,
-`original currency`, `exchange rate`, and `description`. Comma and semicolon
-delimiters are supported, and extra trailing columns are ignored. The fifth
-`exchange rate` column is reserved for source CSV compatibility but ignored by
-the importer.
+The account ledger exposes `Import Statement` in the account actions menu for
+asset and liability accounts with complete unit metadata. The action opens a
+dedicated import page. The v1 importer accepts a strict CSV with a header row,
+but header names are ignored. The first six columns must be ordered as: `date`,
+`amount`, `original amount`, `original currency`, `exchange rate`, and
+`description`. Comma and semicolon delimiters are supported, and extra trailing
+columns are ignored. The fifth `exchange rate` column is reserved for source CSV
+compatibility but ignored by the importer.
 
 - Imported rows are virtual transaction drafts until the user confirms import.
 - CSV `amount` is signed from the current ledger account perspective: positive

@@ -317,6 +317,19 @@ export function LedgerPageView({
                   onClick={onOpenAccountEdit}
                   primaryDisabled={!!accountEditDisabledReason}
                   menuItems={[
+                    {
+                      key: "import-statement",
+                      label: "Import Statement",
+                      disabledReason:
+                        statementImportDisabledReason ?? undefined,
+                      disabled: !!statementImportDisabledReason,
+                      leftSection: <IconFileImport size={16} />,
+                      onClick: onOpenImportPage,
+                    },
+                    {
+                      type: "divider",
+                      key: "danger-actions-divider",
+                    },
                     account.isActive
                       ? {
                           key: "archive",
@@ -364,23 +377,6 @@ export function LedgerPageView({
                   onClick={onAddTransactionClick}
                 >
                   Add Transaction
-                </Button>
-              </span>
-            </Tooltip>
-            <Tooltip
-              label={
-                statementImportDisabledReason ?? "Import account statement"
-              }
-              disabled={!statementImportDisabledReason}
-            >
-              <span>
-                <Button
-                  variant="default"
-                  leftSection={<IconFileImport size={16} />}
-                  disabled={!!statementImportDisabledReason}
-                  onClick={onOpenImportPage}
-                >
-                  Import Statement
                 </Button>
               </span>
             </Tooltip>

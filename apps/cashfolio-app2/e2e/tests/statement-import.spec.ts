@@ -1,4 +1,5 @@
 import { Buffer } from "node:buffer";
+import type { Page } from "@playwright/test";
 import { Unit } from "../../src/.prisma-client/enums";
 import {
   agGridCellByColId,
@@ -20,6 +21,11 @@ test.beforeAll(async ({ e2eExternalId }) => {
   seeded = await seedDatabase({ userExternalId: e2eExternalId });
 });
 
+async function openStatementImportPage(page: Page) {
+  await page.getByRole("button", { name: "Account actions" }).click();
+  await page.getByRole("menuitem", { name: "Import Statement" }).click();
+}
+
 test("imports a statement after selecting the counter account in the review grid", async ({
   page,
 }) => {
@@ -32,7 +38,7 @@ test("imports a statement after selecting the counter account in the review grid
   await page.goto(
     `/${seeded.accountBookId}/${seeded.cashAccount.id}?period=2026-04`,
   );
-  await page.getByRole("button", { name: "Import Statement" }).click();
+  await openStatementImportPage(page);
 
   await expect(page).toHaveURL(
     new RegExp(
@@ -120,7 +126,7 @@ test("shows multiple for drafts with several counter bookings", async ({
   await page.goto(
     `/${seeded.accountBookId}/${seeded.cashAccount.id}?period=2026-04`,
   );
-  await page.getByRole("button", { name: "Import Statement" }).click();
+  await openStatementImportPage(page);
 
   await page.locator('input[type="file"]').setInputFiles({
     name: "statement-import-multiple.csv",

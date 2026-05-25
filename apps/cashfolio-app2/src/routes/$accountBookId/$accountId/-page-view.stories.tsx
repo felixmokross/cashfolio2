@@ -561,6 +561,11 @@ export const AccountActionsMenu: Story = {
     );
 
     await waitFor(() => {
+      expect(
+        screen.getByRole("menuitem", { name: "Import Statement" }),
+      ).toBeVisible();
+    });
+    await waitFor(() => {
       expect(screen.getByRole("menuitem", { name: "Archive" })).toBeVisible();
     });
     await waitFor(() => {
@@ -590,6 +595,11 @@ export const ArchivedAccountActionsMenu: Story = {
     );
 
     await waitFor(() => {
+      expect(
+        screen.getByRole("menuitem", { name: "Import Statement" }),
+      ).toBeVisible();
+    });
+    await waitFor(() => {
       expect(screen.getByRole("menuitem", { name: "Unarchive" })).toBeVisible();
     });
     await waitFor(() => {
@@ -607,6 +617,11 @@ export const DisabledAccountActionsMenu: Story = {
       canvas.getByRole("button", { name: "Account actions" }),
     );
 
+    await waitFor(() => {
+      expect(
+        screen.getByRole("menuitem", { name: "Import Statement" }),
+      ).toBeVisible();
+    });
     await waitFor(() => {
       expect(screen.getByRole("menuitem", { name: "Archive" })).toBeVisible();
     });
