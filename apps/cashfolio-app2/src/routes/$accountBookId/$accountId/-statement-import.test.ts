@@ -156,6 +156,64 @@ describe("statement import", () => {
     });
   });
 
+  test("allows blank original amount, original currency, and exchange rate", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      text: [
+        "date,amount,original amount,original currency,exchange rate,description",
+        "2026-02-03,100.25,,,,Transfer",
+      ].join("\n"),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.drafts[0]).toMatchObject({
+      amount: 100.25,
+      originalAmount: undefined,
+      originalCurrency: undefined,
+      exchangeRate: undefined,
+      transaction: {
+        bookings: [
+          {
+            accountId: "asset-1",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: 100.25,
+          },
+          {
+            accountId: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: -100.25,
+          },
+        ],
+      },
+    });
+  });
+
+  test("requires original amount and original currency to be provided together", () => {
+    const missingCurrency = parseStatementImportCsv({
+      currentAccount,
+      text: [
+        "date,amount,original amount,original currency,exchange rate,description",
+        "2026-02-03,100.25,92.50,,,Transfer",
+      ].join("\n"),
+    });
+    const missingAmount = parseStatementImportCsv({
+      currentAccount,
+      text: [
+        "date,amount,original amount,original currency,exchange rate,description",
+        "2026-02-03,100.25,,EUR,,Transfer",
+      ].join("\n"),
+    });
+
+    expect(missingCurrency.errors).toContain(
+      "Row 2: original currency is required when original amount is set.",
+    );
+    expect(missingAmount.errors).toContain(
+      "Row 2: original amount is required when original currency is set.",
+    );
+  });
+
   test("rejects CSVs with fewer than six columns", () => {
     const result = parseStatementImportCsv({
       currentAccount,

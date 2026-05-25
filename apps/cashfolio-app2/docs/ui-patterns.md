@@ -438,9 +438,11 @@ columns are ignored.
 - CSV `amount` is signed from the current ledger account perspective: positive
   values debit the current account and negative values credit it.
 - The current-account booking uses the ledger account unit. The counter booking
-  starts as a currency booking using `original amount` and `original currency`;
-  the user must choose its counter account before import.
-- `exchange rate` is displayed for review but is not persisted.
+  starts as a currency booking using `original amount` and `original currency`
+  when both are present. If they are blank, the counter booking uses the current
+  account unit and the opposite `amount`.
+- `exchange rate` is optional, displayed for review when present, and not
+  persisted.
 - Drafts are reviewed in a separate grid and edited through
   `EditTransactionModal`, not directly in the ledger grid.
 - Import uses a batch server mutation so either all reviewed drafts are created

@@ -35,9 +35,9 @@ export type StatementImportDraft = {
   sourceRowNumber: number;
   date: string;
   amount: number;
-  originalAmount: number;
-  originalCurrency: string;
-  exchangeRate: number;
+  originalAmount: number | undefined;
+  originalCurrency: string | undefined;
+  exchangeRate: number | undefined;
   description: string;
   transaction: TransactionMutationValues;
 };
@@ -139,17 +139,30 @@ export function createStatementImportDraft(args: {
   }
 
   const amount = parseStrictNumber(args.row.amount);
-  const originalAmount = parseStrictNumber(args.row["original amount"]);
-  const originalCurrency = args.row["original currency"].trim();
-  const exchangeRate = parseStrictNumber(args.row["exchange rate"]);
+  const originalAmount = parseOptionalStrictNumber(args.row["original amount"]);
+  const originalCurrency =
+    args.row["original currency"].trim() === ""
+      ? undefined
+      : args.row["original currency"].trim();
+  const exchangeRate = parseOptionalStrictNumber(args.row["exchange rate"]);
   const currentUnitFields = getBookingUnitFields(
     args.currentAccount,
     "current account",
   );
   const currentValue = amount;
-  const counterValue = -Math.sign(amount) * Math.abs(originalAmount);
   const isoDate = date.toISOString();
   const description = args.row.description;
+  const counterUnitFields =
+    originalAmount != null && originalCurrency
+      ? {
+          unit: Unit.CURRENCY,
+          currency: originalCurrency,
+        }
+      : currentUnitFields;
+  const counterValue =
+    originalAmount != null && originalCurrency
+      ? -Math.sign(amount) * Math.abs(originalAmount)
+      : -amount;
 
   return {
     id: createId(),
@@ -174,8 +187,7 @@ export function createStatementImportDraft(args: {
           date: isoDate,
           accountId: "",
           description: "",
-          unit: Unit.CURRENCY,
-          currency: originalCurrency,
+          ...counterUnitFields,
           value: counterValue,
         },
       ],
@@ -319,26 +331,43 @@ function validateCsvRow(
     row["original amount"],
     "original amount",
     sourceRowNumber,
+    { required: false },
   );
   const exchangeRate = validateStrictNumber(
     row["exchange rate"],
     "exchange rate",
     sourceRowNumber,
+    { required: false },
   );
   errors.push(...amount, ...originalAmount, ...exchangeRate);
 
   if (Number(row.amount) === 0) {
     errors.push(`Row ${sourceRowNumber}: amount must be non-zero.`);
   }
-  if (Number(row["original amount"]) === 0) {
+  const hasOriginalAmount = row["original amount"].trim() !== "";
+  const hasOriginalCurrency = row["original currency"].trim() !== "";
+  if (hasOriginalAmount && Number(row["original amount"]) === 0) {
     errors.push(`Row ${sourceRowNumber}: original amount must be non-zero.`);
   }
-  if (Number(row["exchange rate"]) <= 0) {
+  if (!hasOriginalAmount && hasOriginalCurrency) {
+    errors.push(
+      `Row ${sourceRowNumber}: original amount is required when original currency is set.`,
+    );
+  }
+  if (hasOriginalAmount && !hasOriginalCurrency) {
+    errors.push(
+      `Row ${sourceRowNumber}: original currency is required when original amount is set.`,
+    );
+  }
+  if (row["exchange rate"].trim() !== "" && Number(row["exchange rate"]) <= 0) {
     errors.push(
       `Row ${sourceRowNumber}: exchange rate must be greater than zero.`,
     );
   }
-  if (!CURRENCY_PATTERN.test(row["original currency"]?.trim() ?? "")) {
+  if (
+    row["original currency"].trim() !== "" &&
+    !CURRENCY_PATTERN.test(row["original currency"].trim())
+  ) {
     errors.push(
       `Row ${sourceRowNumber}: original currency must be a 3-letter uppercase code.`,
     );
@@ -351,12 +380,18 @@ function validateStrictNumber(
   value: string | undefined,
   field: string,
   sourceRowNumber: number,
+  options?: { required?: boolean },
 ): string[] {
-  if (!value || !STRICT_DECIMAL_PATTERN.test(value.trim())) {
+  const required = options?.required ?? true;
+  const trimmed = value?.trim() ?? "";
+  if (!trimmed && !required) {
+    return [];
+  }
+  if (!trimmed || !STRICT_DECIMAL_PATTERN.test(trimmed)) {
     return [`Row ${sourceRowNumber}: ${field} must be a dot-decimal number.`];
   }
 
-  const number = Number(value);
+  const number = Number(trimmed);
   if (!Number.isFinite(number)) {
     return [`Row ${sourceRowNumber}: ${field} must be finite.`];
   }
@@ -366,6 +401,11 @@ function validateStrictNumber(
 
 function parseStrictNumber(value: string): number {
   return Number(value.trim());
+}
+
+function parseOptionalStrictNumber(value: string): number | undefined {
+  const trimmed = value.trim();
+  return trimmed === "" ? undefined : Number(trimmed);
 }
 
 function needsEdit(message: string): StatementImportDraftStatus {
