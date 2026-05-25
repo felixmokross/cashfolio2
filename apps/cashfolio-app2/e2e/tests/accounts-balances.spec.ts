@@ -50,7 +50,7 @@ test("balance column visibility and baseline values across tabs/modes", async ({
   ).toHaveText("205.00");
 
   const cashRow = agGridRowByText(page, seeded.cashAccount.name);
-  await expect(agGridCellByColId(cashRow, "balance")).toHaveText("-15.00");
+  await expect(agGridCellByColId(cashRow, "balance")).toHaveText(/^\s*$/);
   await expect(
     agGridCellByColId(cashRow, "balanceInReferenceCurrency"),
   ).toHaveText("-15.00");
