@@ -114,8 +114,8 @@ export async function createTransactionsOperation(
   data: CreateTransactionsInput,
 ) {
   const createInputs = data.transactions.map((transaction) => ({
-    accountBookId: data.accountBookId,
     ...transaction,
+    accountBookId: data.accountBookId,
   }));
 
   for (const createInput of createInputs) {

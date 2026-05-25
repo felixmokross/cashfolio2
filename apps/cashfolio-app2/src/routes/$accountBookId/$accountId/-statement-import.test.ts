@@ -11,6 +11,7 @@ import {
   parseStatementImportCsv,
   shouldIncludeStatementImportAccountOption,
   updateStatementImportDraftCounterAccount,
+  updateStatementImportDraftTransaction,
   type StatementImportCsvRow,
 } from "./-statement-import";
 
@@ -269,6 +270,21 @@ describe("statement import", () => {
     );
   });
 
+  test("rejects headerless CSVs when the first transaction row is invalid", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      text: [
+        "2026-02-03,100.25,92.50,eur,1.083784,First transaction",
+        "2026-02-04,80.00,75.00,EUR,ignored,Second transaction",
+      ].join("\n"),
+    });
+
+    expect(result.drafts).toEqual([]);
+    expect(result.errors).toContain(
+      "CSV must include a header row before transaction rows.",
+    );
+  });
+
   test("rejects invalid dates and numeric fields", () => {
     const result = parseStatementImportCsv({
       currentAccount,
@@ -424,6 +440,83 @@ describe("statement import", () => {
       value: 42,
     });
     expect(updated.counterAccountId).toBe("expense-1");
+  });
+
+  test("direct counter-account edits keep targeting the counter booking after row reorder", () => {
+    const draft = createStatementImportDraft({
+      row: createRow(),
+      sourceRowNumber: 2,
+      currentAccount,
+    });
+    const withCounterAccount = updateStatementImportDraftCounterAccount({
+      draft,
+      selectedAccount: accountOptions.find(
+        (account) => account.value === "income-1",
+      ),
+    });
+    const reordered = updateStatementImportDraftTransaction({
+      draft: withCounterAccount,
+      transaction: {
+        ...withCounterAccount.transaction,
+        bookings: [...withCounterAccount.transaction.bookings].reverse(),
+      },
+    });
+
+    const updated = updateStatementImportDraftCounterAccount({
+      draft: reordered,
+      selectedAccount: accountOptions.find(
+        (account) => account.value === "asset-usd",
+      ),
+    });
+
+    expect(updated.currentAccountId).toBe("asset-1");
+    expect(updated.transaction.bookings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          accountId: "asset-1",
+          currency: "CHF",
+          value: 100.25,
+        }),
+        expect.objectContaining({
+          accountId: "asset-usd",
+          currency: "USD",
+          value: -92.5,
+        }),
+      ]),
+    );
+  });
+
+  test("drafts are not ready when edits remove the current ledger account booking", () => {
+    const draft = createStatementImportDraft({
+      row: createRow(),
+      sourceRowNumber: 2,
+      currentAccount,
+    });
+    const withCounterAccount = updateStatementImportDraftCounterAccount({
+      draft,
+      selectedAccount: accountOptions.find(
+        (account) => account.value === "income-1",
+      ),
+    });
+    const withoutCurrentAccount = updateStatementImportDraftTransaction({
+      draft: withCounterAccount,
+      transaction: {
+        ...withCounterAccount.transaction,
+        bookings: withCounterAccount.transaction.bookings.filter(
+          (booking) => booking.accountId !== "asset-1",
+        ),
+      },
+    });
+
+    expect(
+      getStatementImportDraftStatus({
+        draft: withoutCurrentAccount,
+        accounts: accountOptions,
+      }),
+    ).toMatchObject({
+      kind: "error",
+      message: "Imported transaction must include the current ledger account.",
+    });
   });
 
   test("includes the archived current account in import account options", () => {

@@ -39,6 +39,7 @@ export type StatementImportCsvRow = Record<StatementImportCsvHeader, string>;
 export type StatementImportDraft = {
   id: string;
   sourceRowNumber: number;
+  currentAccountId: string;
   date: string;
   amount: number;
   originalAmount: number | undefined;
@@ -103,7 +104,7 @@ export function parseStatementImportCsv(args: {
     );
     return { drafts: [], errors };
   }
-  if (isDataRow(headerRow, 1)) {
+  if (isLikelyHeaderlessDataRow(headerRow)) {
     errors.unshift("CSV must include a header row before transaction rows.");
     return { drafts: [], errors };
   }
@@ -176,6 +177,7 @@ export function createStatementImportDraft(args: {
   return {
     id: createId(),
     sourceRowNumber: args.sourceRowNumber,
+    currentAccountId: args.currentAccount.id,
     date: isoDate,
     amount,
     originalAmount,
@@ -209,6 +211,15 @@ export function getStatementImportDraftStatus(args: {
   accounts: AccountOption[];
 }): StatementImportDraftStatus {
   const bookings = args.draft.transaction.bookings;
+  if (
+    !bookings.some(
+      (booking) => booking.accountId === args.draft.currentAccountId,
+    )
+  ) {
+    return error(
+      "Imported transaction must include the current ledger account.",
+    );
+  }
 
   for (let index = 0; index < bookings.length; index += 1) {
     const booking = bookings[index];
@@ -299,7 +310,7 @@ export function updateStatementImportDraftTransaction(args: {
   draft: StatementImportDraft;
   transaction: TransactionMutationValues;
 }): StatementImportDraft {
-  const currentAccountId = args.draft.transaction.bookings[0]?.accountId;
+  const currentAccountId = args.draft.currentAccountId;
   const currentBooking =
     args.transaction.bookings.find(
       (booking) => booking.accountId === currentAccountId,
@@ -330,7 +341,9 @@ export function updateStatementImportDraftCounterAccount(args: {
   }
 
   const transaction = args.draft.transaction;
-  const currentBooking = transaction.bookings[0];
+  const currentBooking = transaction.bookings.find(
+    (booking) => booking.accountId === args.draft.currentAccountId,
+  );
   const counterBooking = transaction.bookings[counterBookingIndex];
   if (!counterBooking) {
     return args.draft;
@@ -432,9 +445,11 @@ function toStatementImportCsvRow(row: string[]): StatementImportCsvRow {
   };
 }
 
-function isDataRow(row: string[], sourceRowNumber: number): boolean {
+function isLikelyHeaderlessDataRow(row: string[]): boolean {
+  const candidate = toStatementImportCsvRow(row);
   return (
-    validateCsvRow(toStatementImportCsvRow(row), sourceRowNumber).length === 0
+    parseUtcDayDate(candidate.date.trim()) != null ||
+    STRICT_DECIMAL_PATTERN.test(candidate.amount.trim())
   );
 }
 
@@ -522,9 +537,8 @@ function parseOptionalStrictNumber(value: string): number | undefined {
 function findStatementImportCounterBookingIndex(
   draft: StatementImportDraft,
 ): number {
-  const currentAccountId = draft.transaction.bookings[0]?.accountId;
   return draft.transaction.bookings.findIndex(
-    (booking, index) => index > 0 && booking.accountId !== currentAccountId,
+    (booking) => booking.accountId !== draft.currentAccountId,
   );
 }
 
@@ -534,8 +548,8 @@ function getCounterAccountIdFromTransaction(args: {
 }): string {
   return (
     args.transaction.bookings.find(
-      (booking, index) =>
-        index > 0 && booking.accountId !== args.currentAccountId,
+      (booking) =>
+        booking.accountId !== "" && booking.accountId !== args.currentAccountId,
     )?.accountId ?? ""
   );
 }

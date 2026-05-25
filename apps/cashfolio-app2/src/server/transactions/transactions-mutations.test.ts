@@ -469,6 +469,39 @@ describe("transactions mutations", () => {
     );
   });
 
+  it("forces batch transaction inputs to use the authorized account book id", async () => {
+    prisma.$transaction.mockImplementationOnce(async (callback) =>
+      callback(prisma),
+    );
+
+    const { accountBookId: _accountBookId, ...transaction } =
+      createTransactionInput({ accountBookId: "other-book" });
+    await expect(
+      createTransactions({
+        data: {
+          accountBookId: "book-1",
+          transactions: [
+            {
+              ...transaction,
+              accountBookId: "other-book",
+            } as typeof transaction,
+          ],
+        },
+      }),
+    ).resolves.toEqual([{ id: "tx-created" }]);
+
+    expect(prisma.transaction.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          accountBookId: "book-1",
+        }),
+      }),
+    );
+    expect(invalidatePeriodBaseDataCacheForAccountBook).toHaveBeenCalledWith(
+      "book-1",
+    );
+  });
+
   it("rejects invalid statement-import batches before creating any transaction", async () => {
     await expect(
       createTransactions({
