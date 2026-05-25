@@ -174,6 +174,7 @@ export function TransactionsPageView({
         onRowDataUpdated={onRowDataUpdated}
         masterDetail
         detailRowAutoHeight
+        suppressColumnVirtualisation
         detailCellRendererParams={{
           detailGridOptions: {
             columnDefs: detailColumnDefs,
