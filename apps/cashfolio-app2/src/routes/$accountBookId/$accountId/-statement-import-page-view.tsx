@@ -1,10 +1,5 @@
-import type {
-  CellValueChangedEvent,
-  ColDef,
-  ICellRendererParams,
-} from "ag-grid-enterprise";
+import type { CellValueChangedEvent } from "ag-grid-enterprise";
 import {
-  ActionIcon,
   Alert,
   Badge,
   Button,
@@ -16,19 +11,8 @@ import {
   Title,
   Tooltip,
 } from "@mantine/core";
-import {
-  IconArrowLeft,
-  IconFileImport,
-  IconPencil,
-  IconTrash,
-  IconUpload,
-} from "@tabler/icons-react";
+import { IconArrowLeft, IconFileImport, IconUpload } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
-import {
-  ACCOUNT_TREE_SELECT_COLUMN,
-  DATE_COLUMN,
-  FORMATTED_NUMERIC_COLUMN,
-} from "@/components/column-types";
 import { DataGrid } from "@/components/data-grid";
 import {
   EditTransactionModal,
@@ -47,6 +31,7 @@ import {
   type StatementImportDraft,
 } from "./-statement-import";
 import type { LedgerAccount } from "./-page-types";
+import { useStatementImportColumnDefs } from "./-statement-import-page-columns";
 
 type StatementImportPageViewProps = {
   account: LedgerAccount;
@@ -101,112 +86,14 @@ export function AccountStatementImportPageView({
     drafts.length === 0 ||
     readyCount !== drafts.length;
 
-  const columnDefs = useMemo<ColDef<StatementImportDraft>[]>(
-    () => [
-      {
-        colId: "status",
-        headerName: "Status",
-        width: 135,
-        cellRenderer: ({ data }: ICellRendererParams<StatementImportDraft>) => {
-          if (!data) return null;
-          const status = statuses.get(data.id);
-          if (!status) return null;
-          return (
-            <Tooltip label={status.message ?? status.label}>
-              <Badge color={status.color} variant="light">
-                {status.label}
-              </Badge>
-            </Tooltip>
-          );
-        },
-      },
-      {
-        field: "date",
-        headerName: "Date",
-        width: 130,
-        type: DATE_COLUMN,
-        cellDataType: "dateString",
-      },
-      {
-        field: "amount",
-        headerName: "Amount",
-        width: 130,
-        type: FORMATTED_NUMERIC_COLUMN,
-      },
-      {
-        field: "originalAmount",
-        headerName: "Original Amount",
-        width: 160,
-        type: FORMATTED_NUMERIC_COLUMN,
-      },
-      {
-        field: "originalCurrency",
-        headerName: "Original Ccy.",
-        width: 135,
-      },
-      {
-        field: "description",
-        headerName: "Description",
-        minWidth: 240,
-        flex: 1,
-      },
-      {
-        field: "counterAccountId",
-        headerName: "Counter Account",
-        width: 260,
-        editable: !isSubmitting,
-        type: ACCOUNT_TREE_SELECT_COLUMN,
-        context: {
-          options: counterAccountOptions,
-        },
-      },
-      {
-        colId: "actions",
-        headerName: "",
-        width: 95,
-        sortable: false,
-        filter: false,
-        resizable: false,
-        suppressHeaderMenuButton: true,
-        cellClass: "actions-cell",
-        cellRenderer: ({ data }: ICellRendererParams<StatementImportDraft>) => {
-          if (!data) return null;
-          return (
-            <Group gap={4} wrap="nowrap" h="100%" align="center">
-              <Tooltip label="Edit">
-                <ActionIcon
-                  variant="subtle"
-                  size="sm"
-                  disabled={isSubmitting}
-                  onClick={() => setEditingDraftId(data.id)}
-                  aria-label="Edit Imported Transaction"
-                >
-                  <IconPencil size={16} />
-                </ActionIcon>
-              </Tooltip>
-              <Tooltip label="Remove">
-                <ActionIcon
-                  variant="subtle"
-                  color="red"
-                  size="sm"
-                  disabled={isSubmitting}
-                  onClick={() =>
-                    setDrafts((current) =>
-                      current.filter((draft) => draft.id !== data.id),
-                    )
-                  }
-                  aria-label="Remove Imported Transaction"
-                >
-                  <IconTrash size={16} />
-                </ActionIcon>
-              </Tooltip>
-            </Group>
-          );
-        },
-      },
-    ],
-    [counterAccountOptions, isSubmitting, statuses],
-  );
+  const columnDefs = useStatementImportColumnDefs({
+    counterAccountOptions,
+    isSubmitting,
+    statuses,
+    onEditDraft: setEditingDraftId,
+    onRemoveDraft: (draftId) =>
+      setDrafts((current) => current.filter((draft) => draft.id !== draftId)),
+  });
 
   async function handleFileChange(nextFile: File | null) {
     setFile(nextFile);
