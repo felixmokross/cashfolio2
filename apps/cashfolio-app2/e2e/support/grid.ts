@@ -61,3 +61,63 @@ export async function setGridCellValue(
   const page = "keyboard" in root ? root : root.page();
   await page.keyboard.press("Enter");
 }
+
+function accountOptionNameRegex(name: string): RegExp {
+  return new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+}
+
+function accountLeafOption(page: Page, name: string): Locator {
+  return page
+    .getByRole("option", {
+      name: accountOptionNameRegex(name),
+    })
+    .filter({ hasNot: page.getByRole("button") })
+    .first();
+}
+
+async function searchFocusedAccountTree(page: Page, name: string) {
+  await page.keyboard.press("ControlOrMeta+A");
+  await page.keyboard.type(name);
+}
+
+export async function selectAccountTreeLeaf(page: Page, name: string) {
+  await searchFocusedAccountTree(page, name);
+  const option = accountLeafOption(page, name);
+  await expect(option).toBeVisible();
+  await option.click();
+}
+
+export async function setGridAccountTreeCellValue(args: {
+  root: Page | Locator;
+  rowIndex: number;
+  colId: string;
+  accountName: string;
+}) {
+  const cell = args.root
+    .locator(
+      `.ag-center-cols-container .ag-row[row-index="${args.rowIndex}"] [col-id="${args.colId}"]`,
+    )
+    .first();
+
+  await expect(cell).toBeVisible();
+  await cell.click({ force: true });
+
+  let editorInput = args.root
+    .locator(".ag-cell-inline-editing input:not([type='hidden'])")
+    .first();
+  if (!(await editorInput.isVisible())) {
+    await cell.press("Enter");
+    editorInput = args.root
+      .locator(".ag-cell-inline-editing input:not([type='hidden'])")
+      .first();
+  }
+
+  await expect(editorInput).toBeVisible();
+  await editorInput.fill(args.accountName);
+
+  const page = "keyboard" in args.root ? args.root : args.root.page();
+  const option = accountLeafOption(page, args.accountName);
+  await expect(option).toBeVisible({ timeout: 3000 });
+  await option.click();
+  await page.keyboard.press("Enter");
+}

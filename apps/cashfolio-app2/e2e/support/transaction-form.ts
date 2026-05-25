@@ -1,5 +1,11 @@
 import { expect, type Locator, type Page } from "@playwright/test";
-import { agGridCellByColId, agGridRowByText, clickRowAction } from "./grid";
+import {
+  agGridCellByColId,
+  agGridRowByText,
+  clickRowAction,
+  selectAccountTreeLeaf,
+  setGridAccountTreeCellValue,
+} from "./grid";
 
 export function simpleCreateDialog(page: Page): Locator {
   return page.getByRole("dialog", { name: "Add Transaction" }).filter({
@@ -101,29 +107,8 @@ function normalizeCellText(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function accountOptionNameRegex(name: string): RegExp {
-  return new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-}
-
-function accountLeafOption(page: Page, name: string): Locator {
-  return page
-    .getByRole("option", {
-      name: accountOptionNameRegex(name),
-    })
-    .filter({ hasNot: page.getByRole("button") })
-    .first();
-}
-
-async function searchFocusedAccountTree(page: Page, name: string) {
-  await page.keyboard.press("ControlOrMeta+A");
-  await page.keyboard.type(name);
-}
-
 export async function selectAccountLeaf(page: Page, name: string) {
-  await searchFocusedAccountTree(page, name);
-  const option = accountLeafOption(page, name);
-  await expect(option).toBeVisible();
-  await option.click();
+  await selectAccountTreeLeaf(page, name);
 }
 
 export async function expectAccountLeafSearchResult(args: {
@@ -133,9 +118,15 @@ export async function expectAccountLeafSearchResult(args: {
   visible: boolean;
 }) {
   await args.input.click();
-  await searchFocusedAccountTree(args.page, args.accountName);
+  await args.page.keyboard.press("ControlOrMeta+A");
+  await args.page.keyboard.type(args.accountName);
 
-  const option = accountLeafOption(args.page, args.accountName);
+  const option = args.page
+    .getByRole("option", {
+      name: new RegExp(args.accountName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+    })
+    .filter({ hasNot: args.page.getByRole("button") })
+    .first();
   if (args.visible) {
     await expect(option).toBeVisible();
   } else {
@@ -148,32 +139,12 @@ export async function setGridAccountCellValue(args: {
   rowIndex: number;
   accountName: string;
 }) {
-  const cell = args.dialog
-    .locator(
-      `.ag-center-cols-container .ag-row[row-index="${args.rowIndex}"] [col-id="account"]`,
-    )
-    .first();
-
-  await expect(cell).toBeVisible();
-  await cell.click({ force: true });
-
-  let editorInput = args.dialog
-    .locator(".ag-cell-inline-editing input:not([type='hidden'])")
-    .first();
-  if (!(await editorInput.isVisible())) {
-    await cell.press("Enter");
-    editorInput = args.dialog
-      .locator(".ag-cell-inline-editing input:not([type='hidden'])")
-      .first();
-  }
-
-  await expect(editorInput).toBeVisible();
-  await editorInput.fill(args.accountName);
-
-  const option = accountLeafOption(args.dialog.page(), args.accountName);
-  await expect(option).toBeVisible({ timeout: 3000 });
-  await option.click();
-  await args.dialog.page().keyboard.press("Enter");
+  await setGridAccountTreeCellValue({
+    root: args.dialog,
+    rowIndex: args.rowIndex,
+    colId: "account",
+    accountName: args.accountName,
+  });
 }
 
 export async function setUnitlessEquityAccountOnEditableRow(args: {
