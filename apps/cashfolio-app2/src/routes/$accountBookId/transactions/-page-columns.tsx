@@ -13,6 +13,10 @@ import {
   FORMATTED_NUMERIC_COLUMN,
 } from "@/components/column-types";
 import { LinkAnchor } from "@/components/link-anchor";
+import {
+  getUniqueMultiValueFilterLabels,
+  multiValueSetFilterColumn,
+} from "@/components/multi-value-set-filter";
 import { OPENING_BALANCES_MANAGEMENT_MESSAGE } from "@/shared/opening-balances";
 import { getCurrencyDecimals } from "@/shared/unit-format";
 import type { TransactionsBookingRow, TransactionsRow } from "./-page-types";
@@ -30,6 +34,18 @@ type RebookClickArgs = {
     tradeCurrency: string | null;
   };
 };
+
+export function getTransactionAccountFilterValues(
+  accounts: Array<{ name: string }> | null | undefined,
+): string[] {
+  return getUniqueMultiValueFilterLabels(accounts, (account) => account.name);
+}
+
+export function getTransactionUnitIdentifierFilterValues(
+  row: Pick<TransactionsRow, "unitIdentifiers"> | null | undefined,
+): string[] {
+  return row?.unitIdentifiers ?? [];
+}
 
 export function useTransactionsColumnDefs(args: {
   accountBookId: string;
@@ -248,6 +264,9 @@ export function useTransactionsColumnDefs(args: {
         field: "debitAccounts",
         headerName: "Debit Account(s)",
         width: 240,
+        ...multiValueSetFilterColumn,
+        filterValueGetter: ({ data }) =>
+          getTransactionAccountFilterValues(data?.debitAccounts),
         cellRenderer: ({
           value,
           data,
@@ -263,6 +282,9 @@ export function useTransactionsColumnDefs(args: {
         field: "creditAccounts",
         headerName: "Credit Account(s)",
         width: 240,
+        ...multiValueSetFilterColumn,
+        filterValueGetter: ({ data }) =>
+          getTransactionAccountFilterValues(data?.creditAccounts),
         cellRenderer: ({
           value,
           data,
@@ -285,8 +307,9 @@ export function useTransactionsColumnDefs(args: {
         colId: "unitIdentifiers",
         headerName: "Ccy./Symbol",
         width: 150,
-        filter: true,
-        valueGetter: ({ data }) => data?.unitIdentifiers.join(", ") ?? "",
+        ...multiValueSetFilterColumn,
+        valueGetter: ({ data }) =>
+          getTransactionUnitIdentifierFilterValues(data),
       },
       {
         field: "referenceAmount",
