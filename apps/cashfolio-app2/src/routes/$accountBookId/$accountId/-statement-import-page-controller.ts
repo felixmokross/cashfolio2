@@ -10,15 +10,23 @@ export function getStatementImportSuccessLedgerSearch(args: {
   transactions: TransactionMutationValues[];
   createdTransactions: { id: string }[];
 }): LedgerSearch {
-  const latestBookingDate = args.transactions.reduce<Date | null>(
-    (latest, transaction) => {
-      const nextDate = getLatestBookingDate(transaction.bookings);
-      if (!nextDate) return latest;
-      if (!latest || nextDate > latest) return nextDate;
-      return latest;
-    },
-    null,
-  );
+  const latestImportedTransaction = args.transactions.reduce<{
+    date: Date;
+    index: number;
+  } | null>((latest, transaction, index) => {
+    const nextDate = getLatestBookingDate(transaction.bookings);
+    if (!nextDate) return latest;
+    if (!latest || nextDate > latest.date) {
+      return { date: nextDate, index };
+    }
+    return latest;
+  }, null);
+  const latestBookingDate = latestImportedTransaction?.date ?? null;
+  const transactionId =
+    args.selectedPeriodValue && latestImportedTransaction
+      ? (args.createdTransactions[latestImportedTransaction.index]?.id ??
+        args.createdTransactions.at(-1)?.id)
+      : args.createdTransactions.at(-1)?.id;
   const period =
     args.selectedPeriodValue && latestBookingDate
       ? getBookingPeriodValue({
@@ -29,6 +37,6 @@ export function getStatementImportSuccessLedgerSearch(args: {
 
   return {
     period,
-    transactionId: args.createdTransactions.at(-1)?.id,
+    transactionId,
   };
 }
