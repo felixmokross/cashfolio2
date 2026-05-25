@@ -8,7 +8,8 @@
   transition: opacity 150ms ease;
 }
 
-.ag-row:hover .ag-cell.actions-cell {
+.ag-row:hover .ag-cell.actions-cell,
+.ag-row.ag-row-hover .ag-cell.actions-cell {
   opacity: 1;
 }
 

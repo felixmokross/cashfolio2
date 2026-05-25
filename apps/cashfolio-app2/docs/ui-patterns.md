@@ -248,8 +248,10 @@ crypto, or security bookings.
 
 ## Data Grid Actions Column
 
-- Use `cellClass: "actions-cell"` so icons only appear on row hover (styled in
-  `src/components/grid-theme.css`)
+- Use `cellClass: "actions-cell"` so icons only appear on whole-row hover
+  (styled in `src/components/grid-theme.css`). This must work for pinned actions
+  columns too; rely on AG Grid's row-hover state rather than hovering only the
+  actions cell.
 - Reuse this class in modal grids too (for example `EditTransactionModal`'s
   actions column) to keep action affordances consistent across the app
 - Wrap multiple action icons in a
