@@ -53,6 +53,7 @@ function createBooking(args: {
 describe("deriveTransactionsRows", () => {
   test("groups bookings under transaction rows with summary accounts and earliest date", () => {
     const result = deriveTransactionsRows({
+      referenceCurrency: "CHF",
       bookings: [
         createBooking({
           id: "salary",
@@ -88,6 +89,7 @@ describe("deriveTransactionsRows", () => {
 
   test("deduplicates account and unit summaries while preserving detail booking fields", () => {
     const result = deriveTransactionsRows({
+      referenceCurrency: "CHF",
       bookings: [
         createBooking({
           id: "debit-1",
@@ -124,7 +126,7 @@ describe("deriveTransactionsRows", () => {
       expect.objectContaining({
         debitAccounts: [{ id: "bank", name: "Bank" }],
         creditAccounts: [{ id: "broker", name: "Broker" }],
-        unitIdentifiers: ["CHF", "AAPL"],
+        unitIdentifiers: ["AAPL"],
       }),
     );
     expect(result.rows[0]?.bookings).toEqual([
@@ -153,6 +155,7 @@ describe("deriveTransactionsRows", () => {
 
   test("uses the higher converted debit or credit side as the reference amount", () => {
     const result = deriveTransactionsRows({
+      referenceCurrency: "CHF",
       bookings: [
         createBooking({
           id: "debit",
@@ -176,6 +179,7 @@ describe("deriveTransactionsRows", () => {
 
   test("leaves reference amount empty when a required conversion is unavailable", () => {
     const result = deriveTransactionsRows({
+      referenceCurrency: "CHF",
       bookings: [
         createBooking({
           id: "debit",
@@ -199,6 +203,7 @@ describe("deriveTransactionsRows", () => {
 
   test("sorts transactions by earliest booking date, creation date, and id", () => {
     const result = deriveTransactionsRows({
+      referenceCurrency: "CHF",
       bookings: [
         createBooking({
           id: "older",
@@ -229,5 +234,208 @@ describe("deriveTransactionsRows", () => {
       "transaction-a",
       "transaction-b",
     ]);
+  });
+
+  test("shows original amount for a single non-reference unit", () => {
+    const result = deriveTransactionsRows({
+      referenceCurrency: "CHF",
+      bookings: [
+        createBooking({
+          id: "debit",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: 100,
+          currency: "USD",
+        }),
+        createBooking({
+          id: "credit",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: -100,
+          currency: "USD",
+        }),
+      ],
+    });
+
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        unitIdentifiers: ["USD"],
+        originalAmount: 100,
+        originalAmountUnit: Unit.CURRENCY,
+        originalAmountCurrency: "USD",
+        originalAmountCryptocurrency: null,
+      }),
+    );
+  });
+
+  test("leaves original amount empty for reference-currency-only transactions", () => {
+    const result = deriveTransactionsRows({
+      referenceCurrency: "CHF",
+      bookings: [
+        createBooking({
+          id: "debit",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: 100,
+          currency: "CHF",
+        }),
+        createBooking({
+          id: "credit",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: -100,
+          currency: "CHF",
+        }),
+      ],
+    });
+
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        unitIdentifiers: [],
+        originalAmount: null,
+        originalAmountUnit: null,
+        originalAmountCurrency: null,
+        originalAmountCryptocurrency: null,
+      }),
+    );
+  });
+
+  test("ignores reference currency when deriving a single non-reference amount", () => {
+    const result = deriveTransactionsRows({
+      referenceCurrency: "CHF",
+      bookings: [
+        createBooking({
+          id: "debit-usd",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: 100,
+          currency: "USD",
+        }),
+        createBooking({
+          id: "credit-usd",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: -100,
+          currency: "USD",
+        }),
+        createBooking({
+          id: "debit-chf",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: 90,
+          currency: "CHF",
+        }),
+        createBooking({
+          id: "credit-chf",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: -90,
+          currency: "CHF",
+        }),
+      ],
+    });
+
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        unitIdentifiers: ["USD"],
+        originalAmount: 100,
+        originalAmountUnit: Unit.CURRENCY,
+        originalAmountCurrency: "USD",
+      }),
+    );
+  });
+
+  test("leaves original amount empty for multiple non-reference units", () => {
+    const result = deriveTransactionsRows({
+      referenceCurrency: "CHF",
+      bookings: [
+        createBooking({
+          id: "debit-usd",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: 100,
+          currency: "USD",
+        }),
+        createBooking({
+          id: "credit-usd",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: -100,
+          currency: "USD",
+        }),
+        createBooking({
+          id: "debit-btc",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: 1,
+          unit: Unit.CRYPTOCURRENCY,
+          currency: null,
+          cryptocurrency: "BTC",
+        }),
+        createBooking({
+          id: "credit-btc",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: -1,
+          unit: Unit.CRYPTOCURRENCY,
+          currency: null,
+          cryptocurrency: "BTC",
+        }),
+      ],
+    });
+
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        unitIdentifiers: ["USD", "BTC"],
+        originalAmount: null,
+        originalAmountUnit: null,
+        originalAmountCurrency: null,
+        originalAmountCryptocurrency: null,
+      }),
+    );
+  });
+
+  test("shows only the security symbol when reference currency and a security are present", () => {
+    const result = deriveTransactionsRows({
+      referenceCurrency: "CHF",
+      bookings: [
+        createBooking({
+          id: "debit-chf",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: 90,
+          currency: "CHF",
+        }),
+        createBooking({
+          id: "credit-chf",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: -90,
+          currency: "CHF",
+        }),
+        createBooking({
+          id: "debit-security",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: 3,
+          unit: Unit.SECURITY,
+          currency: null,
+          symbol: "AAPL",
+          tradeCurrency: "USD",
+        }),
+        createBooking({
+          id: "credit-security",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: -3,
+          unit: Unit.SECURITY,
+          currency: null,
+          symbol: "AAPL",
+          tradeCurrency: "USD",
+        }),
+      ],
+    });
+
+    expect(result.rows[0]?.unitIdentifiers).toEqual(["AAPL"]);
   });
 });
