@@ -153,6 +153,23 @@ function mergeExistingAccountUnitIdentity(
   };
 }
 
+function normalizeEquityAccountUnitIdentity<T extends AccountInput>(
+  data: T,
+): T {
+  if (data.type !== AccountType.EQUITY) {
+    return data;
+  }
+
+  return {
+    ...data,
+    unit: undefined,
+    currency: undefined,
+    cryptocurrency: undefined,
+    symbol: undefined,
+    tradeCurrency: undefined,
+  };
+}
+
 async function getOrCreateOpeningBalancesAccountId(
   tx: Prisma.TransactionClient,
   accountBookId: string,
@@ -548,37 +565,41 @@ async function applyOpeningBalanceTarget(args: {
 }
 
 export async function createAccountOperation(data: AccountInput) {
-  assertNoSystemManagedAccountSubtype(data);
+  const normalizedData = normalizeEquityAccountUnitIdentity(data);
+  assertNoSystemManagedAccountSubtype(normalizedData);
   const siblingNames = (
     await prisma.account.findMany({
       where: {
-        groupId: data.groupId ?? null,
-        accountBookId: data.accountBookId,
+        groupId: normalizedData.groupId ?? null,
+        accountBookId: normalizedData.accountBookId,
       },
       select: { name: true },
     })
   ).map((a) => a.name);
-  validateAccountInput(data, siblingNames);
+  validateAccountInput(normalizedData, siblingNames);
   const account = await prisma.$transaction(async (tx) => {
     const createdAccount = await tx.account.create({
       data: {
-        name: data.name,
-        type: data.type,
-        equityAccountSubtype: data.equityAccountSubtype,
-        groupId: data.groupId ?? null,
-        sortOrder: typeof data.sortOrder === "number" ? data.sortOrder : null,
-        unit: data.unit,
-        currency: data.currency,
-        cryptocurrency: data.cryptocurrency,
-        symbol: data.symbol,
-        tradeCurrency: data.tradeCurrency,
-        accountBookId: data.accountBookId,
+        name: normalizedData.name,
+        type: normalizedData.type,
+        equityAccountSubtype: normalizedData.equityAccountSubtype,
+        groupId: normalizedData.groupId ?? null,
+        sortOrder:
+          typeof normalizedData.sortOrder === "number"
+            ? normalizedData.sortOrder
+            : null,
+        unit: normalizedData.unit,
+        currency: normalizedData.currency,
+        cryptocurrency: normalizedData.cryptocurrency,
+        symbol: normalizedData.symbol,
+        tradeCurrency: normalizedData.tradeCurrency,
+        accountBookId: normalizedData.accountBookId,
       },
     });
 
     await applyOpeningBalanceTarget({
       tx,
-      accountBookId: data.accountBookId,
+      accountBookId: normalizedData.accountBookId,
       account: {
         id: createdAccount.id,
         name: createdAccount.name,
@@ -589,7 +610,7 @@ export async function createAccountOperation(data: AccountInput) {
         symbol: createdAccount.symbol,
         tradeCurrency: createdAccount.tradeCurrency,
       },
-      openingBalance: data.openingBalance,
+      openingBalance: normalizedData.openingBalance,
     });
 
     return createdAccount;
@@ -598,9 +619,13 @@ export async function createAccountOperation(data: AccountInput) {
 }
 
 export async function updateAccountOperation(data: AccountUpdateInput) {
+  const normalizedData = normalizeEquityAccountUnitIdentity(data);
   const existing = await prisma.account.findUniqueOrThrow({
     where: {
-      id_accountBookId: { id: data.id, accountBookId: data.accountBookId },
+      id_accountBookId: {
+        id: normalizedData.id,
+        accountBookId: normalizedData.accountBookId,
+      },
     },
     select: {
       type: true,
@@ -614,23 +639,24 @@ export async function updateAccountOperation(data: AccountUpdateInput) {
   });
   assertNoSystemManagedAccountSubtype(existing);
   if (
-    data.type !== existing.type ||
-    data.equityAccountSubtype !== (existing.equityAccountSubtype ?? undefined)
+    normalizedData.type !== existing.type ||
+    normalizedData.equityAccountSubtype !==
+      (existing.equityAccountSubtype ?? undefined)
   ) {
     throw new Error("Account type cannot be changed");
   }
-  assertAccountUnitIdentityUnchanged(data, existing);
+  assertAccountUnitIdentityUnchanged(normalizedData, existing);
   const dataWithExistingUnitIdentity = mergeExistingAccountUnitIdentity(
-    data,
+    normalizedData,
     existing,
   );
 
   const siblingNames = (
     await prisma.account.findMany({
       where: {
-        groupId: data.groupId ?? null,
-        accountBookId: data.accountBookId,
-        id: { not: data.id },
+        groupId: normalizedData.groupId ?? null,
+        accountBookId: normalizedData.accountBookId,
+        id: { not: normalizedData.id },
       },
       select: { name: true },
     })
@@ -639,18 +665,24 @@ export async function updateAccountOperation(data: AccountUpdateInput) {
   const account = await prisma.$transaction(async (tx) => {
     const updatedAccount = await tx.account.update({
       where: {
-        id_accountBookId: { id: data.id, accountBookId: data.accountBookId },
+        id_accountBookId: {
+          id: normalizedData.id,
+          accountBookId: normalizedData.accountBookId,
+        },
       },
       data: {
-        name: data.name,
-        groupId: data.groupId ?? null,
-        sortOrder: typeof data.sortOrder === "number" ? data.sortOrder : null,
+        name: normalizedData.name,
+        groupId: normalizedData.groupId ?? null,
+        sortOrder:
+          typeof normalizedData.sortOrder === "number"
+            ? normalizedData.sortOrder
+            : null,
       },
     });
 
     await applyOpeningBalanceTarget({
       tx,
-      accountBookId: data.accountBookId,
+      accountBookId: normalizedData.accountBookId,
       account: {
         id: updatedAccount.id,
         name: updatedAccount.name,
@@ -661,7 +693,7 @@ export async function updateAccountOperation(data: AccountUpdateInput) {
         symbol: updatedAccount.symbol,
         tradeCurrency: updatedAccount.tradeCurrency,
       },
-      openingBalance: data.openingBalance,
+      openingBalance: normalizedData.openingBalance,
     });
 
     return updatedAccount;

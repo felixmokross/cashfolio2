@@ -48,9 +48,22 @@ type FormValues = {
   tradeCurrency?: string;
 };
 
-export type TransformedFormValues = Omit<FormValues, "openingBalance"> & {
+export type TransformedFormValues = Omit<
+  FormValues,
+  | "openingBalance"
+  | "unit"
+  | "currency"
+  | "cryptocurrency"
+  | "symbol"
+  | "tradeCurrency"
+> & {
   type: AccountType;
   equityAccountSubtype?: EquityAccountSubtype;
+  unit?: Unit;
+  currency?: string;
+  cryptocurrency?: string;
+  symbol?: string;
+  tradeCurrency?: string;
   openingBalance?: number | null;
 };
 
@@ -88,19 +101,35 @@ function toFormValues(initial: AccountInitialValues): FormValues {
   };
 }
 
-function transformAccountValues(values: FormValues): TransformedFormValues {
+export function transformAccountValues(
+  values: FormValues,
+): TransformedFormValues {
   const [type, equityAccountSubtype] = (values.typeDescriptor?.split("-") ??
     []) as [AccountType, EquityAccountSubtype?];
   const openingBalance =
     values.openingBalance == null || values.openingBalance === ""
       ? null
       : Number(values.openingBalance);
-
-  return {
+  const transformed = {
     ...values,
     type,
     openingBalance,
     ...(type === AccountType.EQUITY ? { equityAccountSubtype } : undefined),
+  };
+
+  if (type === AccountType.EQUITY) {
+    return {
+      ...transformed,
+      unit: undefined,
+      currency: undefined,
+      cryptocurrency: undefined,
+      symbol: undefined,
+      tradeCurrency: undefined,
+    };
+  }
+
+  return {
+    ...transformed,
   };
 }
 
