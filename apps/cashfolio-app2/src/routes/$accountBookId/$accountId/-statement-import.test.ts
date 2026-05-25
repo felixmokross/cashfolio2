@@ -9,6 +9,7 @@ import {
   createStatementImportDraft,
   getStatementImportDraftStatus,
   parseStatementImportCsv,
+  updateStatementImportDraftCounterAccount,
   type StatementImportCsvRow,
 } from "./-statement-import";
 
@@ -43,6 +44,13 @@ const accountOptions: AccountOption[] = [
     type: AccountType.EQUITY,
     equityAccountSubtype: EquityAccountSubtype.EXPENSE,
   },
+  {
+    value: "asset-usd",
+    label: "USD Cash",
+    unit: Unit.CURRENCY,
+    currency: "USD",
+    type: AccountType.ASSET,
+  },
 ];
 
 function createRow(
@@ -76,7 +84,6 @@ describe("statement import", () => {
       amount: 100.25,
       originalAmount: 92.5,
       originalCurrency: "EUR",
-      exchangeRate: 1.083784,
       description: "Transfer, incoming",
       transaction: {
         description: "Transfer, incoming",
@@ -132,7 +139,6 @@ describe("statement import", () => {
       amount: 100.25,
       originalAmount: 92.5,
       originalCurrency: "EUR",
-      exchangeRate: 1.083784,
       description: "Transfer",
     });
   });
@@ -151,12 +157,31 @@ describe("statement import", () => {
       amount: 100.25,
       originalAmount: 92.5,
       originalCurrency: "EUR",
-      exchangeRate: 1.083784,
       description: "Transfer",
     });
   });
 
-  test("allows blank original amount, original currency, and exchange rate", () => {
+  test("ignores exchange rate values", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      text: [
+        "date,amount,original amount,original currency,exchange rate,description",
+        "2026-02-03,100.25,92.50,EUR,not a rate,Transfer",
+        "2026-02-04,80.00,75.00,EUR,1,25,Transfer",
+      ].join("\n"),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.drafts[0]).not.toHaveProperty("exchangeRate");
+    expect(result.drafts[0]).toMatchObject({
+      amount: 100.25,
+      originalAmount: 92.5,
+      originalCurrency: "EUR",
+      description: "Transfer",
+    });
+  });
+
+  test("allows blank original amount and original currency", () => {
     const result = parseStatementImportCsv({
       currentAccount,
       text: [
@@ -170,7 +195,6 @@ describe("statement import", () => {
       amount: 100.25,
       originalAmount: undefined,
       originalCurrency: undefined,
-      exchangeRate: undefined,
       transaction: {
         bookings: [
           {
@@ -242,7 +266,6 @@ describe("statement import", () => {
       expect.arrayContaining([
         "Row 2: date must be ISO yyyy-mm-dd.",
         "Row 2: original amount must be a dot-decimal number.",
-        "Row 2: exchange rate must be greater than zero.",
         "Row 2: original currency must be a 3-letter uppercase code.",
       ]),
     );
@@ -305,5 +328,81 @@ describe("statement import", () => {
     expect(
       getStatementImportDraftStatus({ draft, accounts: accountOptions }).kind,
     ).toBe("ready");
+  });
+
+  test("direct counter-account edits mark a draft ready", () => {
+    const draft = createStatementImportDraft({
+      row: createRow(),
+      sourceRowNumber: 2,
+      currentAccount,
+    });
+
+    const updated = updateStatementImportDraftCounterAccount({
+      draft,
+      selectedAccount: accountOptions.find(
+        (account) => account.value === "income-1",
+      ),
+    });
+
+    expect(updated.transaction.bookings[1]).toMatchObject({
+      accountId: "income-1",
+      unit: Unit.CURRENCY,
+      currency: "EUR",
+      value: -92.5,
+    });
+    expect(
+      getStatementImportDraftStatus({
+        draft: updated,
+        accounts: accountOptions,
+      }).kind,
+    ).toBe("ready");
+  });
+
+  test("direct counter-account edits apply concrete account unit fields", () => {
+    const draft = createStatementImportDraft({
+      row: createRow(),
+      sourceRowNumber: 2,
+      currentAccount,
+    });
+
+    const updated = updateStatementImportDraftCounterAccount({
+      draft,
+      selectedAccount: accountOptions.find(
+        (account) => account.value === "asset-usd",
+      ),
+    });
+
+    expect(updated.transaction.bookings[1]).toMatchObject({
+      accountId: "asset-usd",
+      unit: Unit.CURRENCY,
+      currency: "USD",
+      value: -92.5,
+    });
+  });
+
+  test("direct counter-account edits preserve imported units for unitless equity accounts", () => {
+    const draft = createStatementImportDraft({
+      row: createRow({
+        amount: "-45.10",
+        "original amount": "42.00",
+        "original currency": "EUR",
+      }),
+      sourceRowNumber: 2,
+      currentAccount,
+    });
+
+    const updated = updateStatementImportDraftCounterAccount({
+      draft,
+      selectedAccount: accountOptions.find(
+        (account) => account.value === "expense-1",
+      ),
+    });
+
+    expect(updated.transaction.bookings[1]).toMatchObject({
+      accountId: "expense-1",
+      unit: Unit.CURRENCY,
+      currency: "EUR",
+      value: 42,
+    });
   });
 });

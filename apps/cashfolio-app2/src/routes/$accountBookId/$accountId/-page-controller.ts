@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from "react";
-import { notifications } from "@mantine/notifications";
 import { AccountType, EquityAccountSubtype } from "@/.prisma-client/enums";
 import type { TransformedFormValues } from "@/components/edit-account-modal";
 import type {
@@ -32,6 +31,7 @@ import {
   type LedgerTransactionApi,
 } from "./-page-mutation-actions";
 import { useLedgerRebookFlow } from "./-page-rebook-flow";
+import { getStatementImportDisabledReason } from "./-statement-import";
 import {
   type EditMode,
   type LedgerPageViewProps,
@@ -55,6 +55,7 @@ export function useLedgerPageController(args: {
     tab: LedgerPageViewProps["backTab"];
     mode: "active" | "archived";
   }) => void | Promise<void>;
+  onOpenImportPage: () => void;
 }): Omit<LedgerPageViewProps, "onRowDataUpdated"> {
   const { account, accounts, accountGroups, accountTreeRow, existingNodes } =
     args.loaderData;
@@ -72,11 +73,9 @@ export function useLedgerPageController(args: {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [archivingAccount, setArchivingAccount] = useState(false);
   const [simpleModalOpened, setSimpleModalOpened] = useState(false);
-  const [importModalOpened, setImportModalOpened] = useState(false);
   const [editModalOpened, setEditModalOpened] = useState(false);
   const [isCreateSplitSubmitting, setIsCreateSplitSubmitting] = useState(false);
   const [isSimpleSubmitting, setIsSimpleSubmitting] = useState(false);
-  const [isImportSubmitting, setIsImportSubmitting] = useState(false);
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const [createSplitInitialValues, setCreateSplitInitialValues] = useState<
     SplitModalInitialValues | undefined
@@ -110,7 +109,6 @@ export function useLedgerPageController(args: {
     simpleCounterAccountOptions,
     currentAccountLabel,
     currentAccountOption,
-    currentSimpleUnitIdentifier,
     editSimpleCounterAccountOptions,
     simpleTransactionDisabledReason,
   } = useLedgerAccountOptions({
@@ -137,7 +135,6 @@ export function useLedgerPageController(args: {
       setEditModalOpened,
       setCreateSplitInitialValues,
       setCreateSimpleInitialValues,
-      setImportModalOpened,
       setDeletingTransaction,
       setRebookModalOpened,
     },
@@ -330,11 +327,7 @@ export function useLedgerPageController(args: {
 
   const unitLabel = getUnitLabel(account);
   const statementImportDisabledReason =
-    account.type !== AccountType.ASSET && account.type !== AccountType.LIABILITY
-      ? "Statement imports are only available for asset and liability accounts."
-      : !currentSimpleUnitIdentifier
-        ? "Statement imports require a current account with a complete unit."
-        : null;
+    getStatementImportDisabledReason(account);
   const accountBookStartDate = new Date(
     args.loaderData.periodBounds.minBookingDate,
   );
@@ -419,11 +412,9 @@ export function useLedgerPageController(args: {
     simpleTransactionDisabledReason,
     simpleModalOpened,
     splitModalOpened: modalOpened,
-    importModalOpened,
     editModalOpened,
     isSimpleSubmitting,
     isCreateSplitSubmitting,
-    isImportSubmitting,
     isEditSubmitting,
     isRebookSubmitting,
     editMode,
@@ -482,17 +473,7 @@ export function useLedgerPageController(args: {
       await actions.handleCreateSimpleTransaction(values);
       setCreateSplitInitialValuesSource(undefined);
     },
-    onOpenImportModal: () => setImportModalOpened(true),
-    onCloseImportModal: () => setImportModalOpened(false),
-    onImportSubmittingChange: setIsImportSubmitting,
-    onSubmitImportTransactions: async (values: TransactionMutationValues[]) => {
-      await actions.handleImportTransactions(values);
-      notifications.show({
-        title: "Statement imported",
-        message: `${values.length} transaction${values.length === 1 ? "" : "s"} created.`,
-        color: "green",
-      });
-    },
+    onOpenImportPage: args.onOpenImportPage,
     onCloseSplitModal: () => {
       setModalOpened(false);
       setCreateSplitInitialValues(undefined);

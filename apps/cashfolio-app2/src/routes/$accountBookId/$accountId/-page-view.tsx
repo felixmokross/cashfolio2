@@ -35,7 +35,6 @@ import { SplitButton } from "@/components/split-button";
 import { getTransactionCreateDialogText } from "@/components/transaction-create-dialog-text";
 import { TopPageHeader } from "@/components/top-page-header";
 import { PageShell } from "@/components/page-shell";
-import { AccountStatementImportModal } from "./-statement-import-modal";
 import type { ReactNode } from "react";
 import type { Unit } from "@/.prisma-client/enums";
 import type { AccountBookUnitUsage } from "@/shared/account-book-unit-usage";
@@ -112,11 +111,9 @@ export type LedgerPageViewProps = {
   accountEditInitialValues: AccountInitialValues;
   accountEditDisabledReason?: string;
   editModalOpened: boolean;
-  importModalOpened: boolean;
   isSimpleSubmitting: boolean;
   isCreateSplitSubmitting: boolean;
   isEditSubmitting: boolean;
-  isImportSubmitting: boolean;
   isRebookSubmitting: boolean;
   editMode: EditMode;
   createSimpleInitialValues?: SimpleTransactionInitialValues;
@@ -168,12 +165,7 @@ export type LedgerPageViewProps = {
   onSubmitCreateSimpleTransaction: (
     values: SimpleTransactionValues,
   ) => Promise<void>;
-  onOpenImportModal: () => void;
-  onCloseImportModal: () => void;
-  onImportSubmittingChange: (isSubmitting: boolean) => void;
-  onSubmitImportTransactions: (
-    values: TransactionMutationValues[],
-  ) => Promise<void>;
+  onOpenImportPage: () => void;
   onCloseSplitModal: () => void;
   onCreateSplitSubmittingChange: (isSubmitting: boolean) => void;
   onSubmitCreateTransaction: (
@@ -214,11 +206,9 @@ export function LedgerPageView({
   accountEditInitialValues,
   accountEditDisabledReason,
   editModalOpened,
-  importModalOpened,
   isSimpleSubmitting,
   isCreateSplitSubmitting,
   isEditSubmitting,
-  isImportSubmitting,
   isRebookSubmitting,
   editMode,
   createSimpleInitialValues,
@@ -264,10 +254,7 @@ export function LedgerPageView({
   onSimpleSubmittingChange,
   onSwitchCreateToSplit,
   onSubmitCreateSimpleTransaction,
-  onOpenImportModal,
-  onCloseImportModal,
-  onImportSubmittingChange,
-  onSubmitImportTransactions,
+  onOpenImportPage,
   onCloseSplitModal,
   onCreateSplitSubmittingChange,
   onSubmitCreateTransaction,
@@ -391,7 +378,7 @@ export function LedgerPageView({
                   variant="default"
                   leftSection={<IconFileImport size={16} />}
                   disabled={!!statementImportDisabledReason}
-                  onClick={onOpenImportModal}
+                  onClick={onOpenImportPage}
                 >
                   Import Statement
                 </Button>
@@ -477,18 +464,6 @@ export function LedgerPageView({
           onSubmit={onSubmitCreateTransaction}
         />
       </Modal>
-
-      <AccountStatementImportModal
-        opened={importModalOpened}
-        account={account}
-        accountBookStartDate={accountBookStartDate}
-        accountOptions={accountOptions}
-        unitUsage={unitUsage}
-        isSubmitting={isImportSubmitting}
-        onClose={onCloseImportModal}
-        onSubmittingChange={onImportSubmittingChange}
-        onSubmit={onSubmitImportTransactions}
-      />
 
       <Modal
         opened={editModalOpened}

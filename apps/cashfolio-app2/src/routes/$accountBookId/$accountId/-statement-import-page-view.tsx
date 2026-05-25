@@ -1,4 +1,8 @@
-import type { ColDef, ICellRendererParams } from "ag-grid-enterprise";
+import type {
+  CellValueChangedEvent,
+  ColDef,
+  ICellRendererParams,
+} from "ag-grid-enterprise";
 import {
   ActionIcon,
   Alert,
@@ -9,73 +13,73 @@ import {
   Modal,
   Stack,
   Text,
+  Title,
   Tooltip,
 } from "@mantine/core";
 import {
+  IconArrowLeft,
   IconFileImport,
   IconPencil,
   IconTrash,
   IconUpload,
 } from "@tabler/icons-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  ACCOUNT_TREE_SELECT_COLUMN,
+  DATE_COLUMN,
+  FORMATTED_NUMERIC_COLUMN,
+} from "@/components/column-types";
 import { DataGrid } from "@/components/data-grid";
 import {
   EditTransactionModal,
   type AccountOption,
 } from "@/components/edit-transaction-modal";
-import {
-  DATE_COLUMN,
-  FORMATTED_NUMERIC_COLUMN,
-} from "@/components/column-types";
+import { PageShell } from "@/components/page-shell";
+import { TopPageHeader } from "@/components/top-page-header";
 import type { AccountBookUnitUsage } from "@/shared/account-book-unit-usage";
 import type { TransactionMutationValues } from "./-page-view";
 import {
+  getStatementImportCounterAccountId,
   getStatementImportDraftStatus,
   parseStatementImportCsv,
   toStatementImportEditInitialValues,
+  updateStatementImportDraftCounterAccount,
   updateStatementImportDraftTransaction,
   type StatementImportDraft,
 } from "./-statement-import";
 import type { LedgerAccount } from "./-page-types";
 
-type StatementImportModalProps = {
-  opened: boolean;
+type StatementImportPageViewProps = {
   account: LedgerAccount;
   accountBookStartDate: Date;
   accountOptions: AccountOption[];
   unitUsage: AccountBookUnitUsage;
   isSubmitting: boolean;
-  onClose: () => void;
+  onBack: () => void;
   onSubmittingChange: (isSubmitting: boolean) => void;
   onSubmit: (transactions: TransactionMutationValues[]) => Promise<void>;
 };
 
-export function AccountStatementImportModal({
-  opened,
+export function AccountStatementImportPageView({
   account,
   accountBookStartDate,
   accountOptions,
   unitUsage,
   isSubmitting,
-  onClose,
+  onBack,
   onSubmittingChange,
   onSubmit,
-}: StatementImportModalProps) {
+}: StatementImportPageViewProps) {
   const [file, setFile] = useState<File | null>(null);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [drafts, setDrafts] = useState<StatementImportDraft[]>([]);
   const [editingDraftId, setEditingDraftId] = useState<string | undefined>();
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (opened) return;
-    setFile(null);
-    setParseErrors([]);
-    setDrafts([]);
-    setEditingDraftId(undefined);
-    setIsEditSubmitting(false);
-  }, [opened]);
-
+  const counterAccountOptions = useMemo(
+    () => accountOptions.filter((option) => option.value !== account.id),
+    [account.id, accountOptions],
+  );
   const statuses = useMemo(
     () =>
       new Map(
@@ -142,17 +146,6 @@ export function AccountStatementImportModal({
         width: 135,
       },
       {
-        field: "exchangeRate",
-        headerName: "Exchange Rate",
-        width: 145,
-        type: FORMATTED_NUMERIC_COLUMN,
-        context: {
-          formattedNumeric: {
-            getDisplayDecimals: () => 6,
-          },
-        },
-      },
-      {
         field: "description",
         headerName: "Description",
         minWidth: 240,
@@ -161,19 +154,15 @@ export function AccountStatementImportModal({
       {
         colId: "counterAccount",
         headerName: "Counter Account",
-        width: 220,
-        valueGetter: ({ data }) => {
-          if (!data) return "";
-          const counterBooking = data.transaction.bookings.find(
-            (booking) => booking.accountId !== account.id,
-          );
-          if (!counterBooking?.accountId) return "Required";
-          return (
-            accountOptions.find(
-              (option) => option.value === counterBooking.accountId,
-            )?.label ?? "Unavailable"
-          );
+        width: 260,
+        editable: !isSubmitting,
+        type: ACCOUNT_TREE_SELECT_COLUMN,
+        context: {
+          options: counterAccountOptions,
         },
+        valueGetter: ({ data }) =>
+          data ? getStatementImportCounterAccountId(data) : "",
+        valueSetter: () => true,
       },
       {
         colId: "actions",
@@ -220,7 +209,7 @@ export function AccountStatementImportModal({
         },
       },
     ],
-    [account.id, accountOptions, isSubmitting, statuses],
+    [counterAccountOptions, isSubmitting, statuses],
   );
 
   async function handleFileChange(nextFile: File | null) {
@@ -247,6 +236,28 @@ export function AccountStatementImportModal({
     }
   }
 
+  function handleCounterAccountChange(
+    event: CellValueChangedEvent<StatementImportDraft>,
+  ) {
+    if (event.colDef.colId !== "counterAccount" || !event.data) {
+      return;
+    }
+
+    const selectedAccount = counterAccountOptions.find(
+      (option) => option.value === event.newValue,
+    );
+    setDrafts((current) =>
+      current.map((draft) =>
+        draft.id === event.data?.id
+          ? updateStatementImportDraftCounterAccount({
+              draft,
+              selectedAccount,
+            })
+          : draft,
+      ),
+    );
+  }
+
   function handleSaveDraft(values: TransactionMutationValues) {
     if (!editingDraft) return Promise.resolve();
     setDrafts((current) =>
@@ -264,92 +275,100 @@ export function AccountStatementImportModal({
   }
 
   return (
-    <>
-      <Modal
-        opened={opened}
-        onClose={() => {
-          if (isSubmitting || isEditSubmitting) return;
-          onClose();
-        }}
-        title="Import Statement"
-        size="100%"
-        closeOnEscape={!isSubmitting && !isEditSubmitting}
-        closeOnClickOutside={!isSubmitting && !isEditSubmitting}
-        withCloseButton={!isSubmitting && !isEditSubmitting}
-      >
-        <Stack gap="md">
-          <Group align="end">
-            <FileInput
-              label="CSV File"
-              placeholder="Select CSV file"
-              accept=".csv,text/csv"
-              value={file}
-              leftSection={<IconUpload size={16} />}
-              disabled={isSubmitting}
-              clearable
-              style={{ flex: "1 1 24rem" }}
-              onChange={(nextFile) => void handleFileChange(nextFile)}
-            />
-            <Text c="dimmed" size="sm">
-              {drafts.length > 0
-                ? `${readyCount} of ${drafts.length} ready`
-                : "No statement loaded"}
-            </Text>
-          </Group>
+    <PageShell>
+      <TopPageHeader
+        heading={<Title order={2}>Import Statement</Title>}
+        headingAccessory={
+          <Badge size="lg" color="gray">
+            {account.name}
+          </Badge>
+        }
+        actions={
+          <Button
+            variant="subtle"
+            leftSection={<IconArrowLeft size={16} />}
+            disabled={isSubmitting || isEditSubmitting}
+            onClick={onBack}
+          >
+            Back to Ledger
+          </Button>
+        }
+      />
 
-          {parseErrors.length > 0 ? (
-            <Alert color="red" title="CSV could not be imported">
-              <Stack gap={4}>
-                {parseErrors.map((error) => (
-                  <Text key={error} size="sm">
-                    {error}
-                  </Text>
-                ))}
-              </Stack>
-            </Alert>
-          ) : null}
-
-          <DataGrid
-            containerStyle={{ height: "calc(100vh - 25rem)" }}
-            rowData={drafts}
-            columnDefs={columnDefs}
-            getRowId={({ data }) => data.id}
-            defaultColDef={{
-              sortable: false,
-              suppressHeaderMenuButton: true,
-            }}
+      <Stack gap="md" flex={1} mih={0}>
+        <Group align="end">
+          <FileInput
+            label="CSV File"
+            placeholder="Select CSV file"
+            accept=".csv,text/csv"
+            value={file}
+            leftSection={<IconUpload size={16} />}
+            disabled={isSubmitting}
+            clearable
+            style={{ flex: "1 1 24rem" }}
+            onChange={(nextFile) => void handleFileChange(nextFile)}
           />
+          <Text c="dimmed" size="sm">
+            {drafts.length > 0
+              ? `${readyCount} of ${drafts.length} ready`
+              : "No statement loaded"}
+          </Text>
+        </Group>
 
-          <Group justify="end">
-            <Button
-              variant="subtle"
-              disabled={isSubmitting || isEditSubmitting}
-              onClick={onClose}
-            >
-              Cancel
-            </Button>
-            <Tooltip
-              label={
-                importDisabled && drafts.length > 0
-                  ? "All imported transactions must be ready."
-                  : "Create transactions"
-              }
-              disabled={!importDisabled || drafts.length === 0}
-            >
-              <span>
-                <Button
-                  leftSection={<IconFileImport size={16} />}
-                  loading={isSubmitting}
-                  disabled={importDisabled}
-                  onClick={() => void handleImport()}
-                >
-                  Import Transactions
-                </Button>
-              </span>
-            </Tooltip>
-          </Group>
-        </Stack>
-      </Modal>
+        {parseErrors.length > 0 ? (
+          <Alert color="red" title="CSV could not be imported">
+            <Stack gap={4}>
+              {parseErrors.map((error) => (
+                <Text key={error} size="sm">
+                  {error}
+                </Text>
+              ))}
+            </Stack>
+          </Alert>
+        ) : null}
+
+        <DataGrid
+          containerStyle={{ flex: 1, minHeight: 0 }}
+          rowData={drafts}
+          columnDefs={columnDefs}
+          getRowId={({ data }) => data.id}
+          defaultColDef={{
+            editable: false,
+            sortable: false,
+            suppressHeaderMenuButton: true,
+          }}
+          onCellValueChanged={handleCounterAccountChange}
+        />
+
+        <Group justify="end">
+          <Button
+            variant="subtle"
+            disabled={isSubmitting || isEditSubmitting}
+            onClick={onBack}
+          >
+            Cancel
+          </Button>
+          <Tooltip
+            label={
+              importDisabled && drafts.length > 0
+                ? "All imported transactions must be ready."
+                : "Create transactions"
+            }
+            disabled={!importDisabled || drafts.length === 0}
+          >
+            <span>
+              <Button
+                leftSection={<IconFileImport size={16} />}
+                loading={isSubmitting}
+                disabled={importDisabled}
+                onClick={() => void handleImport()}
+              >
+                Import Transactions
+              </Button>
+            </span>
+          </Tooltip>
+        </Group>
+      </Stack>
 
       <Modal
         opened={!!editingDraft}
@@ -381,6 +400,6 @@ export function AccountStatementImportModal({
           />
         ) : null}
       </Modal>
-    </>
+    </PageShell>
   );
 }

@@ -9,7 +9,6 @@ import {
 import {
   createSimpleTransaction,
   createTransaction,
-  createTransactions,
   deleteTransaction,
   getTransaction,
   rebookBooking,
@@ -29,7 +28,6 @@ import type {
 export type LedgerTransactionApi = {
   createSimpleTransaction: typeof createSimpleTransaction;
   createTransaction: typeof createTransaction;
-  createTransactions: typeof createTransactions;
   updateTransaction: typeof updateTransaction;
   deleteTransaction: typeof deleteTransaction;
   getTransaction: typeof getTransaction;
@@ -56,7 +54,6 @@ export type LedgerMutationState = {
   setCreateSimpleInitialValues: (
     values: SimpleTransactionInitialValues | undefined,
   ) => void;
-  setImportModalOpened: (opened: boolean) => void;
   setDeletingTransaction: (
     value: { id: string; description: string } | undefined,
   ) => void;
@@ -72,7 +69,6 @@ export type LedgerAccountMutationState = {
 const defaultTransactionApi: LedgerTransactionApi = {
   createSimpleTransaction,
   createTransaction,
-  createTransactions,
   updateTransaction,
   deleteTransaction,
   getTransaction,
@@ -121,20 +117,6 @@ export function createLedgerMutationActions(args: {
       args.state.setCreateSimpleInitialValues(undefined);
       args.pendingScrollRef.current = transaction.id;
       reloadSimpleTransactionPeriod(args, values);
-    },
-
-    async handleImportTransactions(values: TransactionMutationValues[]) {
-      if (values.length === 0) return;
-
-      const transactions = await api.createTransactions({
-        data: {
-          accountBookId: args.accountBookId,
-          transactions: values,
-        },
-      });
-      args.state.setImportModalOpened(false);
-      args.pendingScrollRef.current = transactions.at(-1)?.id;
-      reloadTransactionsPeriod(args, values);
     },
 
     async handleUpdateTransaction(values: TransactionMutationValues) {
@@ -208,22 +190,6 @@ function reloadSimpleTransactionPeriod(
   values: SimpleTransactionValues,
 ) {
   reloadDatePeriod(args, new Date(values.date));
-}
-
-function reloadTransactionsPeriod(
-  args: Pick<
-    Parameters<typeof createLedgerMutationActions>[0],
-    "selectedPeriodValue" | "setPeriodFilter" | "invalidate"
-  >,
-  values: TransactionMutationValues[],
-) {
-  const latestBookingDate = values.reduce<Date | null>((latest, value) => {
-    const nextDate = getLatestBookingDate(value.bookings);
-    if (!nextDate) return latest;
-    if (!latest || nextDate > latest) return nextDate;
-    return latest;
-  }, null);
-  reloadDatePeriod(args, latestBookingDate);
 }
 
 function reloadDatePeriod(

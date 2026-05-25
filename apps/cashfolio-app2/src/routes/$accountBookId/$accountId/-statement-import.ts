@@ -1,9 +1,11 @@
 import Papa from "papaparse";
 import { createId } from "@paralleldrive/cuid2";
-import { Unit } from "@/.prisma-client/enums";
+import { AccountType, Unit } from "@/.prisma-client/enums";
 import type { AccountOption } from "@/components/edit-transaction-modal";
 import type { BookingValues } from "@/components/edit-transaction-modal-types";
+import { createBookingUnitDefaults } from "@/components/edit-transaction-modal-unit-defaults";
 import {
+  getSimpleTransactionUnitIdentifier,
   getUnitIdentifier,
   isExpenseAccount,
   isIncomeAccount,
@@ -37,7 +39,6 @@ export type StatementImportDraft = {
   amount: number;
   originalAmount: number | undefined;
   originalCurrency: string | undefined;
-  exchangeRate: number | undefined;
   description: string;
   transaction: TransactionMutationValues;
 };
@@ -144,7 +145,6 @@ export function createStatementImportDraft(args: {
     args.row["original currency"].trim() === ""
       ? undefined
       : args.row["original currency"].trim();
-  const exchangeRate = parseOptionalStrictNumber(args.row["exchange rate"]);
   const currentUnitFields = getBookingUnitFields(
     args.currentAccount,
     "current account",
@@ -171,7 +171,6 @@ export function createStatementImportDraft(args: {
     amount,
     originalAmount,
     originalCurrency,
-    exchangeRate,
     description,
     transaction: {
       description,
@@ -305,6 +304,94 @@ export function updateStatementImportDraftTransaction(args: {
   };
 }
 
+export function updateStatementImportDraftCounterAccount(args: {
+  draft: StatementImportDraft;
+  selectedAccount: AccountOption | undefined;
+}): StatementImportDraft {
+  const counterBookingIndex = findStatementImportCounterBookingIndex(
+    args.draft,
+  );
+  if (counterBookingIndex === -1) {
+    return args.draft;
+  }
+
+  const transaction = args.draft.transaction;
+  const currentBooking = transaction.bookings[0];
+  const counterBooking = transaction.bookings[counterBookingIndex];
+  if (!counterBooking) {
+    return args.draft;
+  }
+
+  if (!args.selectedAccount) {
+    return updateStatementImportDraftTransaction({
+      draft: args.draft,
+      transaction: {
+        ...transaction,
+        bookings: transaction.bookings.map((booking, index) =>
+          index === counterBookingIndex
+            ? { ...booking, accountId: "" }
+            : booking,
+        ),
+      },
+    });
+  }
+
+  const selectedAccount = args.selectedAccount;
+  const unitDefaults = createBookingUnitDefaults({
+    selectedAccount,
+    lockedBooking: currentBooking ? toBookingValues(currentBooking) : undefined,
+    currentBooking: toBookingValues(counterBooking),
+    preserveCurrentBookingUnitForUnitlessEquity: true,
+  });
+
+  return updateStatementImportDraftTransaction({
+    draft: args.draft,
+    transaction: {
+      ...transaction,
+      bookings: transaction.bookings.map((booking, index) =>
+        index === counterBookingIndex
+          ? {
+              ...booking,
+              accountId: selectedAccount.value,
+              ...unitDefaults,
+            }
+          : booking,
+      ),
+    },
+  });
+}
+
+export function getStatementImportCounterAccountId(
+  draft: StatementImportDraft,
+): string {
+  const counterBookingIndex = findStatementImportCounterBookingIndex(draft);
+  return counterBookingIndex === -1
+    ? ""
+    : (draft.transaction.bookings[counterBookingIndex]?.accountId ?? "");
+}
+
+export function getStatementImportDisabledReason(account: {
+  type: AccountType;
+  unit: Unit | null;
+  currency: string | null;
+  cryptocurrency: string | null;
+  symbol: string | null;
+  tradeCurrency: string | null;
+}): string | null {
+  if (
+    account.type !== AccountType.ASSET &&
+    account.type !== AccountType.LIABILITY
+  ) {
+    return "Statement imports are only available for asset and liability accounts.";
+  }
+
+  if (!getSimpleTransactionUnitIdentifier(account)) {
+    return "Statement imports require a current account with a complete unit.";
+  }
+
+  return null;
+}
+
 function toStatementImportCsvRow(row: string[]): StatementImportCsvRow {
   return {
     date: row[0] ?? "",
@@ -333,13 +420,7 @@ function validateCsvRow(
     sourceRowNumber,
     { required: false },
   );
-  const exchangeRate = validateStrictNumber(
-    row["exchange rate"],
-    "exchange rate",
-    sourceRowNumber,
-    { required: false },
-  );
-  errors.push(...amount, ...originalAmount, ...exchangeRate);
+  errors.push(...amount, ...originalAmount);
 
   if (Number(row.amount) === 0) {
     errors.push(`Row ${sourceRowNumber}: amount must be non-zero.`);
@@ -357,11 +438,6 @@ function validateCsvRow(
   if (hasOriginalAmount && !hasOriginalCurrency) {
     errors.push(
       `Row ${sourceRowNumber}: original currency is required when original amount is set.`,
-    );
-  }
-  if (row["exchange rate"].trim() !== "" && Number(row["exchange rate"]) <= 0) {
-    errors.push(
-      `Row ${sourceRowNumber}: exchange rate must be greater than zero.`,
     );
   }
   if (
@@ -406,6 +482,33 @@ function parseStrictNumber(value: string): number {
 function parseOptionalStrictNumber(value: string): number | undefined {
   const trimmed = value.trim();
   return trimmed === "" ? undefined : Number(trimmed);
+}
+
+function findStatementImportCounterBookingIndex(
+  draft: StatementImportDraft,
+): number {
+  const currentAccountId = draft.transaction.bookings[0]?.accountId;
+  return draft.transaction.bookings.findIndex(
+    (booking, index) => index > 0 && booking.accountId !== currentAccountId,
+  );
+}
+
+function toBookingValues(
+  booking: TransactionMutationValues["bookings"][number],
+): BookingValues {
+  return {
+    key: "",
+    date: booking.date,
+    account: booking.accountId,
+    description: booking.description,
+    unit: booking.unit,
+    currency: booking.currency,
+    cryptocurrency: booking.cryptocurrency,
+    symbol: booking.symbol,
+    tradeCurrency: booking.tradeCurrency,
+    debit: booking.value > 0 ? booking.value : undefined,
+    credit: booking.value < 0 ? -booking.value : undefined,
+  };
 }
 
 function needsEdit(message: string): StatementImportDraftStatus {
