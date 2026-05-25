@@ -56,6 +56,7 @@ export function parseStatementImportCsv(args: {
     const rowShapeErrors = validateCsvRowShape({
       row,
       headerColumnCount: headerRow.length,
+      delimiter: parsed.meta.delimiter,
       sourceRowNumber,
     });
     if (rowShapeErrors.length > 0) {
@@ -96,6 +97,7 @@ function toStatementImportCsvRow(row: string[]): StatementImportCsvRow {
 function validateCsvRowShape(args: {
   row: string[];
   headerColumnCount: number;
+  delimiter: string;
   sourceRowNumber: number;
 }): string[] {
   const errors: string[] = [];
@@ -109,8 +111,30 @@ function validateCsvRowShape(args: {
       `Row ${args.sourceRowNumber}: CSV row has more columns than the header row; check for unquoted delimiters in values.`,
     );
   }
+  if (
+    args.delimiter === "," &&
+    args.row.length > REQUIRED_COLUMN_COUNT &&
+    isLikelyShiftedByUnquotedExchangeRateDecimalComma(args.row)
+  ) {
+    errors.push(
+      `Row ${args.sourceRowNumber}: CSV row appears to have an unquoted decimal comma before the description column; use semicolon delimiter or quote the value.`,
+    );
+  }
 
   return errors;
+}
+
+function isLikelyShiftedByUnquotedExchangeRateDecimalComma(
+  row: string[],
+): boolean {
+  const exchangeRateIntegerPart = row[4]?.trim() ?? "";
+  const shiftedDecimalPart = row[5]?.trim() ?? "";
+  const displacedDescription = row[6]?.trim() ?? "";
+  return (
+    /^\d+$/.test(exchangeRateIntegerPart) &&
+    /^\d+$/.test(shiftedDecimalPart) &&
+    displacedDescription !== ""
+  );
 }
 
 function isLikelyHeaderlessDataRow(row: string[]): boolean {

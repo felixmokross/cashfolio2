@@ -216,6 +216,21 @@ describe("statement import", () => {
     );
   });
 
+  test("rejects shifted rows when extra header columns hide the column count mismatch", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      text: [
+        "date,amount,original amount,original currency,exchange rate,description,balance",
+        "2026-02-03,100.25,92.50,EUR,1,25,Transfer",
+      ].join("\n"),
+    });
+
+    expect(result.drafts).toEqual([]);
+    expect(result.errors).toContain(
+      "Row 2: CSV row appears to have an unquoted decimal comma before the description column; use semicolon delimiter or quote the value.",
+    );
+  });
+
   test("allows blank original amount and original currency", () => {
     const result = parseStatementImportCsv({
       currentAccount,
