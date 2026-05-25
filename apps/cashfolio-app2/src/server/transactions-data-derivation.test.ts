@@ -126,7 +126,7 @@ describe("deriveTransactionsRows", () => {
       expect.objectContaining({
         debitAccounts: [{ id: "bank", name: "Bank" }],
         creditAccounts: [{ id: "broker", name: "Broker" }],
-        unitIdentifiers: ["CHF", "AAPL"],
+        unitIdentifiers: ["AAPL"],
       }),
     );
     expect(result.rows[0]?.bookings).toEqual([
@@ -259,6 +259,7 @@ describe("deriveTransactionsRows", () => {
 
     expect(result.rows[0]).toEqual(
       expect.objectContaining({
+        unitIdentifiers: ["USD"],
         originalAmount: 100,
         originalAmountUnit: Unit.CURRENCY,
         originalAmountCurrency: "USD",
@@ -290,6 +291,7 @@ describe("deriveTransactionsRows", () => {
 
     expect(result.rows[0]).toEqual(
       expect.objectContaining({
+        unitIdentifiers: [],
         originalAmount: null,
         originalAmountUnit: null,
         originalAmountCurrency: null,
@@ -335,6 +337,7 @@ describe("deriveTransactionsRows", () => {
 
     expect(result.rows[0]).toEqual(
       expect.objectContaining({
+        unitIdentifiers: ["USD"],
         originalAmount: 100,
         originalAmountUnit: Unit.CURRENCY,
         originalAmountCurrency: "USD",
@@ -383,11 +386,56 @@ describe("deriveTransactionsRows", () => {
 
     expect(result.rows[0]).toEqual(
       expect.objectContaining({
+        unitIdentifiers: ["USD", "BTC"],
         originalAmount: null,
         originalAmountUnit: null,
         originalAmountCurrency: null,
         originalAmountCryptocurrency: null,
       }),
     );
+  });
+
+  test("shows only the security symbol when reference currency and a security are present", () => {
+    const result = deriveTransactionsRows({
+      referenceCurrency: "CHF",
+      bookings: [
+        createBooking({
+          id: "debit-chf",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: 90,
+          currency: "CHF",
+        }),
+        createBooking({
+          id: "credit-chf",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: -90,
+          currency: "CHF",
+        }),
+        createBooking({
+          id: "debit-security",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: 3,
+          unit: Unit.SECURITY,
+          currency: null,
+          symbol: "AAPL",
+          tradeCurrency: "USD",
+        }),
+        createBooking({
+          id: "credit-security",
+          transactionId: "transaction-1",
+          date: utcDate(2026, 0, 10),
+          value: -3,
+          unit: Unit.SECURITY,
+          currency: null,
+          symbol: "AAPL",
+          tradeCurrency: "USD",
+        }),
+      ],
+    });
+
+    expect(result.rows[0]?.unitIdentifiers).toEqual(["AAPL"]);
   });
 });

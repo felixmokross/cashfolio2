@@ -70,10 +70,20 @@ function formatUtcDateLabel(date: Date): string {
   return `${day}.${month}.${year}`;
 }
 
-function getUnitIdentifier(booking: TransactionsDerivedBooking): string | null {
+function getUnitIdentifier(args: {
+  booking: TransactionsDerivedBooking;
+  referenceCurrency: string;
+}): string | null {
+  const { booking, referenceCurrency } = args;
+
   switch (booking.unit) {
-    case Unit.CURRENCY:
+    case Unit.CURRENCY: {
+      const currency = normalizeUnitCode(booking.currency);
+      if (!currency || currency === referenceCurrency) {
+        return null;
+      }
       return booking.currency;
+    }
     case Unit.CRYPTOCURRENCY:
       return booking.cryptocurrency;
     case Unit.SECURITY:
@@ -343,7 +353,11 @@ export function deriveTransactionsRows(args: {
           .map((booking) => booking.account),
       ),
       description: firstBooking.transactionDescription ?? "",
-      unitIdentifiers: uniqueStrings(bookings.map(getUnitIdentifier)),
+      unitIdentifiers: uniqueStrings(
+        bookings.map((booking) =>
+          getUnitIdentifier({ booking, referenceCurrency }),
+        ),
+      ),
       ...originalAmountSummary,
       referenceAmount: getReferenceAmount(bookings),
       isOpeningBalancesTransaction: bookings.some(
