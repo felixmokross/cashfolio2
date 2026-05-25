@@ -4,14 +4,16 @@ import { Suspense, lazy, useMemo, useState } from "react";
 import type { AccountOption } from "@/components/edit-transaction-modal";
 import { createAccountBookUnitUsage } from "@/shared/account-book-unit-usage";
 import { createAccountOptions } from "@/shared/account-options";
-import { isOpeningBalancesAccount } from "@/shared/account-utils";
 import { createDocumentTitleHead } from "@/shared/document-title";
 import { createTransactions } from "@/server/transactions";
 import { loadLedgerPageData } from "./-page-loader";
 import { parseLedgerSearch } from "./-page-types";
 import type { TransactionMutationValues } from "./-page-view";
 import { getStatementImportSuccessLedgerSearch } from "./-statement-import-page-controller";
-import { getStatementImportDisabledReason } from "./-statement-import";
+import {
+  getStatementImportDisabledReason,
+  shouldIncludeStatementImportAccountOption,
+} from "./-statement-import";
 
 const AccountStatementImportPageView = lazy(async () => {
   const module = await import("./-statement-import-page-view");
@@ -66,11 +68,10 @@ function StatementImportRoutePage() {
   );
   const accountOptions = useMemo<AccountOption[]>(
     () =>
-      createAccountOptions(
-        loaderData.accounts,
-        (account) => account.isActive && !isOpeningBalancesAccount(account),
+      createAccountOptions(loaderData.accounts, (account) =>
+        shouldIncludeStatementImportAccountOption(account, accountId),
       ),
-    [loaderData.accounts],
+    [accountId, loaderData.accounts],
   );
   const accountBookStartDate = useMemo(
     () => new Date(loaderData.periodBounds.minBookingDate),

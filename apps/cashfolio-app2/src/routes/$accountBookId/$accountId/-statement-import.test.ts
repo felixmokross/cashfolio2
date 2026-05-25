@@ -9,6 +9,7 @@ import {
   createStatementImportDraft,
   getStatementImportDraftStatus,
   parseStatementImportCsv,
+  shouldIncludeStatementImportAccountOption,
   updateStatementImportDraftCounterAccount,
   type StatementImportCsvRow,
 } from "./-statement-import";
@@ -253,6 +254,21 @@ describe("statement import", () => {
     );
   });
 
+  test("rejects headerless CSVs instead of dropping the first data row", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      text: [
+        "2026-02-03,100.25,92.50,EUR,1.083784,First transaction",
+        "2026-02-04,80.00,75.00,EUR,ignored,Second transaction",
+      ].join("\n"),
+    });
+
+    expect(result.drafts).toEqual([]);
+    expect(result.errors).toContain(
+      "CSV must include a header row before transaction rows.",
+    );
+  });
+
   test("rejects invalid dates and numeric fields", () => {
     const result = parseStatementImportCsv({
       currentAccount,
@@ -408,5 +424,44 @@ describe("statement import", () => {
       value: 42,
     });
     expect(updated.counterAccountId).toBe("expense-1");
+  });
+
+  test("includes the archived current account in import account options", () => {
+    const archivedCurrentAccount = {
+      id: "asset-1",
+      isActive: false,
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+    };
+    const archivedOtherAccount = {
+      ...archivedCurrentAccount,
+      id: "asset-2",
+    };
+    const openingBalancesAccount = {
+      ...archivedCurrentAccount,
+      id: "opening-balances",
+      isActive: true,
+      type: AccountType.EQUITY,
+      equityAccountSubtype: EquityAccountSubtype.OPENING_BALANCES,
+    };
+
+    expect(
+      shouldIncludeStatementImportAccountOption(
+        archivedCurrentAccount,
+        "asset-1",
+      ),
+    ).toBe(true);
+    expect(
+      shouldIncludeStatementImportAccountOption(
+        archivedOtherAccount,
+        "asset-1",
+      ),
+    ).toBe(false);
+    expect(
+      shouldIncludeStatementImportAccountOption(
+        openingBalancesAccount,
+        "asset-1",
+      ),
+    ).toBe(false);
   });
 });

@@ -1,6 +1,10 @@
 import Papa from "papaparse";
 import { createId } from "@paralleldrive/cuid2";
-import { AccountType, Unit } from "@/.prisma-client/enums";
+import {
+  AccountType,
+  type EquityAccountSubtype,
+  Unit,
+} from "@/.prisma-client/enums";
 import type { AccountOption } from "@/components/edit-transaction-modal";
 import type { BookingValues } from "@/components/edit-transaction-modal-types";
 import { createBookingUnitDefaults } from "@/components/edit-transaction-modal-unit-defaults";
@@ -97,6 +101,10 @@ export function parseStatementImportCsv(args: {
     errors.unshift(
       `CSV must include at least ${REQUIRED_COLUMN_COUNT} columns in this order: ${STATEMENT_IMPORT_CSV_HEADERS.join(", ")}`,
     );
+    return { drafts: [], errors };
+  }
+  if (isDataRow(headerRow, 1)) {
+    errors.unshift("CSV must include a header row before transaction rows.");
     return { drafts: [], errors };
   }
 
@@ -398,6 +406,21 @@ export function getStatementImportDisabledReason(account: {
   return null;
 }
 
+export function shouldIncludeStatementImportAccountOption(
+  account: {
+    id: string;
+    isActive: boolean;
+    type: AccountType;
+    equityAccountSubtype?: EquityAccountSubtype | null;
+  },
+  currentAccountId: string,
+): boolean {
+  return (
+    !isOpeningBalancesAccount(account) &&
+    (account.isActive || account.id === currentAccountId)
+  );
+}
+
 function toStatementImportCsvRow(row: string[]): StatementImportCsvRow {
   return {
     date: row[0] ?? "",
@@ -407,6 +430,12 @@ function toStatementImportCsvRow(row: string[]): StatementImportCsvRow {
     "exchange rate": row[4] ?? "",
     description: row[5] ?? "",
   };
+}
+
+function isDataRow(row: string[], sourceRowNumber: number): boolean {
+  return (
+    validateCsvRow(toStatementImportCsvRow(row), sourceRowNumber).length === 0
+  );
 }
 
 function validateCsvRow(
