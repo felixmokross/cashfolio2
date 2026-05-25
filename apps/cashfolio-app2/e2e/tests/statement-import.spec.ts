@@ -27,7 +27,9 @@ test("imports a statement after selecting the counter account in the review grid
     `2026-05-14;-42.55;;;not-a-rate;${importedDescription};extra value`,
   ].join("\n");
 
-  await page.goto(`/${seeded.accountBookId}/${seeded.cashAccount.id}`);
+  await page.goto(
+    `/${seeded.accountBookId}/${seeded.cashAccount.id}?period=2026-04`,
+  );
   await page.getByRole("button", { name: "Import Statement" }).click();
 
   await expect(page).toHaveURL(
