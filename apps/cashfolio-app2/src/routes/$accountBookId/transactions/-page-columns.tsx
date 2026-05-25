@@ -14,7 +14,10 @@ import {
 } from "@/components/column-types";
 import { LinkAnchor } from "@/components/link-anchor";
 import { OPENING_BALANCES_MANAGEMENT_MESSAGE } from "@/shared/opening-balances";
-import { getCurrencyDecimals } from "@/shared/unit-format";
+import {
+  getCurrencyDecimals,
+  getUnitDisplayDecimals,
+} from "@/shared/unit-format";
 import type { TransactionsBookingRow, TransactionsRow } from "./-page-types";
 
 type RebookClickArgs = {
@@ -287,6 +290,25 @@ export function useTransactionsColumnDefs(args: {
         width: 150,
         filter: true,
         valueGetter: ({ data }) => data?.unitIdentifiers.join(", ") ?? "",
+      },
+      {
+        field: "originalAmount",
+        headerName: "Amount",
+        width: 140,
+        type: FORMATTED_NUMERIC_COLUMN,
+        context: {
+          formattedNumeric: {
+            getDisplayDecimals: ({ data }: { data: unknown }) => {
+              const row = data as TransactionsRow | undefined;
+              return getUnitDisplayDecimals({
+                unit: row?.originalAmountUnit,
+                currency: row?.originalAmountCurrency,
+                cryptocurrency: row?.originalAmountCryptocurrency,
+              });
+            },
+          },
+        },
+        filter: "agNumberColumnFilter",
       },
       {
         field: "referenceAmount",

@@ -54,6 +54,10 @@ export type TransactionsDerivedRow = {
   creditAccounts: TransactionsDerivedAccount[];
   description: string;
   unitIdentifiers: string[];
+  originalAmount: number | null;
+  originalAmountUnit: Unit | null;
+  originalAmountCurrency: string | null;
+  originalAmountCryptocurrency: string | null;
   referenceAmount: number | null;
   isOpeningBalancesTransaction: boolean;
   bookings: TransactionsDerivedBookingRow[];
@@ -105,6 +109,38 @@ function uniqueStrings(values: Array<string | null>): string[] {
   }
 
   return uniqueValues;
+}
+
+function normalizeUnitCode(value: string | null): string | null {
+  const normalized = value?.trim().toUpperCase();
+  return normalized ? normalized : null;
+}
+
+function getNonReferenceUnitKey(args: {
+  booking: TransactionsDerivedBooking;
+  referenceCurrency: string;
+}): string | null {
+  const { booking, referenceCurrency } = args;
+
+  switch (booking.unit) {
+    case Unit.CURRENCY: {
+      const currency = normalizeUnitCode(booking.currency);
+      if (!currency || currency === referenceCurrency) {
+        return null;
+      }
+      return `currency:${currency}`;
+    }
+    case Unit.CRYPTOCURRENCY: {
+      const cryptocurrency = normalizeUnitCode(booking.cryptocurrency);
+      return cryptocurrency ? `cryptocurrency:${cryptocurrency}` : null;
+    }
+    case Unit.SECURITY: {
+      const symbol = normalizeUnitCode(booking.symbol);
+      return symbol ? `security:${symbol}` : null;
+    }
+    default:
+      return null;
+  }
 }
 
 function splitDebitCredit(value: number): {
@@ -193,11 +229,77 @@ function getReferenceAmount(
   );
 }
 
+function getSideOriginalTotal(bookings: TransactionsDerivedBooking[]): number {
+  return toMoneyNumber(
+    moneyAbs(moneySum(bookings.map((booking) => booking.value))),
+  );
+}
+
+function getOriginalAmountSummary(args: {
+  bookings: TransactionsDerivedBooking[];
+  referenceCurrency: string;
+}): {
+  originalAmount: number | null;
+  originalAmountUnit: Unit | null;
+  originalAmountCurrency: string | null;
+  originalAmountCryptocurrency: string | null;
+} {
+  const unitKeyByBooking = args.bookings.map((booking) =>
+    getNonReferenceUnitKey({
+      booking,
+      referenceCurrency: args.referenceCurrency,
+    }),
+  );
+  const unitKeys = uniqueStrings(unitKeyByBooking);
+
+  if (unitKeys.length !== 1) {
+    return {
+      originalAmount: null,
+      originalAmountUnit: null,
+      originalAmountCurrency: null,
+      originalAmountCryptocurrency: null,
+    };
+  }
+
+  const unitKey = unitKeys[0];
+  const unitBookings = args.bookings.filter(
+    (_booking, index) => unitKeyByBooking[index] === unitKey,
+  );
+  const firstUnitBooking = unitBookings[0];
+  if (!firstUnitBooking) {
+    throw new Error("Cannot derive an original amount without unit bookings.");
+  }
+
+  const debitTotal = getSideOriginalTotal(
+    unitBookings.filter((booking) => toMoney(booking.value).comparedTo(0) > 0),
+  );
+  const creditTotal = getSideOriginalTotal(
+    unitBookings.filter((booking) => toMoney(booking.value).comparedTo(0) < 0),
+  );
+
+  return {
+    originalAmount: toMoneyNumber(
+      toMoney(debitTotal).greaterThanOrEqualTo(creditTotal)
+        ? debitTotal
+        : creditTotal,
+    ),
+    originalAmountUnit: firstUnitBooking.unit,
+    originalAmountCurrency: firstUnitBooking.currency,
+    originalAmountCryptocurrency: firstUnitBooking.cryptocurrency,
+  };
+}
+
 export function deriveTransactionsRows(args: {
   bookings: TransactionsDerivedBooking[];
+  referenceCurrency: string;
 }): {
   rows: TransactionsDerivedRow[];
 } {
+  const referenceCurrency = normalizeUnitCode(args.referenceCurrency);
+  if (!referenceCurrency) {
+    throw new Error("Reference currency is required.");
+  }
+
   const bookingsByTransactionId = new Map<
     string,
     TransactionsDerivedBooking[]
@@ -221,6 +323,10 @@ export function deriveTransactionsRows(args: {
         booking.date < earliestDate ? booking.date : earliestDate,
       firstBooking.date,
     );
+    const originalAmountSummary = getOriginalAmountSummary({
+      bookings,
+      referenceCurrency,
+    });
 
     return {
       id: firstBooking.transactionId,
@@ -238,6 +344,7 @@ export function deriveTransactionsRows(args: {
       ),
       description: firstBooking.transactionDescription ?? "",
       unitIdentifiers: uniqueStrings(bookings.map(getUnitIdentifier)),
+      ...originalAmountSummary,
       referenceAmount: getReferenceAmount(bookings),
       isOpeningBalancesTransaction: bookings.some(
         (booking) => booking.isOpeningBalancesTransaction,

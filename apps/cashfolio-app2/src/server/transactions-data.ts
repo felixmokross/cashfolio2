@@ -147,7 +147,10 @@ export const getTransactionsData = createServerFn({ method: "GET" })
 
     return {
       referenceCurrency,
-      rows: deriveTransactionsRows({ bookings: mappedBookings }).rows,
+      rows: deriveTransactionsRows({
+        bookings: mappedBookings,
+        referenceCurrency,
+      }).rows,
     };
   });
 
