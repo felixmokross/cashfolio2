@@ -39,6 +39,7 @@ export type StatementImportDraft = {
   amount: number;
   originalAmount: number | undefined;
   originalCurrency: string | undefined;
+  counterAccountId: string;
   description: string;
   transaction: TransactionMutationValues;
 };
@@ -171,6 +172,7 @@ export function createStatementImportDraft(args: {
     amount,
     originalAmount,
     originalCurrency,
+    counterAccountId: "",
     description,
     transaction: {
       description,
@@ -299,6 +301,10 @@ export function updateStatementImportDraftTransaction(args: {
     ...args.draft,
     date: currentBooking?.date ?? args.draft.date,
     amount: currentBooking?.value ?? args.draft.amount,
+    counterAccountId: getCounterAccountIdFromTransaction({
+      currentAccountId,
+      transaction: args.transaction,
+    }),
     description: args.transaction.description,
     transaction: args.transaction,
   };
@@ -490,6 +496,18 @@ function findStatementImportCounterBookingIndex(
   const currentAccountId = draft.transaction.bookings[0]?.accountId;
   return draft.transaction.bookings.findIndex(
     (booking, index) => index > 0 && booking.accountId !== currentAccountId,
+  );
+}
+
+function getCounterAccountIdFromTransaction(args: {
+  currentAccountId: string | undefined;
+  transaction: TransactionMutationValues;
+}): string {
+  return (
+    args.transaction.bookings.find(
+      (booking, index) =>
+        index > 0 && booking.accountId !== args.currentAccountId,
+    )?.accountId ?? ""
   );
 }
 

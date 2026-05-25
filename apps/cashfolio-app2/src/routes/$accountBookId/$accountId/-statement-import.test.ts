@@ -84,6 +84,7 @@ describe("statement import", () => {
       amount: 100.25,
       originalAmount: 92.5,
       originalCurrency: "EUR",
+      counterAccountId: "",
       description: "Transfer, incoming",
       transaction: {
         description: "Transfer, incoming",
@@ -350,6 +351,7 @@ describe("statement import", () => {
       currency: "EUR",
       value: -92.5,
     });
+    expect(updated.counterAccountId).toBe("income-1");
     expect(
       getStatementImportDraftStatus({
         draft: updated,
@@ -378,6 +380,7 @@ describe("statement import", () => {
       currency: "USD",
       value: -92.5,
     });
+    expect(updated.counterAccountId).toBe("asset-usd");
   });
 
   test("direct counter-account edits preserve imported units for unitless equity accounts", () => {
@@ -404,5 +407,6 @@ describe("statement import", () => {
       currency: "EUR",
       value: 42,
     });
+    expect(updated.counterAccountId).toBe("expense-1");
   });
 });
