@@ -198,6 +198,15 @@ submit UX and prevent duplicate requests.
 - Clamp stale drill paths to the nearest valid ancestor when refreshed data no
   longer contains a node.
 
+## Reference Currency Display Principle
+
+Treat the account book reference currency as the standard case in UI display.
+When a row already has a reference-currency amount column, do not repeat the
+reference currency in adjacent unit columns or duplicate the same amount in the
+booking-unit debit/credit columns. Show native unit labels and native
+debit/credit amounts only when they add information, such as foreign currency,
+crypto, or security bookings.
+
 ## Accounts List Columns
 
 - Non-equity tabs (`ASSET`, `LIABILITY`) render `Ccy.`, `Symbol`, `Balance`, and
@@ -303,6 +312,12 @@ for ledger child routes.
 - **Debit/Credit column visibility**: Income accounts hide the debit column;
   Expense accounts hide the credit column; Equity (non-Expense) accounts hide
   the balance column
+- **Reference-currency equity rows**: For equity ledgers, bookings in the
+  account book reference currency leave `Ccy./Symbol` blank. When the ledger
+  shows adjacent reference-currency Debit/Credit columns, the booking-unit
+  Debit/Credit cells are also blank because those reference columns already
+  carry the amount. Non-reference currency, crypto, and security bookings keep
+  their native unit and native amount cells.
 - **Running balance**: Accumulated across all bookings in chronological order
   (asset/liability period-filtered views are seeded from the pre-period all-time
   balance so displayed balances stay all-time)
