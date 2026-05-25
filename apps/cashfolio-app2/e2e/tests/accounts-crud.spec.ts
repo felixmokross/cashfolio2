@@ -81,6 +81,60 @@ test("create, edit, archive, and unarchive account", async ({ page }) => {
   await expect(unarchivedRow).toBeVisible();
 });
 
+test("edit unitless equity account from list and ledger", async ({ page }) => {
+  const consoleErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      consoleErrors.push(message.text());
+    }
+  });
+
+  await page.goto(
+    `/${seeded.accountBookId}/accounts?tab=EQUITY-EXPENSE&mode=active`,
+  );
+
+  const listUpdatedName = "E2E Expense Updated From List";
+  const ledgerUpdatedName = "E2E Expense Updated From Ledger";
+  const expenseGroupRow = agGridRowByText(page, "E2E Expenses");
+  await expect(expenseGroupRow).toBeVisible();
+  const expandExpenseGroup = expenseGroupRow
+    .locator(".ag-group-contracted")
+    .first();
+  if (await expandExpenseGroup.isVisible()) {
+    await expandExpenseGroup.click();
+  }
+
+  const expenseRow = agGridRowByText(page, seeded.unitlessExpenseAccount.name);
+  await expect(expenseRow).toBeVisible();
+
+  await clickRowAction(expenseRow, "Edit");
+  const listEditDialog = page.getByRole("dialog", { name: "Edit Account" });
+  await expect(listEditDialog).toBeVisible();
+  await listEditDialog.getByLabel("Name").fill(listUpdatedName);
+  await listEditDialog.getByRole("button", { name: "Save" }).click();
+
+  const listUpdatedRow = agGridRowByText(page, listUpdatedName);
+  await expect(listUpdatedRow).toBeVisible();
+
+  await page.goto(
+    `/${seeded.accountBookId}/${seeded.unitlessExpenseAccount.id}`,
+  );
+  await page.getByRole("button", { name: "Edit" }).click();
+  const ledgerEditDialog = page.getByRole("dialog", { name: "Edit Account" });
+  await expect(ledgerEditDialog).toBeVisible();
+  await ledgerEditDialog.getByLabel("Name").fill(ledgerUpdatedName);
+  await ledgerEditDialog.getByRole("button", { name: "Save" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: ledgerUpdatedName }),
+  ).toBeVisible();
+  expect(
+    consoleErrors.filter((message) =>
+      message.includes("Account unit cannot be changed"),
+    ),
+  ).toEqual([]);
+});
+
 test("archived mode allows edit, reorder siblings, and delete", async ({
   page,
 }) => {

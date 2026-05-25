@@ -87,7 +87,11 @@ vi.mock("../period/period-base-data-cache", () => ({
   invalidatePeriodBaseDataCacheForAccountBook,
 }));
 
-import { createAccountGroup, updateAccount } from "./accounts-mutations";
+import {
+  createAccount,
+  createAccountGroup,
+  updateAccount,
+} from "./accounts-mutations";
 
 describe("updateAccount opening balance management", () => {
   beforeEach(() => {
@@ -156,6 +160,121 @@ describe("updateAccount opening balance management", () => {
         name: "Cash renamed",
         groupId: "group-1",
         sortOrder: 7,
+      },
+    });
+  });
+
+  it("ignores stale submitted unit identity fields when updating unitless equity accounts", async () => {
+    prisma.account.findUniqueOrThrow.mockResolvedValueOnce({
+      type: AccountType.EQUITY,
+      equityAccountSubtype: EquityAccountSubtype.EXPENSE,
+      unit: null,
+      currency: null,
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
+    });
+    tx.account.update.mockResolvedValueOnce({
+      id: "account-1",
+      name: "Groceries renamed",
+      type: AccountType.EQUITY,
+      equityAccountSubtype: EquityAccountSubtype.EXPENSE,
+      unit: null,
+      currency: null,
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
+    });
+
+    await updateAccount({
+      data: {
+        id: "account-1",
+        accountBookId: "book-1",
+        name: "Groceries renamed",
+        type: AccountType.EQUITY,
+        equityAccountSubtype: EquityAccountSubtype.EXPENSE,
+        groupId: "group-expenses",
+        sortOrder: 2,
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+      },
+    });
+
+    expect(validateAccountInput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: AccountType.EQUITY,
+        equityAccountSubtype: EquityAccountSubtype.EXPENSE,
+        unit: undefined,
+        currency: undefined,
+        cryptocurrency: undefined,
+        symbol: undefined,
+        tradeCurrency: undefined,
+      }),
+      [],
+    );
+    expect(tx.account.update).toHaveBeenCalledWith({
+      where: {
+        id_accountBookId: { id: "account-1", accountBookId: "book-1" },
+      },
+      data: {
+        name: "Groceries renamed",
+        groupId: "group-expenses",
+        sortOrder: 2,
+      },
+    });
+  });
+
+  it("stores newly created equity accounts without hidden unit identity fields", async () => {
+    tx.account.create.mockResolvedValueOnce({
+      id: "account-2",
+      name: "Groceries",
+      type: AccountType.EQUITY,
+      equityAccountSubtype: EquityAccountSubtype.EXPENSE,
+      unit: null,
+      currency: null,
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
+    });
+
+    await createAccount({
+      data: {
+        accountBookId: "book-1",
+        name: "Groceries",
+        type: AccountType.EQUITY,
+        equityAccountSubtype: EquityAccountSubtype.EXPENSE,
+        groupId: "group-expenses",
+        sortOrder: 1,
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+      },
+    });
+
+    expect(validateAccountInput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: AccountType.EQUITY,
+        equityAccountSubtype: EquityAccountSubtype.EXPENSE,
+        unit: undefined,
+        currency: undefined,
+        cryptocurrency: undefined,
+        symbol: undefined,
+        tradeCurrency: undefined,
+      }),
+      [],
+    );
+    expect(tx.account.create).toHaveBeenCalledWith({
+      data: {
+        name: "Groceries",
+        type: AccountType.EQUITY,
+        equityAccountSubtype: EquityAccountSubtype.EXPENSE,
+        groupId: "group-expenses",
+        sortOrder: 1,
+        unit: undefined,
+        currency: undefined,
+        cryptocurrency: undefined,
+        symbol: undefined,
+        tradeCurrency: undefined,
+        accountBookId: "book-1",
       },
     });
   });
