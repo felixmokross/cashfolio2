@@ -166,6 +166,44 @@ describe("statement import CSV parser", () => {
     });
   });
 
+  test("allows ordered formats to omit optional columns", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: true,
+        delimitersToGuess: [","],
+        columns: ["date", "amount", "description"],
+      },
+      text: ["date,amount,description", "2026-02-03,100.25,Transfer"].join(
+        "\n",
+      ),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.drafts[0]).toMatchObject({
+      amount: 100.25,
+      originalAmount: undefined,
+      originalCurrency: undefined,
+      description: "Transfer",
+      transaction: {
+        bookings: [
+          {
+            accountId: "asset-1",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: 100.25,
+          },
+          {
+            accountId: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: -100.25,
+          },
+        ],
+      },
+    });
+  });
+
   test("parses configured date formats", () => {
     const european = parseStatementImportCsv({
       currentAccount,

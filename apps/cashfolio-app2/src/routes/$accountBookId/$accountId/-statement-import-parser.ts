@@ -187,16 +187,23 @@ function normalizeStatementImportCsvFormat(format: StatementImportCsvFormat): {
 function createMappingsFromColumns(
   columns: readonly (typeof STATEMENT_IMPORT_CSV_HEADERS)[number][],
 ): StatementImportCsvMappings {
+  const getOptionalColumnIndex = (
+    column: (typeof STATEMENT_IMPORT_CSV_HEADERS)[number],
+  ) => {
+    const index = columns.indexOf(column);
+    return index === -1 ? undefined : index;
+  };
+
   return {
     date: columns.indexOf("date"),
     amount: {
       mode: "signed",
       column: columns.indexOf("amount"),
     },
-    originalAmount: columns.indexOf("original amount"),
-    originalCurrency: columns.indexOf("original currency"),
-    exchangeRate: columns.indexOf("exchange rate"),
-    description: columns.indexOf("description"),
+    originalAmount: getOptionalColumnIndex("original amount"),
+    originalCurrency: getOptionalColumnIndex("original currency"),
+    exchangeRate: getOptionalColumnIndex("exchange rate"),
+    description: getOptionalColumnIndex("description"),
   };
 }
 
