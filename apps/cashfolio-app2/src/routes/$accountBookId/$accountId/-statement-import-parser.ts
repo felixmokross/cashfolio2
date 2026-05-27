@@ -2,8 +2,10 @@ import Papa from "papaparse";
 import { parseUtcDayDate } from "@/shared/date";
 import { createStatementImportDraft } from "./-statement-import-draft";
 import {
+  DEFAULT_STATEMENT_IMPORT_CSV_FORMAT,
   STATEMENT_IMPORT_CSV_HEADERS,
   type CurrentAccountForStatementImport,
+  type StatementImportCsvFormat,
   type StatementImportCsvRow,
   type StatementImportDraft,
   type StatementImportParseResult,
@@ -13,15 +15,17 @@ const STRICT_DECIMAL_PATTERN = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/;
 const DATE_LIKE_PATTERN = /^\d{1,4}[-./]\d{1,2}[-./]\d{1,4}$/;
 const NUMBER_LIKE_PATTERN = /^-?[\d\s'.,]+$/;
 const CURRENCY_PATTERN = /^[A-Z]{3}$/;
-const REQUIRED_COLUMN_COUNT = STATEMENT_IMPORT_CSV_HEADERS.length;
 
 export function parseStatementImportCsv(args: {
   text: string;
   currentAccount: CurrentAccountForStatementImport;
+  format?: StatementImportCsvFormat;
 }): StatementImportParseResult {
+  const format = args.format ?? DEFAULT_STATEMENT_IMPORT_CSV_FORMAT;
+  const requiredColumnCount = getRequiredColumnCount(format);
   const parsed = Papa.parse<string[]>(args.text, {
     header: false,
-    delimitersToGuess: [",", ";"],
+    delimitersToGuess: [...format.delimitersToGuess],
     skipEmptyLines: "greedy",
   });
   const errors = parsed.errors.map((error) =>
@@ -31,13 +35,13 @@ export function parseStatementImportCsv(args: {
   );
 
   const [headerRow, ...dataRows] = parsed.data;
-  if (!headerRow || headerRow.length < REQUIRED_COLUMN_COUNT) {
+  if (!headerRow || headerRow.length < requiredColumnCount) {
     errors.unshift(
-      `CSV must include at least ${REQUIRED_COLUMN_COUNT} columns in this order: ${STATEMENT_IMPORT_CSV_HEADERS.join(", ")}`,
+      `CSV must include at least ${requiredColumnCount} columns in this order: ${format.columns.join(", ")}`,
     );
     return { drafts: [], errors };
   }
-  if (isLikelyHeaderlessDataRow(headerRow)) {
+  if (isLikelyHeaderlessDataRow(headerRow, format)) {
     errors.unshift("CSV must include a header row before transaction rows.");
     return { drafts: [], errors };
   }
@@ -45,7 +49,7 @@ export function parseStatementImportCsv(args: {
   const rows = dataRows
     .map((row, index) => ({ row, sourceRowNumber: index + 2 }))
     .filter(({ row }) =>
-      row.slice(0, REQUIRED_COLUMN_COUNT).some((value) => value?.trim() !== ""),
+      row.slice(0, requiredColumnCount).some((value) => value?.trim() !== ""),
     );
   if (rows.length === 0) {
     errors.push("CSV must contain at least one transaction row.");
@@ -57,6 +61,7 @@ export function parseStatementImportCsv(args: {
       row,
       headerColumnCount: headerRow.length,
       delimiter: parsed.meta.delimiter,
+      format,
       sourceRowNumber,
     });
     if (rowShapeErrors.length > 0) {
@@ -64,7 +69,7 @@ export function parseStatementImportCsv(args: {
       return;
     }
 
-    const csvRow = toStatementImportCsvRow(row);
+    const csvRow = toStatementImportCsvRow(row, format);
     const rowErrors = validateCsvRow(csvRow, sourceRowNumber);
     if (rowErrors.length > 0) {
       errors.push(...rowErrors);
@@ -83,14 +88,30 @@ export function parseStatementImportCsv(args: {
   return errors.length > 0 ? { drafts: [], errors } : { drafts, errors: [] };
 }
 
-function toStatementImportCsvRow(row: string[]): StatementImportCsvRow {
+function getRequiredColumnCount(format: StatementImportCsvFormat): number {
+  return format.columns.length;
+}
+
+function getColumnValue(
+  row: string[],
+  format: StatementImportCsvFormat,
+  column: (typeof STATEMENT_IMPORT_CSV_HEADERS)[number],
+): string {
+  const index = format.columns.indexOf(column);
+  return index === -1 ? "" : (row[index] ?? "");
+}
+
+function toStatementImportCsvRow(
+  row: string[],
+  format: StatementImportCsvFormat,
+): StatementImportCsvRow {
   return {
-    date: row[0] ?? "",
-    amount: row[1] ?? "",
-    "original amount": row[2] ?? "",
-    "original currency": row[3] ?? "",
-    "exchange rate": row[4] ?? "",
-    description: row[5] ?? "",
+    date: getColumnValue(row, format, "date"),
+    amount: getColumnValue(row, format, "amount"),
+    "original amount": getColumnValue(row, format, "original amount"),
+    "original currency": getColumnValue(row, format, "original currency"),
+    "exchange rate": getColumnValue(row, format, "exchange rate"),
+    description: getColumnValue(row, format, "description"),
   };
 }
 
@@ -98,12 +119,14 @@ function validateCsvRowShape(args: {
   row: string[];
   headerColumnCount: number;
   delimiter: string;
+  format: StatementImportCsvFormat;
   sourceRowNumber: number;
 }): string[] {
   const errors: string[] = [];
-  if (args.row.length < REQUIRED_COLUMN_COUNT) {
+  const requiredColumnCount = getRequiredColumnCount(args.format);
+  if (args.row.length < requiredColumnCount) {
     errors.push(
-      `Row ${args.sourceRowNumber}: CSV row must include at least ${REQUIRED_COLUMN_COUNT} columns.`,
+      `Row ${args.sourceRowNumber}: CSV row must include at least ${requiredColumnCount} columns.`,
     );
   }
   if (args.row.length > args.headerColumnCount) {
@@ -113,8 +136,8 @@ function validateCsvRowShape(args: {
   }
   if (
     args.delimiter === "," &&
-    args.row.length > REQUIRED_COLUMN_COUNT &&
-    isLikelyShiftedByUnquotedExchangeRateDecimalComma(args.row)
+    args.row.length > requiredColumnCount &&
+    isLikelyShiftedByUnquotedExchangeRateDecimalComma(args.row, args.format)
   ) {
     errors.push(
       `Row ${args.sourceRowNumber}: CSV row appears to have an unquoted decimal comma before the description column; use semicolon delimiter or quote the value.`,
@@ -126,10 +149,21 @@ function validateCsvRowShape(args: {
 
 function isLikelyShiftedByUnquotedExchangeRateDecimalComma(
   row: string[],
+  format: StatementImportCsvFormat,
 ): boolean {
-  const exchangeRateIntegerPart = row[4]?.trim() ?? "";
-  const shiftedDecimalPart = row[5]?.trim() ?? "";
-  const displacedDescription = row[6]?.trim() ?? "";
+  const exchangeRateColumnIndex = format.columns.indexOf("exchange rate");
+  const descriptionColumnIndex = format.columns.indexOf("description");
+  if (
+    exchangeRateColumnIndex === -1 ||
+    descriptionColumnIndex === -1 ||
+    exchangeRateColumnIndex + 1 !== descriptionColumnIndex
+  ) {
+    return false;
+  }
+
+  const exchangeRateIntegerPart = row[exchangeRateColumnIndex]?.trim() ?? "";
+  const shiftedDecimalPart = row[descriptionColumnIndex]?.trim() ?? "";
+  const displacedDescription = row[descriptionColumnIndex + 1]?.trim() ?? "";
   return (
     /^\d+$/.test(exchangeRateIntegerPart) &&
     /^\d+$/.test(shiftedDecimalPart) &&
@@ -137,8 +171,11 @@ function isLikelyShiftedByUnquotedExchangeRateDecimalComma(
   );
 }
 
-function isLikelyHeaderlessDataRow(row: string[]): boolean {
-  const candidate = toStatementImportCsvRow(row);
+function isLikelyHeaderlessDataRow(
+  row: string[],
+  format: StatementImportCsvFormat,
+): boolean {
+  const candidate = toStatementImportCsvRow(row, format);
   const date = candidate.date.trim();
   const amount = candidate.amount.trim();
   return (
