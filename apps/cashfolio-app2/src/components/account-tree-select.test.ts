@@ -11,15 +11,13 @@ describe("buildAccountTreeData", () => {
     const treeData = buildAccountTreeData([
       {
         value: "account-checking",
-        label: "Asset / Cash / Checking",
+        label: "Checking",
         treePath: ["Asset", "Cash"],
-        treeLabel: "Checking",
       },
       {
         value: "account-savings",
-        label: "Asset / Savings",
+        label: "Savings",
         treePath: ["Asset"],
-        treeLabel: "Savings",
       },
     ]);
 
@@ -55,9 +53,8 @@ describe("buildAccountTreeData", () => {
     const options = [
       {
         value: "account-checking",
-        label: "Asset / Cash / Checking",
+        label: "Checking",
         treePath: ["Asset", "Cash"],
-        treeLabel: "Checking",
       },
     ];
     const treeData = buildAccountTreeData(options);
@@ -74,9 +71,8 @@ describe("buildAccountTreeData", () => {
     const treeData = buildAccountTreeData([
       {
         value: "account-checking",
-        label: "Asset / Cash & Bank / Checking",
+        label: "Checking",
         treePath: ["Asset", "Cash & Bank"],
-        treeLabel: "Checking",
       },
     ]);
 
@@ -111,9 +107,8 @@ describe("buildAccountTreeData", () => {
     const treeData = buildAccountTreeData([
       {
         value: "account-checking",
-        label: "Asset / Cash / Checking",
+        label: "Checking",
         treePath: ["Asset", "Cash"],
-        treeLabel: "Checking",
       },
     ]);
 

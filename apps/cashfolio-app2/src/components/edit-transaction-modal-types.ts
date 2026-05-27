@@ -8,7 +8,6 @@ export type AccountOption = {
   label: string;
   value: string;
   treePath?: string[];
-  treeLabel?: string;
   unit: Unit | null;
   currency?: string | null;
   cryptocurrency?: string | null;

@@ -30,7 +30,7 @@ describe("createBookingUnitDefaults", () => {
   test("copies locked booking unit fields for unitless equity targets", () => {
     const selectedAccount = accountOption({
       value: "equity",
-      label: "Accounts / Equity",
+      label: "Equity",
       type: AccountType.EQUITY,
       equityAccountSubtype: EquityAccountSubtype.GAIN_LOSS,
       unit: null,
@@ -56,7 +56,7 @@ describe("createBookingUnitDefaults", () => {
   test("uses selected account unit fields when target account has its own unit", () => {
     const selectedAccount = accountOption({
       value: "crypto",
-      label: "Asset / Assets / BTC",
+      label: "BTC",
       type: AccountType.ASSET,
       unit: Unit.CRYPTOCURRENCY,
       cryptocurrency: "BTC",
