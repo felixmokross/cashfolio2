@@ -252,6 +252,7 @@ test("bulk ignores statement rows and skips them during import", async ({
   );
 
   await clickGridRowSelectionCheckbox(secondIgnoredRow);
+  await expect(page.getByText("2 selected")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Ignore 2 selected rows" }),
   ).toBeVisible();
