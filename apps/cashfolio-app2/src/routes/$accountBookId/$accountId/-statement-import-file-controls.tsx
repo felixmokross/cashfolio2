@@ -31,22 +31,25 @@ export function StatementImportFileControls({
   onFileChange: (file: File | null) => void;
 }) {
   return (
-    <Group align="end">
-      <FileInput
-        label="CSV File"
-        placeholder="Select CSV file"
-        accept=".csv,text/csv"
-        value={file}
-        leftSection={<IconUpload size={16} />}
-        disabled={isSubmitting}
-        clearable
-        style={{ flex: "1 1 24rem" }}
-        onChange={onFileChange}
-      />
-      <Group gap="xs" wrap="nowrap" style={{ marginLeft: "auto" }}>
-        <Text c="dimmed" size="sm">
+    <Stack gap={4}>
+      <Group align="end">
+        <FileInput
+          label="CSV File"
+          placeholder="Select CSV file"
+          accept=".csv,text/csv"
+          value={file}
+          leftSection={<IconUpload size={16} />}
+          disabled={isSubmitting}
+          clearable
+          style={{ flex: "1 1 24rem" }}
+          onChange={onFileChange}
+        />
+        <Text c="dimmed" size="sm" style={{ marginLeft: "auto" }}>
           {summaryText}
         </Text>
+      </Group>
+
+      <Group h={32} justify="end" align="center" gap="xs" wrap="nowrap">
         {selectedDraftCount >= 2 ? (
           <>
             <Badge color="gray" variant="light">
@@ -71,7 +74,7 @@ export function StatementImportFileControls({
           </>
         ) : null}
       </Group>
-    </Group>
+    </Stack>
   );
 }
 
