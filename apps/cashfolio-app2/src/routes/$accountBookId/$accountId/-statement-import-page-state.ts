@@ -1,4 +1,7 @@
-import type { CellValueChangedEvent } from "ag-grid-enterprise";
+import type {
+  CellValueChangedEvent,
+  SelectionChangedEvent,
+} from "ag-grid-enterprise";
 import { useMemo, useRef, useState } from "react";
 import type { AccountOption } from "@/components/edit-transaction-modal";
 import type { TransactionMutationValues } from "./-page-view";
@@ -19,6 +22,7 @@ import {
   getStatementImportSummaryText,
   getStatementImportTransactionsToSubmit,
   isStatementImportDisabled,
+  setStatementImportDraftsIgnored,
   toggleStatementImportDraftIgnored,
 } from "./-statement-import-page-controller";
 
@@ -41,6 +45,7 @@ export function useStatementImportPageState(args: {
   const [file, setFile] = useState<File | null>(null);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [drafts, setDrafts] = useState<StatementImportDraft[]>([]);
+  const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([]);
   const [editingDraftId, setEditingDraftId] = useState<string | undefined>();
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
   const fileReadRequestId = useRef(0);
@@ -82,6 +87,21 @@ export function useStatementImportPageState(args: {
   });
   const includedCount = drafts.length - ignoredCount;
   const editingDraft = drafts.find((draft) => draft.id === editingDraftId);
+  const selectedDraftIdSet = useMemo(
+    () => new Set(selectedDraftIds),
+    [selectedDraftIds],
+  );
+  const selectedDrafts = useMemo(
+    () => drafts.filter((draft) => selectedDraftIdSet.has(draft.id)),
+    [drafts, selectedDraftIdSet],
+  );
+  const selectedDraftCount = selectedDrafts.length;
+  const bulkShouldIgnoreSelectedDrafts = selectedDrafts.some(
+    (draft) => !draft.ignored,
+  );
+  const bulkIgnoredActionLabel = `${
+    bulkShouldIgnoreSelectedDrafts ? "Ignore" : "Unignore"
+  } ${selectedDraftCount} selected rows`;
   const importDisabled = isStatementImportDisabled({
     drafts,
     readyCount,
@@ -106,6 +126,7 @@ export function useStatementImportPageState(args: {
     setFile(nextFile);
     setParseErrors([]);
     setDrafts([]);
+    setSelectedDraftIds([]);
     setEditingDraftId(undefined);
     if (!nextFile) return;
 
@@ -180,6 +201,26 @@ export function useStatementImportPageState(args: {
     }
   }
 
+  function handleSelectionChange(
+    event: SelectionChangedEvent<StatementImportDraft>,
+  ) {
+    setSelectedDraftIds(event.api.getSelectedRows().map((draft) => draft.id));
+  }
+
+  function handleBulkIgnoredChange() {
+    if (selectedDraftCount < 2) {
+      return;
+    }
+
+    setDrafts((current) =>
+      setStatementImportDraftsIgnored({
+        drafts: current,
+        draftIds: selectedDraftIds,
+        ignored: bulkShouldIgnoreSelectedDrafts,
+      }),
+    );
+  }
+
   function handleSaveDraft(values: TransactionMutationValues) {
     if (!editingDraft) return Promise.resolve();
     setDrafts((current) =>
@@ -202,20 +243,25 @@ export function useStatementImportPageState(args: {
   }
 
   return {
+    bulkIgnoredActionLabel,
+    bulkShouldIgnoreSelectedDrafts,
     columnDefs,
     drafts,
     editingDraft,
     file,
     handleDraftCellChange,
     handleFileChange,
+    handleBulkIgnoredChange,
     handleImport,
     handleSaveDraft,
+    handleSelectionChange,
     ignoredCount,
     importDisabled,
     includedCount,
     isEditSubmitting,
     parseErrors,
     readyCount,
+    selectedDraftCount,
     setIsEditSubmitting,
     closeEditDraft,
     summaryText,

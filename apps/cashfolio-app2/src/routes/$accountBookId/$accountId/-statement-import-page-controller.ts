@@ -111,3 +111,21 @@ export function toggleStatementImportDraftIgnored(
     draft.id === draftId ? { ...draft, ignored: !draft.ignored } : draft,
   );
 }
+
+export function setStatementImportDraftsIgnored(args: {
+  drafts: StatementImportDraft[];
+  draftIds: string[];
+  ignored: boolean;
+}): StatementImportDraft[] {
+  const draftIds = new Set(args.draftIds);
+  return args.drafts.map((draft) => {
+    if (!draftIds.has(draft.id) || draft.ignored === args.ignored) {
+      return draft;
+    }
+
+    return {
+      ...draft,
+      ignored: args.ignored,
+    };
+  });
+}

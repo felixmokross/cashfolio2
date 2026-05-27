@@ -1,15 +1,33 @@
-import { Alert, FileInput, Group, Stack, Text } from "@mantine/core";
-import { IconUpload } from "@tabler/icons-react";
+import {
+  Alert,
+  Badge,
+  Button,
+  FileInput,
+  Group,
+  Stack,
+  Text,
+} from "@mantine/core";
+import { IconEye, IconEyeOff, IconUpload } from "@tabler/icons-react";
 
 export function StatementImportFileControls({
+  bulkIgnoredActionLabel,
+  bulkShouldIgnoreSelectedDrafts,
   file,
+  isEditSubmitting,
   isSubmitting,
+  selectedDraftCount,
   summaryText,
+  onBulkIgnoredChange,
   onFileChange,
 }: {
+  bulkIgnoredActionLabel: string;
+  bulkShouldIgnoreSelectedDrafts: boolean;
   file: File | null;
+  isEditSubmitting: boolean;
   isSubmitting: boolean;
+  selectedDraftCount: number;
   summaryText: string;
+  onBulkIgnoredChange: () => void;
   onFileChange: (file: File | null) => void;
 }) {
   return (
@@ -25,9 +43,34 @@ export function StatementImportFileControls({
         style={{ flex: "1 1 24rem" }}
         onChange={onFileChange}
       />
-      <Text c="dimmed" size="sm">
-        {summaryText}
-      </Text>
+      <Group gap="xs" wrap="nowrap" style={{ marginLeft: "auto" }}>
+        <Text c="dimmed" size="sm">
+          {summaryText}
+        </Text>
+        {selectedDraftCount >= 2 ? (
+          <>
+            <Badge color="gray" variant="light">
+              {selectedDraftCount} selected
+            </Badge>
+            <Button
+              size="xs"
+              variant="light"
+              color="blue"
+              leftSection={
+                bulkShouldIgnoreSelectedDrafts ? (
+                  <IconEyeOff size={16} />
+                ) : (
+                  <IconEye size={16} />
+                )
+              }
+              disabled={isSubmitting || isEditSubmitting}
+              onClick={onBulkIgnoredChange}
+            >
+              {bulkIgnoredActionLabel}
+            </Button>
+          </>
+        ) : null}
+      </Group>
     </Group>
   );
 }

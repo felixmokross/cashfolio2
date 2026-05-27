@@ -68,9 +68,14 @@ export function AccountStatementImportPageView({
 
       <Stack gap="md" flex={1} mih={0}>
         <StatementImportFileControls
+          bulkIgnoredActionLabel={state.bulkIgnoredActionLabel}
+          bulkShouldIgnoreSelectedDrafts={state.bulkShouldIgnoreSelectedDrafts}
           file={state.file}
+          isEditSubmitting={state.isEditSubmitting}
           isSubmitting={isSubmitting}
+          selectedDraftCount={state.selectedDraftCount}
           summaryText={state.summaryText}
+          onBulkIgnoredChange={state.handleBulkIgnoredChange}
           onFileChange={(nextFile) => void state.handleFileChange(nextFile)}
         />
 
@@ -89,7 +94,14 @@ export function AccountStatementImportPageView({
           rowClassRules={{
             "statement-import-row-ignored": ({ data }) => !!data?.ignored,
           }}
+          rowSelection={{
+            mode: "multiRow",
+            checkboxes: true,
+            headerCheckbox: true,
+            enableClickSelection: false,
+          }}
           onCellValueChanged={state.handleDraftCellChange}
+          onSelectionChanged={state.handleSelectionChange}
         />
 
         <StatementImportActions

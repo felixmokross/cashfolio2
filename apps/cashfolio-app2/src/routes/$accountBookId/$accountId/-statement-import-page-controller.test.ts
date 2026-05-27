@@ -7,6 +7,7 @@ import {
   getStatementImportSummaryText,
   getStatementImportTransactionsToSubmit,
   isStatementImportDisabled,
+  setStatementImportDraftsIgnored,
   toggleStatementImportDraftIgnored,
 } from "./-statement-import-page-controller";
 import type {
@@ -274,5 +275,59 @@ describe("statement import page controller", () => {
       draft.id,
     );
     expect(includedDraft).toEqual(draft);
+  });
+
+  test("bulk ignores selected drafts without changing unselected drafts", () => {
+    const firstDraft = createDraft({ id: "draft-1" });
+    const secondDraft = createDraft({ id: "draft-2" });
+    const unselectedDraft = createDraft({ id: "draft-3" });
+
+    const result = setStatementImportDraftsIgnored({
+      drafts: [firstDraft, secondDraft, unselectedDraft],
+      draftIds: [firstDraft.id, secondDraft.id],
+      ignored: true,
+    });
+
+    expect(result).toEqual([
+      { ...firstDraft, ignored: true },
+      { ...secondDraft, ignored: true },
+      unselectedDraft,
+    ]);
+  });
+
+  test("bulk unignores selected drafts", () => {
+    const firstDraft = createDraft({ id: "draft-1", ignored: true });
+    const secondDraft = createDraft({ id: "draft-2", ignored: true });
+
+    const result = setStatementImportDraftsIgnored({
+      drafts: [firstDraft, secondDraft],
+      draftIds: [firstDraft.id, secondDraft.id],
+      ignored: false,
+    });
+
+    expect(result).toEqual([
+      { ...firstDraft, ignored: false },
+      { ...secondDraft, ignored: false },
+    ]);
+  });
+
+  test("bulk ignore keeps already ignored selected draft data unchanged", () => {
+    const includedDraft = createDraft({ id: "included-draft" });
+    const ignoredDraft = createDraft({
+      id: "ignored-draft",
+      ignored: true,
+      transaction: {
+        description: "Ignored custom transaction",
+        bookings: [],
+      },
+    });
+
+    const result = setStatementImportDraftsIgnored({
+      drafts: [includedDraft, ignoredDraft],
+      draftIds: [includedDraft.id, ignoredDraft.id],
+      ignored: true,
+    });
+
+    expect(result).toEqual([{ ...includedDraft, ignored: true }, ignoredDraft]);
   });
 });

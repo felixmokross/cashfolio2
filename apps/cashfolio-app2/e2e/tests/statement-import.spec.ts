@@ -4,6 +4,7 @@ import { Unit } from "../../src/.prisma-client/enums";
 import {
   agGridCellByColId,
   agGridRowByText,
+  clickGridRowSelectionCheckbox,
   clickPinnedRowAction,
   setGridCellValue,
   setGridAccountTreeCellValue,
@@ -210,15 +211,17 @@ test("shows multiple for drafts with several counter bookings", async ({
   );
 });
 
-test("keeps ignored statement rows visible and skips them during import", async ({
+test("bulk ignores statement rows and skips them during import", async ({
   page,
 }) => {
   const importedDescription = "E2E Statement Import Included";
-  const ignoredDescription = "E2E Statement Import Ignored";
+  const firstIgnoredDescription = "E2E Statement Import Ignored First";
+  const secondIgnoredDescription = "E2E Statement Import Ignored Second";
   const csv = [
     "Booked;Cashflow;Original;Currency;Rate;Text;Ignored",
     `2026-05-16;-12.35;;;ignored;${importedDescription};extra value`,
-    `2026-05-17;-98.75;;;ignored;${ignoredDescription};extra value`,
+    `2026-05-17;-98.75;;;ignored;${firstIgnoredDescription};extra value`,
+    `2026-05-18;-45.20;;;ignored;${secondIgnoredDescription};extra value`,
   ].join("\n");
 
   await page.goto(
@@ -233,32 +236,49 @@ test("keeps ignored statement rows visible and skips them during import", async 
   });
 
   const includedRow = agGridRowByText(page, importedDescription);
-  const ignoredRow = agGridRowByText(page, ignoredDescription);
+  const firstIgnoredRow = agGridRowByText(page, firstIgnoredDescription);
+  const secondIgnoredRow = agGridRowByText(page, secondIgnoredDescription);
   await expect(includedRow).toBeVisible();
-  await expect(ignoredRow).toBeVisible();
+  await expect(firstIgnoredRow).toBeVisible();
+  await expect(secondIgnoredRow).toBeVisible();
 
-  await clickPinnedRowAction({
-    row: ignoredRow,
-    actionLabel: "Ignore Imported Transaction",
-  });
-  await expect(agGridCellByColId(ignoredRow, "status")).toContainText(
+  await expect(page.getByRole("button", { name: /selected rows/ })).toHaveCount(
+    0,
+  );
+
+  await clickGridRowSelectionCheckbox(firstIgnoredRow);
+  await expect(page.getByRole("button", { name: /selected rows/ })).toHaveCount(
+    0,
+  );
+
+  await clickGridRowSelectionCheckbox(secondIgnoredRow);
+  await expect(
+    page.getByRole("button", { name: "Ignore 2 selected rows" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Ignore 2 selected rows" }).click();
+  await expect(agGridCellByColId(firstIgnoredRow, "status")).toContainText(
     "Ignored",
   );
-  await expect(page.getByText("0 of 2 ready, 1 ignored")).toBeVisible();
+  await expect(agGridCellByColId(secondIgnoredRow, "status")).toContainText(
+    "Ignored",
+  );
+  await expect(page.getByText("0 of 3 ready, 2 ignored")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Unignore 2 selected rows" }),
+  ).toBeVisible();
 
-  await clickPinnedRowAction({
-    row: ignoredRow,
-    actionLabel: "Unignore Imported Transaction",
-  });
-  await expect(agGridCellByColId(ignoredRow, "status")).toContainText(
+  await page.getByRole("button", { name: "Unignore 2 selected rows" }).click();
+  await expect(agGridCellByColId(firstIgnoredRow, "status")).toContainText(
+    "Needs edit",
+  );
+  await expect(agGridCellByColId(secondIgnoredRow, "status")).toContainText(
     "Needs edit",
   );
 
-  await clickPinnedRowAction({
-    row: ignoredRow,
-    actionLabel: "Ignore Imported Transaction",
-  });
-  await expect(ignoredRow).toBeVisible();
+  await page.getByRole("button", { name: "Ignore 2 selected rows" }).click();
+  await expect(firstIgnoredRow).toBeVisible();
+  await expect(secondIgnoredRow).toBeVisible();
 
   await setGridAccountTreeCellValue({
     root: page,
@@ -268,7 +288,7 @@ test("keeps ignored statement rows visible and skips them during import", async 
   });
 
   await expect(agGridCellByColId(includedRow, "status")).toContainText("Ready");
-  await expect(page.getByText("1 of 2 ready, 1 ignored")).toBeVisible();
+  await expect(page.getByText("1 of 3 ready, 2 ignored")).toBeVisible();
 
   await page.getByRole("button", { name: "Import Transactions" }).click();
   await expect(page).toHaveURL(
@@ -285,9 +305,14 @@ test("keeps ignored statement rows visible and skips them during import", async 
   });
   expect(includedBookings).toHaveLength(2);
 
-  const ignoredTransactionCount = await countTransactionsByDescription({
+  const firstIgnoredTransactionCount = await countTransactionsByDescription({
     accountBookId: seeded.accountBookId,
-    description: ignoredDescription,
+    description: firstIgnoredDescription,
   });
-  expect(ignoredTransactionCount).toBe(0);
+  const secondIgnoredTransactionCount = await countTransactionsByDescription({
+    accountBookId: seeded.accountBookId,
+    description: secondIgnoredDescription,
+  });
+  expect(firstIgnoredTransactionCount).toBe(0);
+  expect(secondIgnoredTransactionCount).toBe(0);
 });
