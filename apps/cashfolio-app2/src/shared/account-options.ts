@@ -9,7 +9,6 @@ import { getTypeLabel } from "./account-utils";
 export type AccountOptionSource = {
   id: string;
   name: string;
-  groupPath: string;
   groupPathSegments: string[];
   unit: Unit | null;
   currency: string | null;
@@ -24,12 +23,9 @@ function toAccountOption(account: AccountOptionSource): AccountOption {
   const typeLabel = getTypeLabel(account.type, account.equityAccountSubtype);
 
   return {
-    label: [typeLabel, account.groupPath, account.name]
-      .filter(Boolean)
-      .join(" / "),
+    label: account.name,
     value: account.id,
     treePath: [typeLabel, ...account.groupPathSegments],
-    treeLabel: account.name,
     unit: account.unit,
     currency: account.currency,
     cryptocurrency: account.cryptocurrency,

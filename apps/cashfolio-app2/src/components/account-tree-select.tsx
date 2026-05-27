@@ -12,7 +12,6 @@ export type AccountTreeOption = {
   value: string;
   label: string;
   treePath?: string[];
-  treeLabel?: string;
 };
 
 export type AccountTreeSelectProps = Omit<
@@ -33,7 +32,7 @@ function createGroupValue(path: string[]): string {
 
 function createSearchLabel(option: AccountTreeOption): string {
   if (option.treePath?.length) {
-    return [...option.treePath, option.treeLabel ?? option.label].join(" / ");
+    return [...option.treePath, option.label].join(" / ");
   }
 
   return option.label;
@@ -81,7 +80,7 @@ export function buildAccountTreeData(
   for (const option of options) {
     const leafNode: TreeNodeData = {
       value: option.value,
-      label: option.treeLabel ?? option.label,
+      label: option.label,
       nodeProps: {
         searchLabel: createSearchLabel(option),
       },

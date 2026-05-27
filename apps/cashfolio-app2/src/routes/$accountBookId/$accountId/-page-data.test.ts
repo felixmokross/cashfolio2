@@ -74,13 +74,12 @@ describe("getUnitLabel", () => {
 });
 
 describe("createAccountOptions", () => {
-  test("uses server-provided group path segments for tree paths", () => {
+  test("uses simple account labels and server-provided group path segments for tree paths", () => {
     const [option] = createAccountOptions(
       [
         {
           id: "account-checking",
           name: "Checking",
-          groupPath: "Assets / Cash / Bank / Daily",
           groupPathSegments: ["Assets", "Cash / Bank", "Daily"],
           unit: Unit.CURRENCY,
           currency: "CHF",
@@ -94,6 +93,7 @@ describe("createAccountOptions", () => {
       () => true,
     );
 
+    expect(option?.label).toBe("Checking");
     expect(option?.treePath).toEqual([
       "Asset",
       "Assets",

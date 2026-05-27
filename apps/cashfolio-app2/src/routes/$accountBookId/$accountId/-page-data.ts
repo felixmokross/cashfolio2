@@ -108,13 +108,7 @@ export function createLedgerBalanceFormatter(
 }
 
 export function createCurrentAccountLabel(account: LedgerAccount): string {
-  return [
-    getTypeLabel(account.type, account.equityAccountSubtype),
-    account.groupPathSegments.join(" / "),
-    account.name,
-  ]
-    .filter(Boolean)
-    .join(" / ");
+  return account.name;
 }
 
 export function getSimpleTransactionDisabledReason(args: {

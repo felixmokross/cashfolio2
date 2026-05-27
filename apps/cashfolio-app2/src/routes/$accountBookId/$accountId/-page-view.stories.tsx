@@ -272,7 +272,7 @@ function LedgerPageStoryHarness({
         existingNodes={[]}
         rows={rows}
         columnDefs={columnDefs}
-        currentAccountLabel="Asset / Cash / Checking"
+        currentAccountLabel="Checking"
         unitLabel="CHF"
         accountBookStartDate={new Date("2026-01-04T00:00:00.000Z")}
         simpleTransactionDisabledReason={null}

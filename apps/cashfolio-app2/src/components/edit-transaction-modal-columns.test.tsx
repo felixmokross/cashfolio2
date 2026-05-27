@@ -13,9 +13,8 @@ import type {
 const accounts: AccountOption[] = [
   {
     value: "account-checking",
-    label: "Asset / Cash / Checking",
+    label: "Checking",
     treePath: ["Asset", "Cash"],
-    treeLabel: "Checking",
     type: AccountType.ASSET,
     unit: Unit.CURRENCY,
     currency: "CHF",
