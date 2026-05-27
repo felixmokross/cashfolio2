@@ -10,6 +10,7 @@ import type { LedgerAccount } from "./-page-types";
 import { StatementImportActions } from "./-statement-import-actions";
 import { StatementImportEditModal } from "./-statement-import-edit-modal";
 import {
+  StatementImportBulkSelectionBar,
   StatementImportFileControls,
   StatementImportParseErrors,
 } from "./-statement-import-file-controls";
@@ -68,41 +69,54 @@ export function AccountStatementImportPageView({
 
       <Stack gap="md" flex={1} mih={0}>
         <StatementImportFileControls
-          bulkIgnoredActionLabel={state.bulkIgnoredActionLabel}
-          bulkShouldIgnoreSelectedDrafts={state.bulkShouldIgnoreSelectedDrafts}
           file={state.file}
-          isEditSubmitting={state.isEditSubmitting}
           isSubmitting={isSubmitting}
-          selectedDraftCount={state.selectedDraftCount}
           summaryText={state.summaryText}
-          onBulkIgnoredChange={state.handleBulkIgnoredChange}
           onFileChange={(nextFile) => void state.handleFileChange(nextFile)}
         />
 
         <StatementImportParseErrors parseErrors={state.parseErrors} />
 
-        <DataGrid
-          containerStyle={{ flex: 1, minHeight: 0 }}
-          rowData={state.drafts}
-          columnDefs={state.columnDefs}
-          getRowId={({ data }) => data.id}
-          defaultColDef={{
-            editable: false,
-            sortable: false,
-            suppressHeaderMenuButton: true,
-          }}
-          rowClassRules={{
-            "statement-import-row-ignored": ({ data }) => !!data?.ignored,
-          }}
-          rowSelection={{
-            mode: "multiRow",
-            checkboxes: true,
-            headerCheckbox: true,
-            enableClickSelection: false,
-          }}
-          onCellValueChanged={state.handleDraftCellChange}
-          onSelectionChanged={state.handleSelectionChange}
-        />
+        <Stack gap={0} flex={1} mih={0}>
+          <StatementImportBulkSelectionBar
+            bulkIgnoredActionLabel={state.bulkIgnoredActionLabel}
+            bulkShouldIgnoreSelectedDrafts={
+              state.bulkShouldIgnoreSelectedDrafts
+            }
+            isEditSubmitting={state.isEditSubmitting}
+            isSubmitting={isSubmitting}
+            selectedDraftCount={state.selectedDraftCount}
+            onBulkIgnoredChange={state.handleBulkIgnoredChange}
+          />
+
+          <DataGrid
+            containerStyle={{
+              flex: 1,
+              minHeight: 0,
+              borderTopLeftRadius: 0,
+              borderTopRightRadius: 0,
+            }}
+            rowData={state.drafts}
+            columnDefs={state.columnDefs}
+            getRowId={({ data }) => data.id}
+            defaultColDef={{
+              editable: false,
+              sortable: false,
+              suppressHeaderMenuButton: true,
+            }}
+            rowClassRules={{
+              "statement-import-row-ignored": ({ data }) => !!data?.ignored,
+            }}
+            rowSelection={{
+              mode: "multiRow",
+              checkboxes: true,
+              headerCheckbox: true,
+              enableClickSelection: false,
+            }}
+            onCellValueChanged={state.handleDraftCellChange}
+            onSelectionChanged={state.handleSelectionChange}
+          />
+        </Stack>
 
         <StatementImportActions
           draftsLength={state.drafts.length}

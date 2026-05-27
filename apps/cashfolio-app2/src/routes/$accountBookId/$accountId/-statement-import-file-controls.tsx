@@ -10,46 +10,72 @@ import {
 import { IconEye, IconEyeOff, IconUpload } from "@tabler/icons-react";
 
 export function StatementImportFileControls({
-  bulkIgnoredActionLabel,
-  bulkShouldIgnoreSelectedDrafts,
   file,
-  isEditSubmitting,
   isSubmitting,
-  selectedDraftCount,
   summaryText,
-  onBulkIgnoredChange,
   onFileChange,
 }: {
-  bulkIgnoredActionLabel: string;
-  bulkShouldIgnoreSelectedDrafts: boolean;
   file: File | null;
-  isEditSubmitting: boolean;
   isSubmitting: boolean;
-  selectedDraftCount: number;
   summaryText: string;
-  onBulkIgnoredChange: () => void;
   onFileChange: (file: File | null) => void;
 }) {
   return (
-    <Stack gap={4}>
-      <Group align="end">
-        <FileInput
-          label="CSV File"
-          placeholder="Select CSV file"
-          accept=".csv,text/csv"
-          value={file}
-          leftSection={<IconUpload size={16} />}
-          disabled={isSubmitting}
-          clearable
-          style={{ flex: "1 1 24rem" }}
-          onChange={onFileChange}
-        />
-        <Text c="dimmed" size="sm" style={{ marginLeft: "auto" }}>
-          {summaryText}
-        </Text>
-      </Group>
+    <Group align="end">
+      <FileInput
+        label="CSV File"
+        placeholder="Select CSV file"
+        accept=".csv,text/csv"
+        value={file}
+        leftSection={<IconUpload size={16} />}
+        disabled={isSubmitting}
+        clearable
+        style={{ flex: "1 1 24rem" }}
+        onChange={onFileChange}
+      />
+      <Text c="dimmed" size="sm" style={{ marginLeft: "auto" }}>
+        {summaryText}
+      </Text>
+    </Group>
+  );
+}
 
-      <Group h={32} justify="end" align="center" gap="xs" wrap="nowrap">
+export function StatementImportBulkSelectionBar({
+  bulkIgnoredActionLabel,
+  bulkShouldIgnoreSelectedDrafts,
+  isEditSubmitting,
+  isSubmitting,
+  selectedDraftCount,
+  onBulkIgnoredChange,
+}: {
+  bulkIgnoredActionLabel: string;
+  bulkShouldIgnoreSelectedDrafts: boolean;
+  isEditSubmitting: boolean;
+  isSubmitting: boolean;
+  selectedDraftCount: number;
+  onBulkIgnoredChange: () => void;
+}) {
+  return (
+    <Group
+      h={40}
+      px="sm"
+      justify="space-between"
+      align="center"
+      gap="xs"
+      wrap="nowrap"
+      style={{
+        border: "1px solid var(--mantine-color-default-border)",
+        borderBottom: 0,
+        borderTopLeftRadius: "var(--mantine-radius-sm)",
+        borderTopRightRadius: "var(--mantine-radius-sm)",
+        background: "var(--mantine-color-body)",
+      }}
+    >
+      <Text c="dimmed" fw={500} size="xs">
+        Bulk actions
+      </Text>
+
+      <Group justify="end" gap="xs" wrap="nowrap">
         {selectedDraftCount >= 2 ? (
           <>
             <Badge color="gray" variant="light">
@@ -74,7 +100,7 @@ export function StatementImportFileControls({
           </>
         ) : null}
       </Group>
-    </Stack>
+    </Group>
   );
 }
 
