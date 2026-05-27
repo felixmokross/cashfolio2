@@ -112,6 +112,265 @@ describe("statement import CSV parser", () => {
     });
   });
 
+  test("maps reordered columns by trimmed case-insensitive header names", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: true,
+        delimitersToGuess: [","],
+        mappings: {
+          date: { header: "booking date" },
+          amount: { mode: "signed", column: { header: "value" } },
+          originalAmount: { header: "foreign value" },
+          originalCurrency: { header: "foreign ccy" },
+          description: { header: "memo" },
+        },
+      },
+      text: [
+        " Memo , Foreign Ccy , VALUE , Booking Date , Foreign Value ",
+        "Transfer,EUR,100.25,2026-02-03,92.50",
+      ].join("\n"),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.drafts[0]).toMatchObject({
+      sourceRowNumber: 2,
+      date: "2026-02-03T00:00:00.000Z",
+      amount: 100.25,
+      originalAmount: 92.5,
+      originalCurrency: "EUR",
+      description: "Transfer",
+    });
+  });
+
+  test("maps headerless CSVs by zero-based indexes", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: false,
+        delimitersToGuess: [";"],
+        mappings: {
+          date: 0,
+          amount: { mode: "signed", column: 2 },
+          description: 1,
+        },
+      },
+      text: "2026-02-03;Transfer;100.25",
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.drafts[0]).toMatchObject({
+      sourceRowNumber: 1,
+      amount: 100.25,
+      description: "Transfer",
+    });
+  });
+
+  test("parses configured date formats", () => {
+    const european = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: true,
+        delimitersToGuess: [";"],
+        dateFormat: "dd.MM.yyyy",
+        mappings: {
+          date: { header: "Date" },
+          amount: { mode: "signed", column: { header: "Amount" } },
+          description: { header: "Description" },
+        },
+      },
+      text: ["Date;Amount;Description", "03.02.2026;100.25;Transfer"].join(
+        "\n",
+      ),
+    });
+    const us = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: true,
+        delimitersToGuess: [","],
+        dateFormat: "MM/dd/yyyy",
+        mappings: {
+          date: { header: "Date" },
+          amount: { mode: "signed", column: { header: "Amount" } },
+          description: { header: "Description" },
+        },
+      },
+      text: ["Date,Amount,Description", "02/03/2026,100.25,Transfer"].join(
+        "\n",
+      ),
+    });
+
+    expect(european.errors).toEqual([]);
+    expect(us.errors).toEqual([]);
+    expect(european.drafts[0]?.date).toBe("2026-02-03T00:00:00.000Z");
+    expect(us.drafts[0]?.date).toBe("2026-02-03T00:00:00.000Z");
+  });
+
+  test("parses decimal commas with thousands separators", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: true,
+        delimitersToGuess: [";"],
+        numberFormat: {
+          decimalSeparator: ",",
+          thousandsSeparator: "'",
+        },
+        mappings: {
+          date: { header: "Date" },
+          amount: { mode: "signed", column: { header: "Amount" } },
+          originalAmount: { header: "Original Amount" },
+          originalCurrency: { header: "Currency" },
+          description: { header: "Description" },
+        },
+      },
+      text: [
+        "Date;Amount;Original Amount;Currency;Description",
+        "2026-02-03;1'234,50;1'000,10;EUR;Transfer",
+      ].join("\n"),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.drafts[0]).toMatchObject({
+      amount: 1234.5,
+      originalAmount: 1000.1,
+      originalCurrency: "EUR",
+    });
+  });
+
+  test("derives signed amounts from debit and credit columns", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: true,
+        delimitersToGuess: [","],
+        mappings: {
+          date: { header: "Date" },
+          amount: {
+            mode: "debit-credit",
+            debitColumn: { header: "Debit" },
+            creditColumn: { header: "Credit" },
+          },
+          description: { header: "Description" },
+        },
+      },
+      text: [
+        "Date,Debit,Credit,Description",
+        "2026-02-03,100.25,,Incoming",
+        "2026-02-04,,45.10,Outgoing",
+      ].join("\n"),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.drafts[0]).toMatchObject({
+      amount: 100.25,
+      description: "Incoming",
+    });
+    expect(result.drafts[1]).toMatchObject({
+      amount: -45.1,
+      description: "Outgoing",
+    });
+  });
+
+  test("inverts signed statement amounts when configured", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: true,
+        delimitersToGuess: [","],
+        mappings: {
+          date: { header: "Date" },
+          amount: {
+            mode: "signed",
+            column: { header: "Amount" },
+            invertSign: true,
+          },
+          description: { header: "Description" },
+        },
+      },
+      text: ["Date,Amount,Description", "2026-02-03,-45.10,Payment"].join("\n"),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.drafts[0]).toMatchObject({
+      amount: 45.1,
+      description: "Payment",
+    });
+  });
+
+  test("joins multi-column descriptions and skips blank parts", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: true,
+        delimitersToGuess: [","],
+        mappings: {
+          date: { header: "Date" },
+          amount: { mode: "signed", column: { header: "Amount" } },
+          description: {
+            columns: [
+              { header: "Merchant" },
+              { header: "Reference" },
+              { header: "Category" },
+            ],
+          },
+        },
+      },
+      text: [
+        "Date,Amount,Merchant,Reference,Category",
+        "2026-02-03,100.25,Shop,,Groceries",
+      ].join("\n"),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.drafts[0]).toMatchObject({
+      description: "Shop - Groceries",
+    });
+  });
+
+  test("reports missing mapped columns and malformed values", () => {
+    const missingHeader = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: true,
+        delimitersToGuess: [","],
+        mappings: {
+          date: { header: "Date" },
+          amount: { mode: "signed", column: { header: "Amount" } },
+        },
+      },
+      text: ["Date,Value", "2026-02-03,100.25"].join("\n"),
+    });
+    const malformed = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: false,
+        delimitersToGuess: [";"],
+        dateFormat: "dd.MM.yyyy",
+        numberFormat: { decimalSeparator: "," },
+        mappings: {
+          date: 0,
+          amount: {
+            mode: "debit-credit",
+            debitColumn: 1,
+            creditColumn: 2,
+          },
+        },
+      },
+      text: "31.02.2026;10,00;5,00",
+    });
+
+    expect(missingHeader.errors).toContain(
+      'CSV header is missing mapped column "Amount".',
+    );
+    expect(malformed.errors).toEqual(
+      expect.arrayContaining([
+        "Row 1: date must match dd.MM.yyyy.",
+        "Row 1: debit and credit cannot both be set.",
+      ]),
+    );
+  });
+
   test("ignores extra trailing columns", () => {
     const result = parseStatementImportCsv({
       currentAccount,
