@@ -137,6 +137,10 @@ submit UX and prevent duplicate requests.
   `justify="space-between"`, `align="center"`, `mih={36}`.
 - Pass heading content through `heading`, optional badges/chips through
   `headingAccessory`, and page actions through `actions`.
+- For hierarchical subpages, pass `PageBreadcrumbs`
+  (`src/components/page-breadcrumbs.tsx`) as the `heading`.
+- Breadcrumb parent items are links and the current page item is plain text. Do
+  not duplicate breadcrumb navigation with a top-right back button.
 
 ## Document Title Pattern
 

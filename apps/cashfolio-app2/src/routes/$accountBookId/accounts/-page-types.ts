@@ -23,7 +23,7 @@ export type { TabValue };
 export type AccountsMode = "active" | "archived";
 
 export function getAccountsPageTitle(mode: AccountsMode): string {
-  return mode === "archived" ? "Archived Accounts" : "Accounts";
+  return mode === "archived" ? "Archive" : "Accounts";
 }
 
 export function getTabDefinition(tabValue: TabValue) {

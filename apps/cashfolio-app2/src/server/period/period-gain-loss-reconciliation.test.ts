@@ -58,7 +58,10 @@ vi.mock("./period-conversion", () => ({
   getUnitToReferenceExchangeRate,
 }));
 
-import { getPeriodGainLossReconciliation } from "./period-gain-loss-reconciliation";
+import {
+  getPeriodGainLossReconciliation,
+  getPeriodGainLossReconciliationPageData,
+} from "./period-gain-loss-reconciliation";
 
 describe("getPeriodGainLossReconciliation", () => {
   beforeEach(() => {
@@ -655,5 +658,24 @@ describe("getPeriodGainLossReconciliation", () => {
     });
 
     expect(response).toBeNull();
+  });
+
+  it("returns the report period label for unsupported targets", async () => {
+    prisma.account.findFirst.mockResolvedValue(null);
+
+    const response = await getPeriodGainLossReconciliationPageData({
+      data: {
+        accountBookId: "book-1",
+        accountId: "unknown-account",
+        period: "2026-02",
+        locale: "en-US",
+      },
+    });
+
+    expect(response).toEqual({
+      reportPeriodValue: "2026-02",
+      reportPeriodLabel: "February 2026",
+      reconciliation: null,
+    });
   });
 });

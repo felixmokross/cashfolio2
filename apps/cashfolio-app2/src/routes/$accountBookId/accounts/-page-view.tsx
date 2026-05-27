@@ -1,8 +1,9 @@
 import { Button, Group, Tabs, Title } from "@mantine/core";
-import { IconArchive, IconArrowBackUp, IconPlus } from "@tabler/icons-react";
+import { IconArchive, IconPlus } from "@tabler/icons-react";
 import type { AgGridReactProps } from "ag-grid-react";
 import { LinkButton } from "@/components/link-button";
 import { LinkTab } from "@/components/link-tab";
+import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 import { TopPageHeader } from "@/components/top-page-header";
 import type { AccountGroupInitialValues } from "@/components/edit-account-group-modal";
 import {
@@ -140,9 +141,21 @@ export function AccountsPageView({
     <PageShell>
       <TopPageHeader
         heading={
-          <Title order={2}>
-            {getAccountsPageTitle(isArchivedMode ? "archived" : "active")}
-          </Title>
+          isArchivedMode ? (
+            <PageBreadcrumbs
+              items={[
+                {
+                  label: "Accounts",
+                  to: "/$accountBookId/accounts",
+                  params: { accountBookId },
+                  search: { tab, mode: "active" },
+                },
+                { label: getAccountsPageTitle("archived") },
+              ]}
+            />
+          ) : (
+            <Title order={2}>{getAccountsPageTitle("active")}</Title>
+          )
         }
         actions={
           <Group>
@@ -173,24 +186,13 @@ export function AccountsPageView({
               </>
             )}
             {isArchivedMode && (
-              <>
-                <LinkButton
-                  variant="default"
-                  leftSection={<IconArrowBackUp size={16} />}
-                  to="/$accountBookId/accounts"
-                  params={{ accountBookId }}
-                  search={{ tab, mode: "active" }}
-                >
-                  Active Accounts
-                </LinkButton>
-                <Button
-                  variant="default"
-                  leftSection={<IconPlus size={16} />}
-                  onClick={onOpenCreateGroup}
-                >
-                  Add Group
-                </Button>
-              </>
+              <Button
+                variant="default"
+                leftSection={<IconPlus size={16} />}
+                onClick={onOpenCreateGroup}
+              >
+                Add Group
+              </Button>
             )}
           </Group>
         }

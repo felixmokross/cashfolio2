@@ -38,7 +38,7 @@ describe("getAccountsPageTitle", () => {
     expect(getAccountsPageTitle("active")).toBe("Accounts");
   });
 
-  it("uses the archived accounts heading for archived mode", () => {
-    expect(getAccountsPageTitle("archived")).toBe("Archived Accounts");
+  it("uses the archive heading for archived mode", () => {
+    expect(getAccountsPageTitle("archived")).toBe("Archive");
   });
 });
