@@ -262,13 +262,6 @@ export function AccountStatementImportPageView({
         />
 
         <Group justify="end">
-          <Button
-            variant="subtle"
-            disabled={isSubmitting || isEditSubmitting}
-            onClick={onBack}
-          >
-            Cancel
-          </Button>
           <Tooltip
             label={
               importDisabled && drafts.length > 0
