@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest";
 import { Unit } from "@/.prisma-client/enums";
-import { parseStatementImportCsv } from "./-statement-import";
+import {
+  DEFAULT_STATEMENT_IMPORT_CSV_FORMAT,
+  parseStatementImportCsv,
+} from "./-statement-import";
 import { currentAccount } from "./-statement-import-test-fixtures";
 
 describe("statement import CSV parser", () => {
@@ -78,6 +81,34 @@ describe("statement import CSV parser", () => {
       originalAmount: 92.5,
       originalCurrency: "EUR",
       description: "Transfer",
+    });
+  });
+
+  test("uses the default CSV format when no format is provided", () => {
+    const text = [
+      "date,amount,original amount,original currency,exchange rate,description",
+      "2026-02-03,100.25,92.50,EUR,1.083784,Transfer",
+    ].join("\n");
+
+    const implicitDefault = parseStatementImportCsv({
+      currentAccount,
+      text,
+    });
+    const explicitDefault = parseStatementImportCsv({
+      currentAccount,
+      format: DEFAULT_STATEMENT_IMPORT_CSV_FORMAT,
+      text,
+    });
+
+    expect(implicitDefault.errors).toEqual([]);
+    expect(explicitDefault.errors).toEqual([]);
+    expect(explicitDefault.drafts[0]).toMatchObject({
+      date: implicitDefault.drafts[0]?.date,
+      amount: implicitDefault.drafts[0]?.amount,
+      originalAmount: implicitDefault.drafts[0]?.originalAmount,
+      originalCurrency: implicitDefault.drafts[0]?.originalCurrency,
+      description: implicitDefault.drafts[0]?.description,
+      transaction: implicitDefault.drafts[0]?.transaction,
     });
   });
 
@@ -215,14 +246,15 @@ describe("statement import CSV parser", () => {
   test("rejects CSVs with fewer than six columns", () => {
     const result = parseStatementImportCsv({
       currentAccount,
+      format: DEFAULT_STATEMENT_IMPORT_CSV_FORMAT,
       text: ["date,amount,original amount", "2026-02-03,100.25,92.50"].join(
         "\n",
       ),
     });
 
     expect(result.drafts).toEqual([]);
-    expect(result.errors[0]).toContain(
-      "CSV must include at least 6 columns in this order",
+    expect(result.errors[0]).toBe(
+      "CSV must include at least 6 columns in this order: date, amount, original amount, original currency, exchange rate, description",
     );
   });
 

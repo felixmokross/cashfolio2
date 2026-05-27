@@ -12,6 +12,18 @@ export const STATEMENT_IMPORT_CSV_HEADERS = [
 
 type StatementImportCsvHeader = (typeof STATEMENT_IMPORT_CSV_HEADERS)[number];
 
+export type StatementImportCsvFormat = {
+  hasHeader: true;
+  delimitersToGuess: readonly string[];
+  columns: readonly StatementImportCsvHeader[];
+};
+
+export const DEFAULT_STATEMENT_IMPORT_CSV_FORMAT = {
+  hasHeader: true,
+  delimitersToGuess: [",", ";"],
+  columns: STATEMENT_IMPORT_CSV_HEADERS,
+} as const satisfies StatementImportCsvFormat;
+
 export type StatementImportCsvRow = Record<StatementImportCsvHeader, string>;
 
 export type CurrentAccountForStatementImport = {
