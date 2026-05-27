@@ -372,7 +372,7 @@ function toStatementImportCsvRow(args: {
 }): { row: StatementImportCsvRow; errors: string[] } {
   const { format, headerIndex, row, sourceRowNumber } = args;
   const mappings = format.mappings;
-  if (format.orderedColumns) {
+  if (shouldUseLegacyOrderedRowMapping(format)) {
     return {
       row: {
         date: getColumnValue(row, mappings.date, headerIndex),
@@ -442,6 +442,17 @@ function toStatementImportCsvRow(args: {
     },
     errors,
   };
+}
+
+function shouldUseLegacyOrderedRowMapping(
+  format: NormalizedStatementImportCsvFormat,
+): boolean {
+  return (
+    format.orderedColumns != null &&
+    format.dateFormat === "yyyy-MM-dd" &&
+    format.numberFormat.decimalSeparator === "." &&
+    format.numberFormat.thousandsSeparator == null
+  );
 }
 
 function validateCsvRowShape(args: {

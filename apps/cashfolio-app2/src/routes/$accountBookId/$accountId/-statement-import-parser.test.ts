@@ -204,6 +204,32 @@ describe("statement import CSV parser", () => {
     });
   });
 
+  test("normalizes ordered formats with configured date and number formats", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: true,
+        delimitersToGuess: [";"],
+        columns: ["date", "amount", "description"],
+        dateFormat: "dd.MM.yyyy",
+        numberFormat: {
+          decimalSeparator: ",",
+          thousandsSeparator: "'",
+        },
+      },
+      text: ["date;amount;description", "03.02.2026;1'234,50;Transfer"].join(
+        "\n",
+      ),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.drafts[0]).toMatchObject({
+      date: "2026-02-03T00:00:00.000Z",
+      amount: 1234.5,
+      description: "Transfer",
+    });
+  });
+
   test("parses configured date formats", () => {
     const european = parseStatementImportCsv({
       currentAccount,
