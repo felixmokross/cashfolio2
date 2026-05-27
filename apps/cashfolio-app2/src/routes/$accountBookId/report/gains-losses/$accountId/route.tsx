@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
-import { getPeriodGainLossReconciliation } from "@/server/period-gain-loss-reconciliation";
+import { getPeriodGainLossReconciliationPageData } from "@/server/period-gain-loss-reconciliation";
 import { createDocumentTitleHead } from "@/shared/document-title";
 import { formatMonthPeriodValue } from "@/shared/period";
 import { DEFAULT_PERIOD_VALUE } from "../../-page-types";
@@ -26,7 +26,7 @@ export const Route = createFileRoute(
     const { getAuthenticatedUserLocale } =
       await import("@/server/user-profile");
     const userLocale = await getAuthenticatedUserLocale();
-    return getPeriodGainLossReconciliation({
+    return getPeriodGainLossReconciliationPageData({
       data: {
         accountBookId,
         accountId,
@@ -36,14 +36,17 @@ export const Route = createFileRoute(
     });
   },
   head: ({ loaderData }) =>
-    createDocumentTitleHead(getGainLossReconciliationPageTitle(loaderData)),
+    createDocumentTitleHead(
+      getGainLossReconciliationPageTitle(loaderData?.reconciliation),
+    ),
   component: GainLossReconciliationPage,
 });
 
 function GainLossReconciliationPage() {
   const { accountBookId, accountId } = Route.useParams();
   const selectedPeriodValue = getPeriodValue(Route.useSearch());
-  const reconciliation = Route.useLoaderData();
+  const pageData = Route.useLoaderData();
+  const reconciliation = pageData.reconciliation;
   const navigate = Route.useNavigate();
   const explicitLedgerPeriodValue = reconciliation
     ? reconciliation.selectedGranularity === "month" &&
@@ -58,22 +61,11 @@ function GainLossReconciliationPage() {
   return (
     <Suspense fallback={null}>
       <GainLossReconciliationPageView
+        accountBookId={accountBookId}
+        reportPeriodLabel={pageData.reportPeriodLabel}
+        reportPeriodValue={pageData.reportPeriodValue}
         selectedPeriodValue={selectedPeriodValue}
         reconciliation={reconciliation}
-        onBackToPeriod={() => {
-          const backPeriodValue =
-            reconciliation?.selectedPeriodValue ?? selectedPeriodValue;
-          navigate({
-            to: "/$accountBookId/report",
-            params: { accountBookId },
-            search: {
-              period:
-                backPeriodValue === DEFAULT_PERIOD_VALUE
-                  ? undefined
-                  : backPeriodValue,
-            },
-          });
-        }}
         onPeriodChange={(nextPeriodValue) => {
           navigate({
             to: "/$accountBookId/report/gains-losses/$accountId",

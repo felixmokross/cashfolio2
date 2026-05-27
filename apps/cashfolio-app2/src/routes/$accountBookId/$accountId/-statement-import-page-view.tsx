@@ -1,23 +1,22 @@
 import type { CellValueChangedEvent } from "ag-grid-enterprise";
 import {
   Alert,
-  Badge,
   Button,
   FileInput,
   Group,
   Modal,
   Stack,
   Text,
-  Title,
   Tooltip,
 } from "@mantine/core";
-import { IconArrowLeft, IconFileImport, IconUpload } from "@tabler/icons-react";
+import { IconFileImport, IconUpload } from "@tabler/icons-react";
 import { useMemo, useRef, useState } from "react";
 import { DataGrid } from "@/components/data-grid";
 import {
   EditTransactionModal,
   type AccountOption,
 } from "@/components/edit-transaction-modal";
+import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 import { PageShell } from "@/components/page-shell";
 import { TopPageHeader } from "@/components/top-page-header";
 import type { AccountBookUnitUsage } from "@/shared/account-book-unit-usage";
@@ -36,23 +35,25 @@ import type { LedgerAccount } from "./-page-types";
 import { useStatementImportColumnDefs } from "./-statement-import-page-columns";
 
 type StatementImportPageViewProps = {
+  accountBookId: string;
   account: LedgerAccount;
   accountBookStartDate: Date;
   accountOptions: AccountOption[];
   unitUsage: AccountBookUnitUsage;
   isSubmitting: boolean;
-  onBack: () => void;
+  period?: string;
   onSubmittingChange: (isSubmitting: boolean) => void;
   onSubmit: (transactions: TransactionMutationValues[]) => Promise<void>;
 };
 
 export function AccountStatementImportPageView({
+  accountBookId,
   account,
   accountBookStartDate,
   accountOptions,
   unitUsage,
   isSubmitting,
-  onBack,
+  period,
   onSubmittingChange,
   onSubmit,
 }: StatementImportPageViewProps) {
@@ -198,21 +199,19 @@ export function AccountStatementImportPageView({
   return (
     <PageShell>
       <TopPageHeader
-        heading={<Title order={2}>Import Statement</Title>}
-        headingAccessory={
-          <Badge size="lg" color="gray">
-            {account.name}
-          </Badge>
-        }
-        actions={
-          <Button
-            variant="subtle"
-            leftSection={<IconArrowLeft size={16} />}
-            disabled={isSubmitting || isEditSubmitting}
-            onClick={onBack}
-          >
-            Back to Ledger
-          </Button>
+        heading={
+          <PageBreadcrumbs
+            items={[
+              {
+                label: account.name,
+                to: "/$accountBookId/$accountId",
+                params: { accountBookId, accountId: account.id },
+                search: { period },
+                disabled: isSubmitting || isEditSubmitting,
+              },
+              { label: "Import Statement" },
+            ]}
+          />
         }
       />
 

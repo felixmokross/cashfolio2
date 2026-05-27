@@ -1,10 +1,12 @@
-import { Alert, Button, Card, Group, Stack, Text, Title } from "@mantine/core";
-import { IconAlertTriangle, IconArrowLeft } from "@tabler/icons-react";
+import { Alert, Card, Group, Stack, Text, Title } from "@mantine/core";
+import { IconAlertTriangle } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import { DataGrid } from "@/components/data-grid";
+import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 import { PageShell } from "@/components/page-shell";
 import { TopPageHeader } from "@/components/top-page-header";
 import { PeriodFilterAction } from "../../../-period-filter-action";
+import { DEFAULT_PERIOD_VALUE } from "../../-page-types";
 import type { PeriodGainLossReconciliation } from "@/server/period-gain-loss-reconciliation";
 import { formatMonthPeriodValue } from "@/shared/period";
 import {
@@ -33,11 +35,13 @@ import { getGainLossReconciliationPageTitle } from "./-page-title";
 import { useUserLocale } from "@/user-locale-context";
 
 type GainLossReconciliationPageViewProps = {
+  accountBookId: string;
+  reportPeriodLabel: string;
+  reportPeriodValue: string;
   selectedPeriodValue: string;
   reconciliation: PeriodGainLossReconciliation | null;
   onPeriodChange: (nextPeriodValue: string) => void;
   onOpenEventTransaction: (transactionId: string) => void;
-  onBackToPeriod: () => void;
 };
 
 type LoadedGainLossReconciliationPageViewProps = Omit<
@@ -48,36 +52,59 @@ type LoadedGainLossReconciliationPageViewProps = Omit<
   reconciliation: PeriodGainLossReconciliation;
 };
 
-function BackToPeriodButton({
-  onBackToPeriod,
+function GainLossPageBreadcrumbs({
+  accountBookId,
+  reportPeriodLabel,
+  reportPeriodValue,
+  heading,
 }: {
-  onBackToPeriod: () => void;
+  accountBookId: string;
+  reportPeriodLabel: string;
+  reportPeriodValue: string;
+  heading: string;
 }) {
   return (
-    <Button
-      variant="default"
-      leftSection={<IconArrowLeft size={16} />}
-      onClick={onBackToPeriod}
-    >
-      Back to Period
-    </Button>
+    <PageBreadcrumbs
+      items={[
+        {
+          label: reportPeriodLabel,
+          to: "/$accountBookId/report",
+          params: { accountBookId },
+          search: {
+            period:
+              reportPeriodValue === DEFAULT_PERIOD_VALUE
+                ? undefined
+                : reportPeriodValue,
+          },
+        },
+        { label: heading },
+      ]}
+    />
   );
 }
 
 export function GainLossReconciliationPageView({
+  accountBookId,
+  reportPeriodLabel,
+  reportPeriodValue,
   selectedPeriodValue,
   reconciliation,
   onPeriodChange,
   onOpenEventTransaction,
-  onBackToPeriod,
 }: GainLossReconciliationPageViewProps) {
   const heading = getGainLossReconciliationPageTitle(reconciliation);
   if (!reconciliation) {
     return (
       <PageShell>
         <TopPageHeader
-          heading={<Title order={2}>{heading}</Title>}
-          actions={<BackToPeriodButton onBackToPeriod={onBackToPeriod} />}
+          heading={
+            <GainLossPageBreadcrumbs
+              accountBookId={accountBookId}
+              reportPeriodLabel={reportPeriodLabel}
+              reportPeriodValue={reportPeriodValue}
+              heading={heading}
+            />
+          }
         />
         <Alert color="yellow" variant="light" title="No Reconciliation Data">
           No gain/loss reconciliation is available for this account and period.
@@ -88,23 +115,27 @@ export function GainLossReconciliationPageView({
 
   return (
     <LoadedGainLossReconciliationPageView
+      accountBookId={accountBookId}
+      reportPeriodLabel={reportPeriodLabel}
+      reportPeriodValue={reportPeriodValue}
       selectedPeriodValue={selectedPeriodValue}
       reconciliation={reconciliation}
       heading={heading}
       onPeriodChange={onPeriodChange}
       onOpenEventTransaction={onOpenEventTransaction}
-      onBackToPeriod={onBackToPeriod}
     />
   );
 }
 
 function LoadedGainLossReconciliationPageView({
+  accountBookId,
+  reportPeriodLabel,
+  reportPeriodValue,
   selectedPeriodValue,
   reconciliation,
   heading,
   onPeriodChange,
   onOpenEventTransaction,
-  onBackToPeriod,
 }: LoadedGainLossReconciliationPageViewProps) {
   const userLocale = useUserLocale();
   const [pickerOpened, setPickerOpened] = useState(false);
@@ -231,51 +262,55 @@ function LoadedGainLossReconciliationPageView({
   return (
     <PageShell>
       <TopPageHeader
-        heading={<Title order={2}>{heading}</Title>}
+        heading={
+          <GainLossPageBreadcrumbs
+            accountBookId={accountBookId}
+            reportPeriodLabel={reportPeriodLabel}
+            reportPeriodValue={reportPeriodValue}
+            heading={heading}
+          />
+        }
         actions={
-          <Group gap="sm">
-            <PeriodFilterAction
-              selectedPeriodLabel={reconciliation.selectedPeriodLabel}
-              periodMode={periodMode}
-              pickerOpened={pickerOpened}
-              onPickerOpenedChange={setPickerOpened}
-              canGoToPreviousPeriod={periodSelectorModel.canGoToPreviousPeriod}
-              canGoToNextPeriod={periodSelectorModel.canGoToNextPeriod}
-              onPeriodModeChange={handlePeriodModeChange}
-              onPeriodStep={handlePeriodStep}
-              selectedMonthValue={`${formatMonthPeriodValue(
-                reconciliation.selectedYear,
-                periodSelectorModel.selectedMonth,
-              )}-01`}
-              selectedYearValue={`${String(reconciliation.selectedYear).padStart(4, "0")}-01-01`}
-              monthPickerDefaultValue={`${formatMonthPeriodValue(
-                reconciliation.selectedYear,
-                periodSelectorModel.selectedMonth,
-              )}-01`}
-              yearPickerDefaultValue={`${String(reconciliation.selectedYear).padStart(4, "0")}-01-01`}
-              minMonthPickerDate={periodSelectorModel.minMonthPickerDate}
-              maxMonthPickerDate={periodSelectorModel.maxMonthPickerDate}
-              minYearPickerDate={periodSelectorModel.minYearPickerDate}
-              maxYearPickerDate={periodSelectorModel.maxYearPickerDate}
-              onMonthPickerChange={(nextValue) => {
-                const nextPeriodValue = getMonthPickerValue(nextValue);
-                if (!nextPeriodValue) {
-                  return;
-                }
-                onPeriodChange(nextPeriodValue);
-                setPickerOpened(false);
-              }}
-              onYearPickerChange={(nextValue) => {
-                const nextPeriodValue = getYearPickerValue(nextValue);
-                if (!nextPeriodValue) {
-                  return;
-                }
-                onPeriodChange(nextPeriodValue);
-                setPickerOpened(false);
-              }}
-            />
-            <BackToPeriodButton onBackToPeriod={onBackToPeriod} />
-          </Group>
+          <PeriodFilterAction
+            selectedPeriodLabel={reconciliation.selectedPeriodLabel}
+            periodMode={periodMode}
+            pickerOpened={pickerOpened}
+            onPickerOpenedChange={setPickerOpened}
+            canGoToPreviousPeriod={periodSelectorModel.canGoToPreviousPeriod}
+            canGoToNextPeriod={periodSelectorModel.canGoToNextPeriod}
+            onPeriodModeChange={handlePeriodModeChange}
+            onPeriodStep={handlePeriodStep}
+            selectedMonthValue={`${formatMonthPeriodValue(
+              reconciliation.selectedYear,
+              periodSelectorModel.selectedMonth,
+            )}-01`}
+            selectedYearValue={`${String(reconciliation.selectedYear).padStart(4, "0")}-01-01`}
+            monthPickerDefaultValue={`${formatMonthPeriodValue(
+              reconciliation.selectedYear,
+              periodSelectorModel.selectedMonth,
+            )}-01`}
+            yearPickerDefaultValue={`${String(reconciliation.selectedYear).padStart(4, "0")}-01-01`}
+            minMonthPickerDate={periodSelectorModel.minMonthPickerDate}
+            maxMonthPickerDate={periodSelectorModel.maxMonthPickerDate}
+            minYearPickerDate={periodSelectorModel.minYearPickerDate}
+            maxYearPickerDate={periodSelectorModel.maxYearPickerDate}
+            onMonthPickerChange={(nextValue) => {
+              const nextPeriodValue = getMonthPickerValue(nextValue);
+              if (!nextPeriodValue) {
+                return;
+              }
+              onPeriodChange(nextPeriodValue);
+              setPickerOpened(false);
+            }}
+            onYearPickerChange={(nextValue) => {
+              const nextPeriodValue = getYearPickerValue(nextValue);
+              if (!nextPeriodValue) {
+                return;
+              }
+              onPeriodChange(nextPeriodValue);
+              setPickerOpened(false);
+            }}
+          />
         }
       />
       <Stack gap="lg">

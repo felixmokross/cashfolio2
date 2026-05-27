@@ -572,17 +572,15 @@ export const RouteSmoke: Story = {
       '"mode":"archived"',
     );
     await expect(
-      canvas.getByRole("heading", { name: "Archived Accounts" }),
+      canvas.getByRole("heading", { name: "Archive" }),
     ).toBeInTheDocument();
     await expect(
-      canvas.getByRole("link", { name: "Active Accounts" }),
+      canvas.getByRole("link", { name: "Accounts" }),
     ).toBeInTheDocument();
     await expect(
       canvas.getByRole("button", { name: "Add Group" }),
     ).toBeInTheDocument();
-    await userEvent.click(
-      canvas.getByRole("link", { name: "Active Accounts" }),
-    );
+    await userEvent.click(canvas.getByRole("link", { name: "Accounts" }));
     await expect(canvas.getByTestId("router-search")).toHaveTextContent(
       '"mode":"active"',
     );

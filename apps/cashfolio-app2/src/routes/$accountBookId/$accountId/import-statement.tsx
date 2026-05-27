@@ -78,14 +78,6 @@ function StatementImportRoutePage() {
     [loaderData.periodBounds.minBookingDate],
   );
 
-  function navigateBack() {
-    navigate({
-      to: "/$accountBookId/$accountId",
-      params: { accountBookId, accountId },
-      search: { period },
-    });
-  }
-
   async function handleImport(transactions: TransactionMutationValues[]) {
     if (transactions.length === 0) {
       return;
@@ -122,12 +114,13 @@ function StatementImportRoutePage() {
   return (
     <Suspense fallback={null}>
       <AccountStatementImportPageView
+        accountBookId={accountBookId}
         account={loaderData.account}
         accountBookStartDate={accountBookStartDate}
         accountOptions={accountOptions}
         unitUsage={unitUsage}
         isSubmitting={isSubmitting}
-        onBack={navigateBack}
+        period={period}
         onSubmittingChange={setIsSubmitting}
         onSubmit={handleImport}
       />
