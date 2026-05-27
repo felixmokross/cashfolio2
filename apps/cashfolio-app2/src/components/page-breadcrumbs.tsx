@@ -54,7 +54,13 @@ function BreadcrumbLabel({
 
 export function PageBreadcrumbs({ items }: PageBreadcrumbsProps) {
   return (
-    <Breadcrumbs separator="/">
+    <Breadcrumbs
+      separator={
+        <Title order={2} component="span" c="dimmed">
+          /
+        </Title>
+      }
+    >
       {items.map((item, index) => {
         const key = `${index}-${String(item.label)}`;
         const current = index === items.length - 1;
