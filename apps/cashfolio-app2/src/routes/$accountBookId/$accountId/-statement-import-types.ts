@@ -22,6 +22,7 @@ export type StatementImportDraft = {
   id: string;
   sourceRowNumber: number;
   currentAccountId: string;
+  ignored: boolean;
   date: string;
   amount: number;
   originalAmount: number | undefined;
@@ -32,6 +33,12 @@ export type StatementImportDraft = {
 };
 
 export type StatementImportDraftStatus =
+  | {
+      kind: "ignored";
+      label: "Ignored";
+      color: "gray";
+      message: string;
+    }
   | {
       kind: "ready";
       label: "Ready";

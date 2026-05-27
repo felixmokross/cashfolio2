@@ -18,6 +18,15 @@
   cursor: not-allowed;
 }
 
+.ag-row.statement-import-row-ignored .ag-cell:not(.actions-cell) {
+  color: var(--mantine-color-dimmed);
+  opacity: 0.62;
+}
+
+.ag-row.statement-import-row-ignored {
+  background-color: var(--mantine-color-gray-light);
+}
+
 .transactions-master-grid .ag-details-row {
   padding: 12px;
 }

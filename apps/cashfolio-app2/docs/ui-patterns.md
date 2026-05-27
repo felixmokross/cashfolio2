@@ -126,6 +126,9 @@ submit UX and prevent duplicate requests.
 - Always wrap `ActionIcon` components in a `Tooltip` describing the action (e.g.
   "Edit", "Delete")
 - Action availability behavior is defined in `Action Availability Pattern`.
+- Standard non-destructive row actions use the normal action color
+  (`color="blue"`). Use semantic colors for destructive actions or
+  special-impact actions such as archive.
 - Tooltip `openDelay` is configured globally in `src/theme.ts` (default 500ms) —
   do not override per-instance unless necessary
 
@@ -473,6 +476,10 @@ compatibility but ignored by the importer.
   still use `EditTransactionModal`.
 - Drafts with zero or multiple non-current-account bookings show a `Multiple`
   badge in the counter account cell and must be edited through the row action.
+- Drafts can be ignored without removing them from the review grid. Ignored rows
+  are greyed out, show an `Ignored` status, and are skipped during import. The
+  ignore and unignore row actions both use the standard blue action color; the
+  row styling and status badge communicate the ignored state.
 - Import uses a batch server mutation so either all reviewed drafts are created
   or none are.
 - For imported mixed-currency drafts, `EditTransactionModal` preserves the
