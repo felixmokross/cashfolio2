@@ -534,6 +534,33 @@ describe("statement import CSV parser", () => {
     );
   });
 
+  test("rejects shifted rows for header-name mapped exchange rates", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: true,
+        delimitersToGuess: [","],
+        mappings: {
+          date: { header: "date" },
+          amount: { mode: "signed", column: { header: "amount" } },
+          originalAmount: { header: "original amount" },
+          originalCurrency: { header: "original currency" },
+          exchangeRate: { header: "exchange rate" },
+          description: { header: "description" },
+        },
+      },
+      text: [
+        "date,amount,original amount,original currency,exchange rate,description,balance",
+        "2026-02-03,100.25,92.50,EUR,1,25,Transfer",
+      ].join("\n"),
+    });
+
+    expect(result.drafts).toEqual([]);
+    expect(result.errors).toContain(
+      "Row 2: CSV row appears to have an unquoted decimal comma before the description column; use semicolon delimiter or quote the value.",
+    );
+  });
+
   test("allows blank original amount and original currency", () => {
     const result = parseStatementImportCsv({
       currentAccount,

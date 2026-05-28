@@ -115,6 +115,7 @@ export function parseStatementImportCsv(args: {
     const rowShapeErrors = validateCsvRowShape({
       row,
       headerColumnCount: headerRow?.length,
+      headerIndex,
       delimiter: parsed.meta.delimiter,
       format,
       minimumColumnCount,
@@ -467,6 +468,7 @@ function shouldUseLegacyOrderedRowMapping(
 function validateCsvRowShape(args: {
   row: string[];
   headerColumnCount: number | undefined;
+  headerIndex: HeaderIndex | undefined;
   delimiter: string;
   format: NormalizedStatementImportCsvFormat;
   minimumColumnCount: number;
@@ -489,7 +491,11 @@ function validateCsvRowShape(args: {
   if (
     args.delimiter === "," &&
     args.row.length > args.minimumColumnCount &&
-    isLikelyShiftedByUnquotedExchangeRateDecimalComma(args.row, args.format)
+    isLikelyShiftedByUnquotedExchangeRateDecimalComma(
+      args.row,
+      args.format,
+      args.headerIndex,
+    )
   ) {
     errors.push(
       `Row ${args.sourceRowNumber}: CSV row appears to have an unquoted decimal comma before the description column; use semicolon delimiter or quote the value.`,
@@ -502,17 +508,18 @@ function validateCsvRowShape(args: {
 function isLikelyShiftedByUnquotedExchangeRateDecimalComma(
   row: string[],
   format: NormalizedStatementImportCsvFormat,
+  headerIndex: HeaderIndex | undefined,
 ): boolean {
   const exchangeRateColumnIndex = resolveColumnIndex(
     format.mappings.exchangeRate ?? -1,
-    undefined,
+    headerIndex,
   );
   const descriptionMapping = format.mappings.description ?? -1;
   const descriptionColumnIndex = isMultiColumnDescriptionMapping(
     descriptionMapping,
   )
     ? -1
-    : resolveColumnIndex(descriptionMapping, undefined);
+    : resolveColumnIndex(descriptionMapping, headerIndex);
   if (
     exchangeRateColumnIndex === -1 ||
     descriptionColumnIndex === -1 ||
