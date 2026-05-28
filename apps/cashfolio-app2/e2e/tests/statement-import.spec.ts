@@ -256,7 +256,7 @@ test("bulk ignores statement rows and skips them during import", async ({
   await discardDialog
     .getByRole("button", { name: "Discard and upload another file" })
     .click();
-  await expect(page.getByText("CSV File")).toBeVisible();
+  await expect(page.getByText("CSV File", { exact: true })).toBeVisible();
   await expect(page.getByText("Select CSV file")).toBeVisible();
   await expect(page.getByRole("button", { name: /Review/ })).toBeDisabled();
   await page.locator('input[type="file"]').setInputFiles({
