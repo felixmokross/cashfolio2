@@ -651,6 +651,30 @@ describe("statement import CSV parser", () => {
     );
   });
 
+  test("rejects headerless CSVs for indexed mappings with a configured header row", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: true,
+        delimitersToGuess: [","],
+        mappings: {
+          date: 0,
+          amount: { mode: "signed", column: 1 },
+          description: 2,
+        },
+      },
+      text: [
+        "2026-02-03,100.25,First transaction",
+        "2026-02-04,80.00,Second transaction",
+      ].join("\n"),
+    });
+
+    expect(result.drafts).toEqual([]);
+    expect(result.errors).toContain(
+      "CSV must include a header row before transaction rows.",
+    );
+  });
+
   test("rejects invalid dates and numeric fields", () => {
     const result = parseStatementImportCsv({
       currentAccount,

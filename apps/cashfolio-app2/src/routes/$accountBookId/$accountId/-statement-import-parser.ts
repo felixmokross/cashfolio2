@@ -85,7 +85,7 @@ export function parseStatementImportCsv(args: {
       return { drafts: [], errors };
     }
     if (
-      format.orderedColumns &&
+      shouldRejectLikelyHeaderlessFirstRow(format) &&
       isLikelyHeaderlessDataRow(headerRow, format, undefined)
     ) {
       errors.unshift("CSV must include a header row before transaction rows.");
@@ -336,6 +336,15 @@ function validateMappedHeaders(
     .filter(isHeaderRef)
     .filter((ref) => !headerIndex.has(normalizeHeaderName(ref.header)))
     .map((ref) => `CSV header is missing mapped column "${ref.header}".`);
+}
+
+function shouldRejectLikelyHeaderlessFirstRow(
+  format: NormalizedStatementImportCsvFormat,
+): boolean {
+  return (
+    format.orderedColumns != null ||
+    collectColumnRefs(format.mappings).every((ref) => !isHeaderRef(ref))
+  );
 }
 
 function getColumnValue(
