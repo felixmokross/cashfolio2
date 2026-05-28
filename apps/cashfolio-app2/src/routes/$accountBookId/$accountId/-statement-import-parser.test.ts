@@ -362,6 +362,31 @@ describe("statement import CSV parser", () => {
     });
   });
 
+  test("preserves tiny normalized decimal amounts in flexible formats", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: true,
+        delimitersToGuess: [","],
+        mappings: {
+          date: { header: "Date" },
+          amount: { mode: "signed", column: { header: "Amount" } },
+          description: { header: "Description" },
+        },
+      },
+      text: [
+        "Date,Amount,Description",
+        "2026-02-03,0.00000001,Tiny income",
+      ].join("\n"),
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.drafts[0]).toMatchObject({
+      amount: 0.00000001,
+      description: "Tiny income",
+    });
+  });
+
   test("joins multi-column descriptions and skips blank parts", () => {
     const result = parseStatementImportCsv({
       currentAccount,

@@ -633,8 +633,12 @@ function normalizeAmountValue(args: {
       return parsed;
     }
 
-    const amount = Number(parsed.value) * (args.mapping.invertSign ? -1 : 1);
-    return { value: formatCanonicalNumber(amount), errors: [] };
+    return {
+      value: args.mapping.invertSign
+        ? invertCanonicalNumberText(parsed.value)
+        : parsed.value,
+      errors: [],
+    };
   }
 
   const debit = normalizeOptionalNumberValue({
@@ -672,8 +676,8 @@ function normalizeAmountValue(args: {
 
   return {
     value: hasDebit
-      ? formatCanonicalNumber(Math.abs(debitAmount))
-      : formatCanonicalNumber(-Math.abs(creditAmount)),
+      ? toAbsoluteCanonicalNumberText(debit.value)
+      : negateCanonicalNumberText(credit.value),
     errors,
   };
 }
@@ -746,8 +750,19 @@ function normalizeNumberText(
   return normalized;
 }
 
-function formatCanonicalNumber(value: number): string {
-  return String(Object.is(value, -0) ? 0 : value);
+function toAbsoluteCanonicalNumberText(value: string): string {
+  return value.startsWith("-") ? value.slice(1) : value;
+}
+
+function negateCanonicalNumberText(value: string): string {
+  const absoluteValue = toAbsoluteCanonicalNumberText(value);
+  return Number(absoluteValue) === 0 ? "0" : `-${absoluteValue}`;
+}
+
+function invertCanonicalNumberText(value: string): string {
+  return value.startsWith("-")
+    ? toAbsoluteCanonicalNumberText(value)
+    : negateCanonicalNumberText(value);
 }
 
 function getDescriptionValue(
