@@ -302,6 +302,31 @@ describe("statement import CSV parser", () => {
     });
   });
 
+  test("rejects identical decimal and thousands separators", () => {
+    const result = parseStatementImportCsv({
+      currentAccount,
+      format: {
+        hasHeader: true,
+        delimitersToGuess: [";"],
+        numberFormat: {
+          decimalSeparator: ",",
+          thousandsSeparator: ",",
+        },
+        mappings: {
+          date: { header: "Date" },
+          amount: { mode: "signed", column: { header: "Amount" } },
+          description: { header: "Description" },
+        },
+      },
+      text: ["Date;Amount;Description", "2026-02-03;1,23;Transfer"].join("\n"),
+    });
+
+    expect(result.drafts).toEqual([]);
+    expect(result.errors).toContain(
+      "CSV format decimal and thousands separators must be different.",
+    );
+  });
+
   test("derives signed amounts from debit and credit columns", () => {
     const result = parseStatementImportCsv({
       currentAccount,

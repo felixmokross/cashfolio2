@@ -164,12 +164,14 @@ function normalizeStatementImportCsvFormat(format: StatementImportCsvFormat): {
   const columns = format.columns;
   const mappings =
     format.mappings ?? (columns ? createMappingsFromColumns(columns) : null);
+  const numberFormat = format.numberFormat ?? { decimalSeparator: "." };
 
   if (!mappings) {
     errors.push("CSV format must define either ordered columns or mappings.");
   } else {
     errors.push(...validateMappings(mappings, format.hasHeader));
   }
+  errors.push(...validateNumberFormat(numberFormat));
 
   return {
     format: {
@@ -178,7 +180,7 @@ function normalizeStatementImportCsvFormat(format: StatementImportCsvFormat): {
       mappings:
         mappings ?? createMappingsFromColumns(STATEMENT_IMPORT_CSV_HEADERS),
       dateFormat: format.dateFormat ?? "yyyy-MM-dd",
-      numberFormat: format.numberFormat ?? { decimalSeparator: "." },
+      numberFormat,
       orderedColumns: format.mappings ? null : (columns ?? null),
     },
     errors,
@@ -235,6 +237,19 @@ function validateMappings(
   }
 
   return errors;
+}
+
+function validateNumberFormat(
+  numberFormat: StatementImportCsvNumberFormat,
+): string[] {
+  if (
+    numberFormat.thousandsSeparator != null &&
+    numberFormat.decimalSeparator === numberFormat.thousandsSeparator
+  ) {
+    return ["CSV format decimal and thousands separators must be different."];
+  }
+
+  return [];
 }
 
 function collectColumnRefs(
