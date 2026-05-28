@@ -80,6 +80,15 @@ export function getStatementImportSummaryText(args: {
   return `${args.readyCount} of ${args.drafts.length} ready${ignoredSuffix}`;
 }
 
+export function getStatementImportBulkIgnoredActionLabel(args: {
+  shouldIgnore: boolean;
+  selectedDraftCount: number;
+}): string {
+  const action = args.shouldIgnore ? "Ignore" : "Unignore";
+  const rowLabel = args.selectedDraftCount === 1 ? "row" : "rows";
+  return `${action} ${args.selectedDraftCount} selected ${rowLabel}`;
+}
+
 export function getStatementImportTransactionsToSubmit(
   drafts: StatementImportDraft[],
 ): TransactionMutationValues[] {

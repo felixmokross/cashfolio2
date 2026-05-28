@@ -17,6 +17,7 @@ import {
 } from "./-statement-import";
 import { useStatementImportColumnDefs } from "./-statement-import-page-columns";
 import {
+  getStatementImportBulkIgnoredActionLabel,
   getStatementImportIgnoredCount,
   getStatementImportReadyCount,
   getStatementImportSummaryText,
@@ -48,6 +49,7 @@ export function useStatementImportPageState(args: {
   const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([]);
   const [editingDraftId, setEditingDraftId] = useState<string | undefined>();
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const [activeStep, setActiveStep] = useState<"upload" | "review">("upload");
   const fileReadRequestId = useRef(0);
 
   const counterAccountOptions = useMemo(
@@ -99,9 +101,12 @@ export function useStatementImportPageState(args: {
   const bulkShouldIgnoreSelectedDrafts = selectedDrafts.some(
     (draft) => !draft.ignored,
   );
-  const bulkIgnoredActionLabel = `${
-    bulkShouldIgnoreSelectedDrafts ? "Ignore" : "Unignore"
-  } ${selectedDraftCount} selected rows`;
+  const bulkIgnoredActionLabel = getStatementImportBulkIgnoredActionLabel({
+    shouldIgnore: bulkShouldIgnoreSelectedDrafts,
+    selectedDraftCount,
+  });
+  const canReviewStatementImport =
+    drafts.length > 0 && parseErrors.length === 0;
   const importDisabled = isStatementImportDisabled({
     drafts,
     readyCount,
@@ -128,7 +133,10 @@ export function useStatementImportPageState(args: {
     setDrafts([]);
     setSelectedDraftIds([]);
     setEditingDraftId(undefined);
-    if (!nextFile) return;
+    setActiveStep("upload");
+    if (!nextFile) {
+      return;
+    }
 
     const text = await nextFile.text();
     if (requestId !== fileReadRequestId.current) {
@@ -145,6 +153,9 @@ export function useStatementImportPageState(args: {
 
     setParseErrors(result.errors);
     setDrafts(result.drafts);
+    if (result.errors.length === 0 && result.drafts.length > 0) {
+      setActiveStep("review");
+    }
   }
 
   async function handleImport() {
@@ -208,7 +219,7 @@ export function useStatementImportPageState(args: {
   }
 
   function handleBulkIgnoredChange() {
-    if (selectedDraftCount < 2) {
+    if (selectedDraftCount < 1) {
       return;
     }
 
@@ -243,8 +254,10 @@ export function useStatementImportPageState(args: {
   }
 
   return {
+    activeStep,
     bulkIgnoredActionLabel,
     bulkShouldIgnoreSelectedDrafts,
+    canReviewStatementImport,
     columnDefs,
     drafts,
     editingDraft,
@@ -262,6 +275,7 @@ export function useStatementImportPageState(args: {
     parseErrors,
     readyCount,
     selectedDraftCount,
+    setActiveStep,
     setIsEditSubmitting,
     closeEditDraft,
     summaryText,

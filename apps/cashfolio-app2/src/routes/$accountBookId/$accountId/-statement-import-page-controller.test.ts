@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { Unit } from "@/.prisma-client/enums";
 import {
+  getStatementImportBulkIgnoredActionLabel,
   getStatementImportIgnoredCount,
   getStatementImportReadyCount,
   getStatementImportSuccessLedgerSearch,
@@ -295,6 +296,22 @@ describe("statement import page controller", () => {
     ]);
   });
 
+  test("bulk ignore supports a single selected draft", () => {
+    const selectedDraft = createDraft({ id: "selected-draft" });
+    const unselectedDraft = createDraft({ id: "unselected-draft" });
+
+    const result = setStatementImportDraftsIgnored({
+      drafts: [selectedDraft, unselectedDraft],
+      draftIds: [selectedDraft.id],
+      ignored: true,
+    });
+
+    expect(result).toEqual([
+      { ...selectedDraft, ignored: true },
+      unselectedDraft,
+    ]);
+  });
+
   test("bulk unignores selected drafts", () => {
     const firstDraft = createDraft({ id: "draft-1", ignored: true });
     const secondDraft = createDraft({ id: "draft-2", ignored: true });
@@ -329,5 +346,20 @@ describe("statement import page controller", () => {
     });
 
     expect(result).toEqual([{ ...includedDraft, ignored: true }, ignoredDraft]);
+  });
+
+  test("bulk ignore action labels use singular and plural selected row text", () => {
+    expect(
+      getStatementImportBulkIgnoredActionLabel({
+        shouldIgnore: true,
+        selectedDraftCount: 1,
+      }),
+    ).toBe("Ignore 1 selected row");
+    expect(
+      getStatementImportBulkIgnoredActionLabel({
+        shouldIgnore: false,
+        selectedDraftCount: 2,
+      }),
+    ).toBe("Unignore 2 selected rows");
   });
 });

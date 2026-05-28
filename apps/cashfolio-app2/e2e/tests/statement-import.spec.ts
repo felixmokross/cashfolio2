@@ -55,6 +55,7 @@ test("imports a statement after selecting the counter account in the review grid
   await expect(
     page.getByRole("heading", { name: "Import Statement" }),
   ).toBeVisible();
+  await expect(page.getByRole("button", { name: /Upload/ })).toBeVisible();
 
   await page.locator('input[type="file"]').setInputFiles({
     name: "statement-import.csv",
@@ -242,17 +243,34 @@ test("bulk ignores statement rows and skips them during import", async ({
   await expect(firstIgnoredRow).toBeVisible();
   await expect(secondIgnoredRow).toBeVisible();
 
+  await page.getByRole("button", { name: /Upload/ }).click();
+  await expect(page.getByText("CSV File")).toBeVisible();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "statement-import-ignore-reupload.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(csv),
+  });
+  await expect(includedRow).toBeVisible();
+
   await expect(page.getByRole("button", { name: /selected rows/ })).toHaveCount(
     0,
   );
 
   await clickGridRowSelectionCheckbox(firstIgnoredRow);
-  await expect(page.getByRole("button", { name: /selected rows/ })).toHaveCount(
-    0,
+  await expect(
+    page.getByRole("button", { name: "Ignore 1 selected row" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Ignore 1 selected row" }).click();
+  await expect(agGridCellByColId(firstIgnoredRow, "status")).toContainText(
+    "Ignored",
   );
+  await expect(page.getByText("0 of 3 ready, 1 ignored")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Unignore 1 selected row" }),
+  ).toBeVisible();
 
   await clickGridRowSelectionCheckbox(secondIgnoredRow);
-  await expect(page.getByText("2 selected", { exact: true })).toBeVisible();
+  await expect(page.getByText("2 selected", { exact: true })).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Ignore 2 selected rows" }),
   ).toBeVisible();

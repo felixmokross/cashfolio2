@@ -1,4 +1,4 @@
-import { Stack } from "@mantine/core";
+import { Center, Stack, Stepper } from "@mantine/core";
 import { DataGrid } from "@/components/data-grid";
 import type { AccountOption } from "@/components/edit-transaction-modal";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
@@ -47,6 +47,7 @@ export function AccountStatementImportPageView({
     onSubmittingChange,
     onSubmit,
   });
+  const activeStep = state.activeStep === "upload" ? 0 : 1;
 
   return (
     <PageShell>
@@ -67,65 +68,105 @@ export function AccountStatementImportPageView({
         }
       />
 
-      <Stack gap="md" flex={1} mih={0}>
-        <StatementImportFileControls
-          file={state.file}
-          isSubmitting={isSubmitting}
-          summaryText={state.summaryText}
-          onFileChange={(nextFile) => void state.handleFileChange(nextFile)}
-        />
+      <Stepper
+        active={activeStep}
+        flex={1}
+        mih={0}
+        styles={{
+          root: {
+            display: "flex",
+            flexDirection: "column",
+          },
+          content: {
+            display: "flex",
+            flex: 1,
+            flexDirection: "column",
+            minHeight: 0,
+          },
+        }}
+        onStepClick={(nextStep) => {
+          if (nextStep === 0) {
+            state.setActiveStep("upload");
+            return;
+          }
+          if (state.canReviewStatementImport) {
+            state.setActiveStep("review");
+          }
+        }}
+      >
+        <Stepper.Step label="Upload" allowStepSelect={!isSubmitting}>
+          <Center flex={1} mih={240}>
+            <Stack align="center" gap="md" w="100%">
+              <StatementImportFileControls
+                file={state.file}
+                isSubmitting={isSubmitting}
+                onFileChange={(nextFile) =>
+                  void state.handleFileChange(nextFile)
+                }
+              />
 
-        <StatementImportParseErrors parseErrors={state.parseErrors} />
+              <StatementImportParseErrors parseErrors={state.parseErrors} />
+            </Stack>
+          </Center>
+        </Stepper.Step>
 
-        <Stack gap={0} flex={1} mih={0}>
-          <StatementImportBulkSelectionBar
-            bulkIgnoredActionLabel={state.bulkIgnoredActionLabel}
-            bulkShouldIgnoreSelectedDrafts={
-              state.bulkShouldIgnoreSelectedDrafts
-            }
-            isEditSubmitting={state.isEditSubmitting}
-            isSubmitting={isSubmitting}
-            selectedDraftCount={state.selectedDraftCount}
-            onBulkIgnoredChange={state.handleBulkIgnoredChange}
-          />
+        <Stepper.Step
+          label="Review"
+          allowStepSelect={state.canReviewStatementImport}
+        >
+          <Stack gap="md" flex={1} mih={0}>
+            <Stack gap={0} flex={1} mih={0}>
+              <StatementImportBulkSelectionBar
+                bulkIgnoredActionLabel={state.bulkIgnoredActionLabel}
+                bulkShouldIgnoreSelectedDrafts={
+                  state.bulkShouldIgnoreSelectedDrafts
+                }
+                isEditSubmitting={state.isEditSubmitting}
+                isSubmitting={isSubmitting}
+                selectedDraftCount={state.selectedDraftCount}
+                summaryText={state.summaryText}
+                onBulkIgnoredChange={state.handleBulkIgnoredChange}
+              />
 
-          <DataGrid
-            containerStyle={{
-              flex: 1,
-              minHeight: 0,
-              borderTopLeftRadius: 0,
-              borderTopRightRadius: 0,
-            }}
-            rowData={state.drafts}
-            columnDefs={state.columnDefs}
-            getRowId={({ data }) => data.id}
-            defaultColDef={{
-              editable: false,
-              sortable: false,
-              suppressHeaderMenuButton: true,
-            }}
-            rowClassRules={{
-              "statement-import-row-ignored": ({ data }) => !!data?.ignored,
-            }}
-            rowSelection={{
-              mode: "multiRow",
-              checkboxes: true,
-              headerCheckbox: true,
-              enableClickSelection: false,
-            }}
-            onCellValueChanged={state.handleDraftCellChange}
-            onSelectionChanged={state.handleSelectionChange}
-          />
-        </Stack>
+              <DataGrid
+                containerStyle={{
+                  flex: 1,
+                  minHeight: 0,
+                  borderTopLeftRadius: 0,
+                  borderTopRightRadius: 0,
+                }}
+                rowData={state.drafts}
+                columnDefs={state.columnDefs}
+                getRowId={({ data }) => data.id}
+                defaultColDef={{
+                  editable: false,
+                  sortable: false,
+                  suppressHeaderMenuButton: true,
+                }}
+                rowClassRules={{
+                  "statement-import-row-ignored": ({ data }) => !!data?.ignored,
+                }}
+                rowSelection={{
+                  mode: "multiRow",
+                  checkboxes: true,
+                  headerCheckbox: true,
+                  enableClickSelection: false,
+                }}
+                onCellValueChanged={state.handleDraftCellChange}
+                onSelectionChanged={state.handleSelectionChange}
+              />
+            </Stack>
 
-        <StatementImportActions
-          draftsLength={state.drafts.length}
-          includedCount={state.includedCount}
-          importDisabled={state.importDisabled}
-          isSubmitting={isSubmitting}
-          onImport={() => void state.handleImport()}
-        />
-      </Stack>
+            <StatementImportActions
+              draftsLength={state.drafts.length}
+              includedCount={state.includedCount}
+              importDisabled={state.importDisabled}
+              isSubmitting={isSubmitting}
+              onImport={() => void state.handleImport()}
+            />
+          </Stack>
+        </Stepper.Step>
+      </Stepper>
 
       <StatementImportEditModal
         account={account}

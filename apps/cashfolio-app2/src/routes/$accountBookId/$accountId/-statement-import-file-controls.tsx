@@ -1,42 +1,28 @@
-import {
-  Alert,
-  Badge,
-  Button,
-  FileInput,
-  Group,
-  Stack,
-  Text,
-} from "@mantine/core";
+import { Alert, Button, FileInput, Group, Stack, Text } from "@mantine/core";
 import { IconEye, IconEyeOff, IconUpload } from "@tabler/icons-react";
 
 export function StatementImportFileControls({
   file,
   isSubmitting,
-  summaryText,
   onFileChange,
 }: {
   file: File | null;
   isSubmitting: boolean;
-  summaryText: string;
   onFileChange: (file: File | null) => void;
 }) {
   return (
-    <Group align="end">
-      <FileInput
-        label="CSV File"
-        placeholder="Select CSV file"
-        accept=".csv,text/csv"
-        value={file}
-        leftSection={<IconUpload size={16} />}
-        disabled={isSubmitting}
-        clearable
-        style={{ flex: "1 1 24rem" }}
-        onChange={onFileChange}
-      />
-      <Text c="dimmed" size="sm" style={{ marginLeft: "auto" }}>
-        {summaryText}
-      </Text>
-    </Group>
+    <FileInput
+      label="CSV File"
+      placeholder="Select CSV file"
+      accept=".csv,text/csv"
+      value={file}
+      leftSection={<IconUpload size={16} />}
+      disabled={isSubmitting}
+      clearable
+      w="100%"
+      maw={520}
+      onChange={onFileChange}
+    />
   );
 }
 
@@ -46,6 +32,7 @@ export function StatementImportBulkSelectionBar({
   isEditSubmitting,
   isSubmitting,
   selectedDraftCount,
+  summaryText,
   onBulkIgnoredChange,
 }: {
   bulkIgnoredActionLabel: string;
@@ -53,6 +40,7 @@ export function StatementImportBulkSelectionBar({
   isEditSubmitting: boolean;
   isSubmitting: boolean;
   selectedDraftCount: number;
+  summaryText: string;
   onBulkIgnoredChange: () => void;
 }) {
   return (
@@ -71,33 +59,28 @@ export function StatementImportBulkSelectionBar({
         background: "var(--mantine-color-body)",
       }}
     >
-      <Text c="dimmed" fw={500} size="xs">
-        Bulk actions
+      <Text c="dimmed" size="sm">
+        {summaryText}
       </Text>
 
       <Group justify="end" gap="xs" wrap="nowrap">
-        {selectedDraftCount >= 2 ? (
-          <>
-            <Badge color="gray" variant="light">
-              {selectedDraftCount} selected
-            </Badge>
-            <Button
-              size="xs"
-              variant="light"
-              color="blue"
-              leftSection={
-                bulkShouldIgnoreSelectedDrafts ? (
-                  <IconEyeOff size={16} />
-                ) : (
-                  <IconEye size={16} />
-                )
-              }
-              disabled={isSubmitting || isEditSubmitting}
-              onClick={onBulkIgnoredChange}
-            >
-              {bulkIgnoredActionLabel}
-            </Button>
-          </>
+        {selectedDraftCount > 0 ? (
+          <Button
+            size="xs"
+            variant="light"
+            color="blue"
+            leftSection={
+              bulkShouldIgnoreSelectedDrafts ? (
+                <IconEyeOff size={16} />
+              ) : (
+                <IconEye size={16} />
+              )
+            }
+            disabled={isSubmitting || isEditSubmitting}
+            onClick={onBulkIgnoredChange}
+          >
+            {bulkIgnoredActionLabel}
+          </Button>
         ) : null}
       </Group>
     </Group>
