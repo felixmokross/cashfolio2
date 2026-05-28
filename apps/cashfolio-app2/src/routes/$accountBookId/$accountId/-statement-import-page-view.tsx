@@ -1,12 +1,4 @@
-import {
-  Button,
-  Center,
-  Group,
-  Modal,
-  Stack,
-  Stepper,
-  Text,
-} from "@mantine/core";
+import { Center, Stack, Stepper } from "@mantine/core";
 import { IconFileUpload, IconTable } from "@tabler/icons-react";
 import { DataGrid } from "@/components/data-grid";
 import type { AccountOption } from "@/components/edit-transaction-modal";
@@ -17,6 +9,7 @@ import type { AccountBookUnitUsage } from "@/shared/account-book-unit-usage";
 import type { TransactionMutationValues } from "./-page-view";
 import type { LedgerAccount } from "./-page-types";
 import { StatementImportActions } from "./-statement-import-actions";
+import { StatementImportDiscardUploadModal } from "./-statement-import-discard-upload-modal";
 import { StatementImportEditModal } from "./-statement-import-edit-modal";
 import {
   StatementImportBulkSelectionBar,
@@ -183,24 +176,11 @@ export function AccountStatementImportPageView({
         </Stepper.Step>
       </Stepper>
 
-      <Modal
+      <StatementImportDiscardUploadModal
         opened={state.discardUploadModalOpened}
         onClose={state.closeDiscardUploadModal}
-        title="Discard reviewed statement?"
-      >
-        <Text mb="lg">
-          Going back to Upload will clear the current statement review. Unsaved
-          changes will be lost.
-        </Text>
-        <Group justify="flex-end">
-          <Button variant="subtle" onClick={state.closeDiscardUploadModal}>
-            Keep reviewing
-          </Button>
-          <Button color="red" onClick={state.resetStatementImportReview}>
-            Discard and upload another file
-          </Button>
-        </Group>
-      </Modal>
+        onConfirm={state.resetStatementImportReview}
+      />
 
       <StatementImportEditModal
         account={account}
