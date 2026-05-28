@@ -50,6 +50,22 @@ export async function clickPinnedRowAction(args: {
   await pinnedRow.getByRole("button", { name: args.actionLabel }).click();
 }
 
+export async function clickGridRowSelectionCheckbox(row: Locator) {
+  const rowIndex = await row.getAttribute("row-index");
+  if (rowIndex == null) {
+    throw new Error(
+      "Cannot click row selection checkbox without AG Grid row-index.",
+    );
+  }
+
+  const checkbox = row
+    .page()
+    .locator(`.ag-row[row-index="${rowIndex}"] .ag-selection-checkbox`)
+    .first();
+  await expect(checkbox).toBeVisible();
+  await checkbox.click();
+}
+
 export async function setGridCellValue(
   root: Page | Locator,
   rowIndex: number,
