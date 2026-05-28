@@ -1,4 +1,12 @@
-import { Center, Stack, Stepper } from "@mantine/core";
+import {
+  Button,
+  Center,
+  Group,
+  Modal,
+  Stack,
+  Stepper,
+  Text,
+} from "@mantine/core";
 import { DataGrid } from "@/components/data-grid";
 import type { AccountOption } from "@/components/edit-transaction-modal";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
@@ -83,18 +91,18 @@ export function AccountStatementImportPageView({
             flexDirection: "column",
             minHeight: 0,
           },
+          steps: {
+            alignSelf: "center",
+            maxWidth: 640,
+            width: "100%",
+          },
         }}
-        onStepClick={(nextStep) => {
-          if (nextStep === 0) {
-            state.setActiveStep("upload");
-            return;
-          }
-          if (state.canReviewStatementImport) {
-            state.setActiveStep("review");
-          }
-        }}
+        onStepClick={state.handleStepClick}
       >
-        <Stepper.Step label="Upload" allowStepSelect={!isSubmitting}>
+        <Stepper.Step
+          label="Upload"
+          allowStepSelect={!isSubmitting && !state.isEditSubmitting}
+        >
           <Center flex={1} mih={240}>
             <Stack align="center" gap="md" w="100%">
               <StatementImportFileControls
@@ -112,7 +120,11 @@ export function AccountStatementImportPageView({
 
         <Stepper.Step
           label="Review"
-          allowStepSelect={state.canReviewStatementImport}
+          allowStepSelect={
+            state.canReviewStatementImport &&
+            !isSubmitting &&
+            !state.isEditSubmitting
+          }
         >
           <Stack gap="md" flex={1} mih={0}>
             <Stack gap={0} flex={1} mih={0}>
@@ -167,6 +179,25 @@ export function AccountStatementImportPageView({
           </Stack>
         </Stepper.Step>
       </Stepper>
+
+      <Modal
+        opened={state.discardUploadModalOpened}
+        onClose={state.closeDiscardUploadModal}
+        title="Discard reviewed statement?"
+      >
+        <Text mb="lg">
+          Going back to Upload will clear the current statement review. Unsaved
+          changes will be lost.
+        </Text>
+        <Group justify="flex-end">
+          <Button variant="subtle" onClick={state.closeDiscardUploadModal}>
+            Keep reviewing
+          </Button>
+          <Button color="red" onClick={state.resetStatementImportReview}>
+            Discard and upload another file
+          </Button>
+        </Group>
+      </Modal>
 
       <StatementImportEditModal
         account={account}

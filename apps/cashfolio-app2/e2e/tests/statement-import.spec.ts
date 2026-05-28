@@ -244,7 +244,21 @@ test("bulk ignores statement rows and skips them during import", async ({
   await expect(secondIgnoredRow).toBeVisible();
 
   await page.getByRole("button", { name: /Upload/ }).click();
+  const discardDialog = page.getByRole("dialog", {
+    name: "Discard reviewed statement?",
+  });
+  await expect(discardDialog).toBeVisible();
+  await discardDialog.getByRole("button", { name: "Keep reviewing" }).click();
+  await expect(discardDialog).toHaveCount(0);
+  await expect(includedRow).toBeVisible();
+
+  await page.getByRole("button", { name: /Upload/ }).click();
+  await discardDialog
+    .getByRole("button", { name: "Discard and upload another file" })
+    .click();
   await expect(page.getByText("CSV File")).toBeVisible();
+  await expect(page.getByText("Select CSV file")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Review/ })).toBeDisabled();
   await page.locator('input[type="file"]').setInputFiles({
     name: "statement-import-ignore-reupload.csv",
     mimeType: "text/csv",
