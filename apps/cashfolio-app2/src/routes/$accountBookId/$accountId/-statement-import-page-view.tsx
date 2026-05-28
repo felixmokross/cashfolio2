@@ -7,6 +7,7 @@ import {
   Stepper,
   Text,
 } from "@mantine/core";
+import { IconFileUpload, IconTable } from "@tabler/icons-react";
 import { DataGrid } from "@/components/data-grid";
 import type { AccountOption } from "@/components/edit-transaction-modal";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
@@ -101,6 +102,7 @@ export function AccountStatementImportPageView({
       >
         <Stepper.Step
           label="Upload"
+          icon={<IconFileUpload size={18} />}
           allowStepSelect={!isSubmitting && !state.isEditSubmitting}
         >
           <Center flex={1} mih={240}>
@@ -120,6 +122,7 @@ export function AccountStatementImportPageView({
 
         <Stepper.Step
           label="Review"
+          icon={<IconTable size={18} />}
           allowStepSelect={
             state.canReviewStatementImport &&
             !isSubmitting &&
