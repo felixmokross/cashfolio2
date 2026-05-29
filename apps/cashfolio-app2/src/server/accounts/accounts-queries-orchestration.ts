@@ -16,6 +16,7 @@ import {
   startOfUtcDay,
 } from "../../shared/date";
 import { moneyIsZero, toMoneyNumber } from "../../shared/money";
+import type { StatementImportCsvFormat } from "../../shared/statement-import-csv-format";
 import {
   type AccountState,
   getDisplayBalanceInReferenceCurrencyByAccountId,
@@ -352,28 +353,39 @@ export async function queryLedgerAccountActionData(
     bookingCount,
     groupById,
   ] = await Promise.all([
-    prisma.account.findUnique({
-      where: {
-        id_accountBookId: {
-          id: data.accountId,
-          accountBookId: data.accountBookId,
+    prisma.account
+      .findUnique({
+        where: {
+          id_accountBookId: {
+            id: data.accountId,
+            accountBookId: data.accountBookId,
+          },
         },
-      },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        equityAccountSubtype: true,
-        unit: true,
-        currency: true,
-        cryptocurrency: true,
-        symbol: true,
-        tradeCurrency: true,
-        groupId: true,
-        isActive: true,
-        sortOrder: true,
-      },
-    }),
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          equityAccountSubtype: true,
+          unit: true,
+          currency: true,
+          cryptocurrency: true,
+          symbol: true,
+          tradeCurrency: true,
+          statementImportCsvFormat: true,
+          groupId: true,
+          isActive: true,
+          sortOrder: true,
+        },
+      })
+      .then((account) =>
+        account
+          ? {
+              ...account,
+              statementImportCsvFormat:
+                account.statementImportCsvFormat as StatementImportCsvFormat | null,
+            }
+          : null,
+      ),
     prisma.accountBook.findUniqueOrThrow({
       where: { id: data.accountBookId },
       select: { startDate: true },

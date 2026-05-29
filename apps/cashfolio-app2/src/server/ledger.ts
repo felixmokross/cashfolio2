@@ -13,6 +13,7 @@ import {
   type ExplicitPeriodSelection,
 } from "../shared/period";
 import { toMoneyNumber } from "../shared/money";
+import type { StatementImportCsvFormat } from "../shared/statement-import-csv-format";
 import { createGroupPathSegmentsResolver } from "./accounts/accounts-helpers";
 import {
   doesLedgerAccountContextMatchAccount,
@@ -50,6 +51,7 @@ export const getAccountForLedger = createServerFn({ method: "GET" })
         cryptocurrency: true,
         symbol: true,
         tradeCurrency: true,
+        statementImportCsvFormat: true,
         groupId: true,
       },
     });
@@ -63,6 +65,8 @@ export const getAccountForLedger = createServerFn({ method: "GET" })
     const { groupId, ...rest } = account;
     return {
       ...rest,
+      statementImportCsvFormat:
+        rest.statementImportCsvFormat as StatementImportCsvFormat | null,
       groupPathSegments: groupId ? resolveGroupPathSegments(groupId) : [],
     };
   });

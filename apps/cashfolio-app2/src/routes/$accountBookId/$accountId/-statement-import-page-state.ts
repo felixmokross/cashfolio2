@@ -4,6 +4,7 @@ import type { TransactionMutationValues } from "./-page-view";
 import type { LedgerAccount } from "./-page-types";
 import {
   updateStatementImportDraftTransaction,
+  type StatementImportCsvFormat,
   type StatementImportDraft,
 } from "./-statement-import";
 import { getStatementImportTransactionsToSubmit } from "./-statement-import-page-controller";
@@ -12,6 +13,7 @@ import { useStatementImportUploadState } from "./-statement-import-page-upload-s
 
 export function useStatementImportPageState(args: {
   account: LedgerAccount;
+  statementImportCsvFormat?: StatementImportCsvFormat | null;
   accountBookStartDate: Date;
   accountOptions: AccountOption[];
   persistedBalance: number;
@@ -46,6 +48,7 @@ export function useStatementImportPageState(args: {
   });
   const uploadState = useStatementImportUploadState({
     account,
+    statementImportCsvFormat: args.statementImportCsvFormat,
     draftsLength: drafts.length,
     isSubmitting,
     isEditSubmitting,

@@ -1,12 +1,14 @@
 import Papa from "papaparse";
 import { createStatementImportDraft } from "./-statement-import-draft";
 import {
-  DEFAULT_STATEMENT_IMPORT_CSV_FORMAT,
   type CurrentAccountForStatementImport,
-  type StatementImportCsvFormat,
   type StatementImportDraft,
   type StatementImportParseResult,
 } from "./-statement-import-types";
+import {
+  DEFAULT_STATEMENT_IMPORT_CSV_FORMAT,
+  type StatementImportCsvFormat,
+} from "@/shared/statement-import-csv-format";
 import {
   collectColumnRefs,
   createHeaderIndex,

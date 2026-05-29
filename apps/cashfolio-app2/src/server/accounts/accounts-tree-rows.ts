@@ -3,6 +3,7 @@ import type {
   EquityAccountSubtype,
   Unit,
 } from "../../.prisma-client/enums";
+import type { StatementImportCsvFormat } from "../../shared/statement-import-csv-format";
 import { hasInactiveAncestorGroup } from "../accounts/accounts-helpers";
 import {
   type ActionAvailability,
@@ -35,6 +36,7 @@ export type AccountTreeAccount = {
   cryptocurrency: string | null;
   symbol: string | null;
   tradeCurrency: string | null;
+  statementImportCsvFormat?: StatementImportCsvFormat | null;
   groupId: string | null;
   isActive: boolean;
   sortOrder: number | null;
@@ -61,6 +63,7 @@ export type AccountTreeRow = {
   cryptocurrency: string | null;
   symbol: string | null;
   tradeCurrency: string | null;
+  statementImportCsvFormat?: StatementImportCsvFormat | null;
   balance: number | null;
   balanceInReferenceCurrency: number | null;
   openingBalance: number | null;
@@ -181,6 +184,7 @@ export function buildAccountRows(args: {
       cryptocurrency: account.cryptocurrency,
       symbol: account.symbol,
       tradeCurrency: account.tradeCurrency,
+      statementImportCsvFormat: account.statementImportCsvFormat,
       balance: displayBalance,
       balanceInReferenceCurrency: displayBalanceInReferenceCurrency,
       openingBalance: displayOpeningBalance,

@@ -1,4 +1,4 @@
-import { type StatementImportCsvNumberFormat } from "./-statement-import-types";
+import { type StatementImportCsvNumberFormat } from "@/shared/statement-import-csv-format";
 
 export const STRICT_DECIMAL_PATTERN = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/;
 

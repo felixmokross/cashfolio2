@@ -42,6 +42,7 @@ const assetAccount = {
   cryptocurrency: null,
   symbol: null,
   tradeCurrency: null,
+  statementImportCsvFormat: null,
   groupPathSegments: ["Assets", "Cash"],
 };
 

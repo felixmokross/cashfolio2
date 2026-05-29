@@ -7,6 +7,7 @@ import {
   TextInput,
   Grid,
   Select,
+  Textarea,
 } from "@mantine/core";
 import { isNotEmpty, useForm } from "@mantine/form";
 import { useEffect, useMemo, useReducer, useRef } from "react";
@@ -29,6 +30,10 @@ import { useDialogSubmitState } from "../hooks/use-dialog-submit-state";
 import { FormattedNumberInput } from "./formatted-number-input";
 import { GroupTreeSelect, type GroupTreeOption } from "./group-tree-select";
 import { CryptocurrencySelect, CurrencySelect } from "./unit-select";
+import {
+  parseStatementImportCsvFormatJson,
+  type StatementImportCsvFormat,
+} from "@/shared/statement-import-csv-format";
 
 export type AccountTypeDescriptor =
   | "ASSET"
@@ -46,6 +51,7 @@ type FormValues = {
   cryptocurrency?: string;
   symbol?: string;
   tradeCurrency?: string;
+  statementImportCsvFormat?: string;
 };
 
 export type TransformedFormValues = Omit<
@@ -56,6 +62,7 @@ export type TransformedFormValues = Omit<
   | "cryptocurrency"
   | "symbol"
   | "tradeCurrency"
+  | "statementImportCsvFormat"
 > & {
   type: AccountType;
   equityAccountSubtype?: EquityAccountSubtype;
@@ -64,6 +71,7 @@ export type TransformedFormValues = Omit<
   cryptocurrency?: string;
   symbol?: string;
   tradeCurrency?: string;
+  statementImportCsvFormat?: StatementImportCsvFormat | null;
   openingBalance?: number | null;
 };
 
@@ -78,6 +86,7 @@ export type AccountInitialValues = {
   cryptocurrency?: string | null;
   symbol?: string | null;
   tradeCurrency?: string | null;
+  statementImportCsvFormat?: StatementImportCsvFormat | null;
   openingBalance?: number | null;
 };
 
@@ -98,7 +107,24 @@ function toFormValues(initial: AccountInitialValues): FormValues {
     cryptocurrency: initial.cryptocurrency ?? undefined,
     symbol: initial.symbol ?? undefined,
     tradeCurrency: initial.tradeCurrency ?? undefined,
+    statementImportCsvFormat: initial.statementImportCsvFormat
+      ? JSON.stringify(initial.statementImportCsvFormat, null, 2)
+      : undefined,
   };
+}
+
+export function validateStatementImportCsvFormatFormValue(
+  value: string | undefined,
+  typeDescriptor?: AccountTypeDescriptor,
+): string | null {
+  if (
+    typeDescriptor !== AccountType.ASSET &&
+    typeDescriptor !== AccountType.LIABILITY
+  ) {
+    return null;
+  }
+
+  return parseStatementImportCsvFormatJson(value).errors[0] ?? null;
 }
 
 export function transformAccountValues(
@@ -114,6 +140,9 @@ export function transformAccountValues(
     ...values,
     type,
     openingBalance,
+    statementImportCsvFormat: parseStatementImportCsvFormatJson(
+      values.statementImportCsvFormat,
+    ).format,
     ...(type === AccountType.EQUITY ? { equityAccountSubtype } : undefined),
   };
 
@@ -125,6 +154,7 @@ export function transformAccountValues(
       cryptocurrency: undefined,
       symbol: undefined,
       tradeCurrency: undefined,
+      statementImportCsvFormat: null,
     };
   }
 
@@ -231,6 +261,8 @@ export function EditAccountModal({
           values.unit,
           values.typeDescriptor as AccountType,
         ),
+      statementImportCsvFormat: (value, values) =>
+        validateStatementImportCsvFormatFormValue(value, values.typeDescriptor),
     },
     transformValues: transformAccountValues,
     onValuesChange: (values: FormValues, previous: FormValues) => {
@@ -441,6 +473,15 @@ export function EditAccountModal({
                     </Grid.Col>
                   </Fragment>
                 ) : null}
+                <Grid.Col span={12}>
+                  <Textarea
+                    label="Statement import CSV format"
+                    autosize
+                    minRows={6}
+                    maxRows={12}
+                    {...form.getInputProps("statementImportCsvFormat")}
+                  />
+                </Grid.Col>
               </>
             )}
           </Grid>

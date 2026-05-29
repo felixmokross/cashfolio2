@@ -121,6 +121,8 @@ model Account {
   symbol         String?
   tradeCurrency  String?
 
+  statementImportCsvFormat Json?
+
   bookings Booking[]
 
   accountBook   AccountBook @relation(fields: [accountBookId], references: [id], onDelete: Cascade)

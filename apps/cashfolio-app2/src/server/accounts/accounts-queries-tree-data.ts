@@ -11,6 +11,7 @@ import type {
   EquityAccountSubtype,
   Unit,
 } from "../../.prisma-client/enums";
+import type { StatementImportCsvFormat } from "../../shared/statement-import-csv-format";
 import type { AccountState } from "./accounts-queries-reference-balances";
 import { getAccountsWhereClause } from "./accounts-queries-reference-balances";
 
@@ -24,6 +25,7 @@ export type AccountTreeQueryAccount = {
   cryptocurrency: string | null;
   symbol: string | null;
   tradeCurrency: string | null;
+  statementImportCsvFormat?: StatementImportCsvFormat | null;
   groupId: string | null;
   isActive: boolean;
   sortOrder: number | null;
@@ -52,29 +54,38 @@ export async function fetchAccountTreeQueryData(args: {
   includeActionAvailability: boolean;
 }) {
   const [accounts, accountGroups] = await Promise.all([
-    prisma.account.findMany({
-      where: getAccountsWhereClause({
-        accountBookId: args.accountBookId,
-        accountState: args.accountState,
-        type: args.type,
-        equityAccountSubtype: args.equityAccountSubtype,
-      }),
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        equityAccountSubtype: true,
-        unit: true,
-        currency: true,
-        cryptocurrency: true,
-        symbol: true,
-        tradeCurrency: true,
-        groupId: true,
-        isActive: true,
-        sortOrder: true,
-      },
-    }),
+    prisma.account
+      .findMany({
+        where: getAccountsWhereClause({
+          accountBookId: args.accountBookId,
+          accountState: args.accountState,
+          type: args.type,
+          equityAccountSubtype: args.equityAccountSubtype,
+        }),
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          equityAccountSubtype: true,
+          unit: true,
+          currency: true,
+          cryptocurrency: true,
+          symbol: true,
+          tradeCurrency: true,
+          statementImportCsvFormat: true,
+          groupId: true,
+          isActive: true,
+          sortOrder: true,
+        },
+      })
+      .then((accounts) =>
+        accounts.map((account) => ({
+          ...account,
+          statementImportCsvFormat:
+            account.statementImportCsvFormat as StatementImportCsvFormat | null,
+        })),
+      ),
     prisma.accountGroup.findMany({
       where: {
         accountBookId: args.accountBookId,

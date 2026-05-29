@@ -4,8 +4,8 @@ import {
   type StatementImportCsvDateFormat,
   type StatementImportCsvDescriptionMapping,
   type StatementImportCsvNumberFormat,
-  type StatementImportCsvRow,
-} from "./-statement-import-types";
+} from "@/shared/statement-import-csv-format";
+import { type StatementImportCsvRow } from "./-statement-import-types";
 import {
   getColumnValue,
   isMultiColumnDescriptionMapping,

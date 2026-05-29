@@ -2,6 +2,7 @@ import { useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { LedgerAccount } from "./-page-types";
 import {
   parseStatementImportCsv,
+  type StatementImportCsvFormat,
   type StatementImportDraft,
 } from "./-statement-import";
 
@@ -9,6 +10,7 @@ export type StatementImportPageStep = "upload" | "review";
 
 export function useStatementImportUploadState(args: {
   account: LedgerAccount;
+  statementImportCsvFormat?: StatementImportCsvFormat | null;
   draftsLength: number;
   isSubmitting: boolean;
   isEditSubmitting: boolean;
@@ -18,6 +20,7 @@ export function useStatementImportUploadState(args: {
 }) {
   const {
     account,
+    statementImportCsvFormat,
     draftsLength,
     isSubmitting,
     isEditSubmitting,
@@ -55,6 +58,7 @@ export function useStatementImportUploadState(args: {
     const result = parseStatementImportCsv({
       text,
       currentAccount: account,
+      format: statementImportCsvFormat ?? undefined,
     });
     if (requestId !== fileReadRequestId.current) {
       return;
