@@ -1,5 +1,6 @@
 import {
   ActionIcon,
+  Box,
   Button,
   Code,
   CopyButton,
@@ -68,7 +69,13 @@ const STATEMENT_IMPORT_CSV_FORMAT_PLACEHOLDER =
 
 function StatementImportCsvFormatHelp() {
   return (
-    <Popover width={420} position="bottom-start" withArrow shadow="md">
+    <Popover
+      width={420}
+      position="bottom-start"
+      withArrow
+      shadow="md"
+      withinPortal
+    >
       <Popover.Target>
         <Tooltip label="Show CSV format JSON help">
           <ActionIcon
@@ -87,7 +94,9 @@ function StatementImportCsvFormatHelp() {
             header refs for custom layouts. Leave the field empty to make
             imports unavailable for this account.
           </Text>
-          <Code block>{STATEMENT_IMPORT_CSV_FORMAT_EXAMPLE}</Code>
+          <Box mah="40vh" style={{ overflow: "auto" }}>
+            <Code block>{STATEMENT_IMPORT_CSV_FORMAT_EXAMPLE}</Code>
+          </Box>
           <CopyButton value={STATEMENT_IMPORT_CSV_FORMAT_EXAMPLE}>
             {({ copied, copy }) => (
               <Button
