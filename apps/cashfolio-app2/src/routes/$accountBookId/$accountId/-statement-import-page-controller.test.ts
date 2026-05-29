@@ -1,9 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { Unit } from "@/.prisma-client/enums";
+import { AccountType, Unit } from "@/.prisma-client/enums";
 import {
+  getStatementImportBalanceCarriedForwardRow,
   getStatementImportBulkIgnoredActionLabel,
+  getStatementImportGridRows,
   getStatementImportIgnoredCount,
   getStatementImportReadyCount,
+  getStatementImportReviewRows,
   getStatementImportSuccessLedgerSearch,
   getStatementImportSummaryText,
   getStatementImportTransactionsToSubmit,
@@ -361,5 +364,199 @@ describe("statement import page controller", () => {
         selectedDraftCount: 2,
       }),
     ).toBe("Unignore 2 selected rows");
+  });
+
+  test("derives asset account hypothetical balances from bottom to top in CSV order", () => {
+    const firstDraft = createDraft({
+      id: "draft-1",
+      transaction: {
+        description: "First",
+        bookings: [
+          {
+            date: "2026-02-05T00:00:00.000Z",
+            accountId: "account-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: 10,
+          },
+        ],
+      },
+    });
+    const secondDraft = createDraft({
+      id: "draft-2",
+      transaction: {
+        description: "Second",
+        bookings: [
+          {
+            date: "2026-02-05T00:00:00.000Z",
+            accountId: "account-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: -4,
+          },
+        ],
+      },
+    });
+
+    const rows = getStatementImportReviewRows({
+      account: { type: AccountType.ASSET },
+      persistedBalance: 100,
+      drafts: [firstDraft, secondDraft],
+    });
+
+    expect(rows.map((row) => row.id)).toEqual(["draft-1", "draft-2"]);
+    expect(rows.map((row) => row.balance)).toEqual([106, 96]);
+    expect(
+      getStatementImportBalanceCarriedForwardRow({
+        account: { type: AccountType.ASSET },
+        persistedBalance: 100,
+      }),
+    ).toEqual({
+      id: "__statement_import_balance_carried_forward__",
+      rowType: "balanceCarriedForward",
+      description: "Balance carried forward",
+      balance: 100,
+    });
+    expect(
+      getStatementImportGridRows({
+        account: { type: AccountType.ASSET },
+        persistedBalance: 100,
+        drafts: [firstDraft, secondDraft],
+      }).map((row) => row.id),
+    ).toEqual([
+      "draft-1",
+      "draft-2",
+      "__statement_import_balance_carried_forward__",
+    ]);
+  });
+
+  test("suppresses the carried-forward row when the starting balance is zero", () => {
+    expect(
+      getStatementImportBalanceCarriedForwardRow({
+        account: { type: AccountType.ASSET },
+        persistedBalance: 0,
+      }),
+    ).toBeUndefined();
+  });
+
+  test("keeps ignored drafts from changing hypothetical balances", () => {
+    const ignoredDraft = createDraft({
+      id: "ignored-draft",
+      ignored: true,
+      transaction: {
+        description: "Ignored",
+        bookings: [
+          {
+            date: "2026-02-05T00:00:00.000Z",
+            accountId: "account-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: 10,
+          },
+        ],
+      },
+    });
+    const includedDraft = createDraft({
+      id: "included-draft",
+      transaction: {
+        description: "Included",
+        bookings: [
+          {
+            date: "2026-02-05T00:00:00.000Z",
+            accountId: "account-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: -4,
+          },
+        ],
+      },
+    });
+
+    const rows = getStatementImportReviewRows({
+      account: { type: AccountType.ASSET },
+      persistedBalance: 100,
+      drafts: [ignoredDraft, includedDraft],
+    });
+
+    expect(rows.map((row) => row.balance)).toEqual([96, 96]);
+  });
+
+  test("sums multiple current-account bookings in edited drafts", () => {
+    const draft = createDraft({
+      transaction: {
+        description: "Split current account draft",
+        bookings: [
+          {
+            date: "2026-02-05T00:00:00.000Z",
+            accountId: "account-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: 3,
+          },
+          {
+            date: "2026-02-05T00:00:00.000Z",
+            accountId: "account-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: 4,
+          },
+          {
+            date: "2026-02-05T00:00:00.000Z",
+            accountId: "counter-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: -7,
+          },
+        ],
+      },
+    });
+
+    const rows = getStatementImportReviewRows({
+      account: { type: AccountType.ASSET },
+      persistedBalance: 5,
+      drafts: [draft],
+    });
+
+    expect(rows[0]?.balance).toBe(12);
+  });
+
+  test("sign-adjusts liability balances like ledger display", () => {
+    const draft = createDraft({
+      amount: -25,
+      transaction: {
+        description: "Liability increase",
+        bookings: [
+          {
+            date: "2026-02-05T00:00:00.000Z",
+            accountId: "account-1",
+            description: "",
+            unit: Unit.CURRENCY,
+            currency: "CHF",
+            value: -25,
+          },
+        ],
+      },
+    });
+
+    const rows = getStatementImportReviewRows({
+      account: { type: AccountType.LIABILITY },
+      persistedBalance: -100,
+      drafts: [draft],
+    });
+
+    expect(rows[0]?.balance).toBe(125);
+    expect(
+      getStatementImportBalanceCarriedForwardRow({
+        account: { type: AccountType.LIABILITY },
+        persistedBalance: -100,
+      })?.balance,
+    ).toBe(100);
   });
 });

@@ -25,6 +25,7 @@ const prisma = vi.hoisted(() => ({
     findUniqueOrThrow: vi.fn(),
   },
   booking: {
+    aggregate: vi.fn(),
     findFirst: vi.fn(),
   },
 }));
@@ -41,7 +42,10 @@ vi.mock("../account-books/functions.server", () => ({
   ensureAuthorizedForAccountBookId,
 }));
 
-import { getLedgerPeriodBounds } from "./ledger";
+import {
+  getLedgerAccountPersistedBalance,
+  getLedgerPeriodBounds,
+} from "./ledger";
 
 describe("getLedgerPeriodBounds", () => {
   beforeEach(() => {
@@ -51,6 +55,7 @@ describe("getLedgerPeriodBounds", () => {
     prisma.accountBook.findUniqueOrThrow.mockResolvedValue({
       startDate: new Date("2026-01-01T00:00:00.000Z"),
     });
+    prisma.booking.aggregate.mockResolvedValue({ _sum: { value: 0 } });
     prisma.booking.findFirst.mockResolvedValue(null);
   });
 
@@ -94,5 +99,36 @@ describe("getLedgerPeriodBounds", () => {
         },
       }),
     );
+  });
+});
+
+describe("getLedgerAccountPersistedBalance", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-02-10T12:00:00.000Z"));
+    vi.clearAllMocks();
+    prisma.booking.aggregate.mockResolvedValue({ _sum: { value: 42 } });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("excludes future bookings from the persisted balance seed", async () => {
+    await expect(
+      getLedgerAccountPersistedBalance({
+        data: { accountBookId: "book-1", accountId: "asset-1" },
+      }),
+    ).resolves.toBe(42);
+
+    expect(ensureAuthorizedForAccountBookId).toHaveBeenCalledWith("book-1");
+    expect(prisma.booking.aggregate).toHaveBeenCalledWith({
+      where: {
+        accountBookId: "book-1",
+        accountId: "asset-1",
+        date: { lt: new Date("2026-02-11T00:00:00.000Z") },
+      },
+      _sum: { value: true },
+    });
   });
 });

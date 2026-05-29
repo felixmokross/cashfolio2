@@ -9,20 +9,25 @@ import {
   TEXT_COLUMN,
 } from "@/components/column-types";
 import type { AccountOption } from "@/components/edit-transaction-modal";
-import type {
-  StatementImportDraft,
-  StatementImportDraftStatus,
-} from "./-statement-import";
+import { getUnitDisplayDecimals } from "@/shared/unit-format";
+import type { LedgerAccount } from "./-page-types";
+import type { StatementImportDraftStatus } from "./-statement-import";
 import { hasStatementImportSingleCounterBooking } from "./-statement-import";
+import {
+  isStatementImportReviewDraftRow,
+  type StatementImportGridRow,
+} from "./-statement-import-page-controller";
 
 export function useStatementImportColumnDefs(args: {
+  account: LedgerAccount;
   counterAccountOptions: AccountOption[];
   isSubmitting: boolean;
   statuses: Map<string, StatementImportDraftStatus>;
   onEditDraft: (draftId: string) => void;
   onToggleDraftIgnored: (draftId: string) => void;
-}): ColDef<StatementImportDraft>[] {
+}): ColDef<StatementImportGridRow>[] {
   const {
+    account,
     counterAccountOptions,
     isSubmitting,
     onEditDraft,
@@ -36,8 +41,10 @@ export function useStatementImportColumnDefs(args: {
         colId: "status",
         headerName: "Status",
         width: 135,
-        cellRenderer: ({ data }: ICellRendererParams<StatementImportDraft>) => {
-          if (!data) return null;
+        cellRenderer: ({
+          data,
+        }: ICellRendererParams<StatementImportGridRow>) => {
+          if (!isStatementImportReviewDraftRow(data)) return null;
           const status = statuses.get(data.id);
           if (!status) return null;
           return (
@@ -63,38 +70,30 @@ export function useStatementImportColumnDefs(args: {
         type: FORMATTED_NUMERIC_COLUMN,
       },
       {
-        field: "originalAmount",
-        headerName: "Original Amount",
-        width: 160,
-        type: FORMATTED_NUMERIC_COLUMN,
-      },
-      {
-        field: "originalCurrency",
-        headerName: "Original Ccy.",
-        width: 135,
-      },
-      {
         field: "description",
         headerName: "Description",
-        minWidth: 240,
+        minWidth: 190,
         flex: 1,
-        editable: ({ data }) => !isSubmitting && data != null && !data.ignored,
+        editable: ({ data }) =>
+          !isSubmitting &&
+          isStatementImportReviewDraftRow(data) &&
+          !data.ignored,
         type: TEXT_COLUMN,
       },
       {
         field: "counterAccountId",
         headerName: "Counter Account",
-        width: 260,
+        width: 215,
         editable: ({ data }) =>
           !isSubmitting &&
-          data != null &&
+          isStatementImportReviewDraftRow(data) &&
           !data.ignored &&
           hasStatementImportSingleCounterBooking(data),
         cellRenderer: ({
           data,
           value,
-        }: ICellRendererParams<StatementImportDraft>) => {
-          if (!data) return null;
+        }: ICellRendererParams<StatementImportGridRow>) => {
+          if (!isStatementImportReviewDraftRow(data)) return null;
           if (!hasStatementImportSingleCounterBooking(data)) {
             return (
               <Badge color="gray" variant="light">
@@ -114,6 +113,33 @@ export function useStatementImportColumnDefs(args: {
         },
       },
       {
+        field: "originalCurrency",
+        headerName: "Original Ccy.",
+        width: 110,
+      },
+      {
+        field: "originalAmount",
+        headerName: "Original Amount",
+        width: 145,
+        type: FORMATTED_NUMERIC_COLUMN,
+      },
+      {
+        field: "balance",
+        headerName: getStatementImportBalanceHeaderName(),
+        width: 155,
+        type: FORMATTED_NUMERIC_COLUMN,
+        context: {
+          formattedNumeric: {
+            getDisplayDecimals: () =>
+              getUnitDisplayDecimals({
+                unit: account.unit,
+                currency: account.currency,
+                cryptocurrency: account.cryptocurrency,
+              }),
+          },
+        },
+      },
+      {
         colId: "actions",
         headerName: "",
         width: 95,
@@ -123,8 +149,10 @@ export function useStatementImportColumnDefs(args: {
         resizable: false,
         suppressHeaderMenuButton: true,
         cellClass: "actions-cell",
-        cellRenderer: ({ data }: ICellRendererParams<StatementImportDraft>) => {
-          if (!data) return null;
+        cellRenderer: ({
+          data,
+        }: ICellRendererParams<StatementImportGridRow>) => {
+          if (!isStatementImportReviewDraftRow(data)) return null;
           const editDisabled = isSubmitting || data.ignored;
           const toggleIgnoredLabel = data.ignored
             ? "Unignore Imported Transaction"
@@ -166,6 +194,7 @@ export function useStatementImportColumnDefs(args: {
       },
     ],
     [
+      account,
       counterAccountOptions,
       isSubmitting,
       onEditDraft,
@@ -173,4 +202,8 @@ export function useStatementImportColumnDefs(args: {
       statuses,
     ],
   );
+}
+
+export function getStatementImportBalanceHeaderName(): string {
+  return "Balance";
 }

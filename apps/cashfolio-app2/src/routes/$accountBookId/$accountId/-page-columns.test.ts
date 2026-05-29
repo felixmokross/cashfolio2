@@ -7,6 +7,7 @@ import {
   getLedgerUnitIdentifierDisplayValue,
 } from "./-page-columns";
 import type { LedgerRow } from "./-page-types";
+import { getStatementImportBalanceHeaderName } from "./-statement-import-page-columns";
 
 function createLedgerRow(args: {
   unit: Unit | null;
@@ -136,5 +137,11 @@ describe("ledger reference-currency display values", () => {
         value: row.debit,
       }),
     ).toBe(100);
+  });
+});
+
+describe("statement import balance column", () => {
+  test("uses an implicit account-currency balance label", () => {
+    expect(getStatementImportBalanceHeaderName()).toBe("Balance");
   });
 });

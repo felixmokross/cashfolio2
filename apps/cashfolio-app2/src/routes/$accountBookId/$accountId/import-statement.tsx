@@ -5,6 +5,7 @@ import type { AccountOption } from "@/components/edit-transaction-modal";
 import { createAccountBookUnitUsage } from "@/shared/account-book-unit-usage";
 import { createAccountOptions } from "@/shared/account-options";
 import { createDocumentTitleHead } from "@/shared/document-title";
+import { getLedgerAccountPersistedBalance } from "@/server/ledger";
 import { createTransactions } from "@/server/transactions";
 import { loadLedgerPageData } from "./-page-loader";
 import { parseLedgerSearch } from "./-page-types";
@@ -31,7 +32,12 @@ export const Route = createFileRoute(
     params: { accountBookId, accountId },
     deps: { period },
   }) => {
-    const data = await loadLedgerPageData({ accountBookId, accountId, period });
+    const [data, persistedBalance] = await Promise.all([
+      loadLedgerPageData({ accountBookId, accountId, period }),
+      getLedgerAccountPersistedBalance({
+        data: { accountBookId, accountId },
+      }),
+    ]);
     if (getStatementImportDisabledReason(data.account)) {
       throw redirect({
         to: "/$accountBookId/$accountId",
@@ -40,7 +46,10 @@ export const Route = createFileRoute(
       });
     }
 
-    return data;
+    return {
+      ...data,
+      persistedBalance,
+    };
   },
   head: ({ loaderData }) =>
     createDocumentTitleHead(
@@ -118,6 +127,7 @@ function StatementImportRoutePage() {
         account={loaderData.account}
         accountBookStartDate={accountBookStartDate}
         accountOptions={accountOptions}
+        persistedBalance={loaderData.persistedBalance}
         unitUsage={unitUsage}
         isSubmitting={isSubmitting}
         period={period}
