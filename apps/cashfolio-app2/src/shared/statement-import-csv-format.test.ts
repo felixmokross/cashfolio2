@@ -29,6 +29,27 @@ describe("statement import CSV format validation", () => {
     });
   });
 
+  test("preserves zero-valued column references", () => {
+    const result = readStatementImportCsvFormat({
+      hasHeader: false,
+      delimitersToGuess: [","],
+      mappings: {
+        date: 0,
+        amount: { mode: "signed", column: 0 },
+        description: 1,
+      },
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.format).toMatchObject({
+      mappings: {
+        date: 0,
+        amount: { mode: "signed", column: 0 },
+        description: 1,
+      },
+    });
+  });
+
   test("rejects invalid JSON text", () => {
     const result = parseStatementImportCsvFormatJson("{not-json");
 

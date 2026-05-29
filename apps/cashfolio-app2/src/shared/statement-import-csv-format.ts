@@ -537,7 +537,7 @@ function readOptionalMappings(
   );
   const description = readOptionalDescriptionMapping(value.description, errors);
 
-  if (!date || !amount) {
+  if (date === undefined || amount === undefined) {
     return undefined;
   }
 
@@ -565,7 +565,7 @@ function readAmountMapping(
       "CSV format signed amount column",
       errors,
     );
-    if (!column) {
+    if (column === undefined) {
       return undefined;
     }
     return {
