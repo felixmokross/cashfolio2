@@ -66,6 +66,7 @@ const STATEMENT_IMPORT_CSV_FORMAT_EXAMPLE = JSON.stringify(
 );
 const STATEMENT_IMPORT_CSV_FORMAT_PLACEHOLDER =
   "Paste a statement import CSV format JSON object.";
+const STATEMENT_IMPORT_CSV_FORMAT_HELP_VIEWPORT_PADDING = 12;
 
 function StatementImportCsvFormatHelp() {
   return (
@@ -75,6 +76,10 @@ function StatementImportCsvFormatHelp() {
       withArrow
       shadow="md"
       withinPortal
+      middlewares={{
+        flip: true,
+        shift: { padding: STATEMENT_IMPORT_CSV_FORMAT_HELP_VIEWPORT_PADDING },
+      }}
     >
       <Popover.Target>
         <Tooltip label="Show CSV format JSON help">
@@ -94,7 +99,7 @@ function StatementImportCsvFormatHelp() {
             header refs for custom layouts. Leave the field empty to make
             imports unavailable for this account.
           </Text>
-          <Box mah="40vh" style={{ overflow: "auto" }}>
+          <Box mah="32vh" style={{ overflow: "auto" }}>
             <Code block>{STATEMENT_IMPORT_CSV_FORMAT_EXAMPLE}</Code>
           </Box>
           <CopyButton value={STATEMENT_IMPORT_CSV_FORMAT_EXAMPLE}>
