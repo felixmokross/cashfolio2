@@ -472,6 +472,11 @@ compatibility but ignored by the importer.
   account unit and the opposite `amount`.
 - Drafts are reviewed in a separate grid on the import page, not directly in the
   ledger grid.
+- The review grid shows a hypothetical account balance in the imported account's
+  unit. It starts from the account's persisted all-time balance, preserves CSV
+  row order, sums from the last imported row up to the first, and ignores rows
+  marked as ignored. When the starting balance is non-zero, the grid appends a
+  virtual `Balance carried forward` row at the bottom.
 - The counter account is editable directly in the review grid. Full draft edits
   still use `EditTransactionModal`.
 - Drafts with zero or multiple non-current-account bookings show a `Multiple`

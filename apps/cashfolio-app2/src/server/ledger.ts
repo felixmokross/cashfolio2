@@ -2,7 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { prisma } from "../prisma.server";
 import { ensureAuthorizedForAccountBookId } from "../account-books/functions.server";
 import { AccountType, EquityAccountSubtype } from "../.prisma-client/enums";
-import { getOpeningBalancesBookingDate, startOfUtcDay } from "../shared/date";
+import {
+  addUtcDays,
+  getOpeningBalancesBookingDate,
+  startOfUtcDay,
+} from "../shared/date";
 import {
   getExplicitPeriodDateRange,
   parseExplicitPeriodSelectionFromUnknown,
@@ -61,6 +65,25 @@ export const getAccountForLedger = createServerFn({ method: "GET" })
       ...rest,
       groupPathSegments: groupId ? resolveGroupPathSegments(groupId) : [],
     };
+  });
+
+export const getLedgerAccountPersistedBalance = createServerFn({
+  method: "GET",
+})
+  .inputValidator((data: { accountId: string; accountBookId: string }) => data)
+  .handler(async ({ data }) => {
+    await ensureAuthorizedForAccountBookId(data.accountBookId);
+    const currentBalanceEndExclusive = addUtcDays(startOfUtcDay(new Date()), 1);
+    const aggregateResult = await prisma.booking.aggregate({
+      where: {
+        accountId: data.accountId,
+        accountBookId: data.accountBookId,
+        date: { lt: currentBalanceEndExclusive },
+      },
+      _sum: { value: true },
+    });
+
+    return toMoneyNumber(aggregateResult._sum.value ?? 0);
   });
 
 export const getLedgerData = createServerFn({ method: "GET" })

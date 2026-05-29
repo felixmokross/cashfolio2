@@ -17,12 +17,14 @@ import {
   StatementImportParseErrors,
 } from "./-statement-import-file-controls";
 import { useStatementImportPageState } from "./-statement-import-page-state";
+import { isStatementImportReviewDraftRow } from "./-statement-import-page-controller";
 
 type StatementImportPageViewProps = {
   accountBookId: string;
   account: LedgerAccount;
   accountBookStartDate: Date;
   accountOptions: AccountOption[];
+  persistedBalance: number;
   unitUsage: AccountBookUnitUsage;
   isSubmitting: boolean;
   period?: string;
@@ -35,6 +37,7 @@ export function AccountStatementImportPageView({
   account,
   accountBookStartDate,
   accountOptions,
+  persistedBalance,
   unitUsage,
   isSubmitting,
   period,
@@ -45,6 +48,7 @@ export function AccountStatementImportPageView({
     account,
     accountBookStartDate,
     accountOptions,
+    persistedBalance,
     isSubmitting,
     onSubmittingChange,
     onSubmit,
@@ -143,8 +147,9 @@ export function AccountStatementImportPageView({
                   borderTopLeftRadius: 0,
                   borderTopRightRadius: 0,
                 }}
-                rowData={state.drafts}
+                rowData={state.reviewRows}
                 columnDefs={state.columnDefs}
+                suppressColumnVirtualisation={true}
                 getRowId={({ data }) => data.id}
                 defaultColDef={{
                   editable: false,
@@ -152,12 +157,17 @@ export function AccountStatementImportPageView({
                   suppressHeaderMenuButton: true,
                 }}
                 rowClassRules={{
-                  "statement-import-row-ignored": ({ data }) => !!data?.ignored,
+                  "statement-import-row-ignored": ({ data }) =>
+                    !!data && "ignored" in data && !!data.ignored,
                 }}
                 rowSelection={{
                   mode: "multiRow",
-                  checkboxes: true,
+                  checkboxes: ({ data }) =>
+                    isStatementImportReviewDraftRow(data),
                   headerCheckbox: true,
+                  hideDisabledCheckboxes: true,
+                  isRowSelectable: ({ data }) =>
+                    isStatementImportReviewDraftRow(data),
                   enableClickSelection: false,
                 }}
                 onCellValueChanged={state.handleDraftCellChange}
