@@ -1,14 +1,42 @@
 import { describe, expect, test } from "vitest";
 import { Unit } from "@/.prisma-client/enums";
 import {
-  DEFAULT_STATEMENT_IMPORT_CSV_FORMAT,
   parseStatementImportCsv,
+  type StatementImportCsvFormat,
 } from "./-statement-import";
 import { currentAccount } from "./-statement-import-test-fixtures";
 
+const legacyCsvFormat = {
+  hasHeader: true,
+  delimitersToGuess: [",", ";"],
+  columns: [
+    "date",
+    "amount",
+    "original amount",
+    "original currency",
+    "exchange rate",
+    "description",
+  ],
+  dateFormat: "yyyy-MM-dd",
+  numberFormat: {
+    decimalSeparator: ".",
+  },
+} as const satisfies StatementImportCsvFormat;
+
+function parseWithLegacyFormat(
+  args: Omit<Parameters<typeof parseStatementImportCsv>[0], "format"> & {
+    format?: StatementImportCsvFormat;
+  },
+) {
+  return parseStatementImportCsv({
+    format: legacyCsvFormat,
+    ...args,
+  });
+}
+
 describe("statement import CSV parser", () => {
   test("parses strict CSV with quoted descriptions", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       text: [
         "date,amount,original amount,original currency,exchange rate,description",
@@ -47,7 +75,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("parses semicolon-delimited CSV with quoted descriptions", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       text: [
         "Booking Date;Booked Amount;Source Amount;Source Currency;FX Rate;Memo",
@@ -66,7 +94,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("parses arbitrary header names by column order", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       text: [
         "Booked On,Value,Foreign Value,Foreign Ccy,Rate,Text",
@@ -84,36 +112,29 @@ describe("statement import CSV parser", () => {
     });
   });
 
-  test("uses the default CSV format when no format is provided", () => {
+  test("parses the legacy CSV format explicitly", () => {
     const text = [
       "date,amount,original amount,original currency,exchange rate,description",
       "2026-02-03,100.25,92.50,EUR,1.083784,Transfer",
     ].join("\n");
 
-    const implicitDefault = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
-      text,
-    });
-    const explicitDefault = parseStatementImportCsv({
-      currentAccount,
-      format: DEFAULT_STATEMENT_IMPORT_CSV_FORMAT,
       text,
     });
 
-    expect(implicitDefault.errors).toEqual([]);
-    expect(explicitDefault.errors).toEqual([]);
-    expect(explicitDefault.drafts[0]).toMatchObject({
-      date: implicitDefault.drafts[0]?.date,
-      amount: implicitDefault.drafts[0]?.amount,
-      originalAmount: implicitDefault.drafts[0]?.originalAmount,
-      originalCurrency: implicitDefault.drafts[0]?.originalCurrency,
-      description: implicitDefault.drafts[0]?.description,
-      transaction: implicitDefault.drafts[0]?.transaction,
+    expect(result.errors).toEqual([]);
+    expect(result.drafts[0]).toMatchObject({
+      date: "2026-02-03T00:00:00.000Z",
+      amount: 100.25,
+      originalAmount: 92.5,
+      originalCurrency: "EUR",
+      description: "Transfer",
     });
   });
 
   test("maps reordered columns by trimmed case-insensitive header names", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: true,
@@ -144,7 +165,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("maps headerless CSVs by zero-based indexes", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: false,
@@ -167,7 +188,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("allows ordered formats to omit optional columns", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: true,
@@ -205,7 +226,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("normalizes ordered formats with configured date and number formats", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: true,
@@ -231,7 +252,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("parses configured date formats", () => {
-    const european = parseStatementImportCsv({
+    const european = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: true,
@@ -247,7 +268,7 @@ describe("statement import CSV parser", () => {
         "\n",
       ),
     });
-    const us = parseStatementImportCsv({
+    const us = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: true,
@@ -271,7 +292,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("parses decimal commas with thousands separators", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: true,
@@ -303,7 +324,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("rejects identical decimal and thousands separators", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: true,
@@ -328,7 +349,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("derives signed amounts from debit and credit columns", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: true,
@@ -362,7 +383,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("inverts signed statement amounts when configured", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: true,
@@ -388,7 +409,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("preserves tiny normalized decimal amounts in flexible formats", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: true,
@@ -413,7 +434,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("joins multi-column descriptions and skips blank parts", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: true,
@@ -443,7 +464,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("reports missing mapped columns and malformed values", () => {
-    const missingHeader = parseStatementImportCsv({
+    const missingHeader = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: true,
@@ -455,7 +476,7 @@ describe("statement import CSV parser", () => {
       },
       text: ["Date,Value", "2026-02-03,100.25"].join("\n"),
     });
-    const malformed = parseStatementImportCsv({
+    const malformed = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: false,
@@ -486,7 +507,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("ignores extra trailing columns", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       text: [
         "date,amount,original amount,original currency,exchange rate,description,balance,unused",
@@ -504,7 +525,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("ignores exchange rate values", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       text: [
         "date;amount;original amount;original currency;exchange rate;description",
@@ -530,7 +551,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("rejects rows with extra columns not declared by the header", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       text: [
         "date,amount,original amount,original currency,exchange rate,description",
@@ -545,7 +566,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("rejects shifted rows when extra header columns hide the column count mismatch", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       text: [
         "date,amount,original amount,original currency,exchange rate,description,balance",
@@ -560,7 +581,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("rejects shifted rows for header-name mapped exchange rates", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: true,
@@ -587,7 +608,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("allows blank original amount and original currency", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       text: [
         "date,amount,original amount,original currency,exchange rate,description",
@@ -620,14 +641,14 @@ describe("statement import CSV parser", () => {
   });
 
   test("requires original amount and original currency to be provided together", () => {
-    const missingCurrency = parseStatementImportCsv({
+    const missingCurrency = parseWithLegacyFormat({
       currentAccount,
       text: [
         "date,amount,original amount,original currency,exchange rate,description",
         "2026-02-03,100.25,92.50,,,Transfer",
       ].join("\n"),
     });
-    const missingAmount = parseStatementImportCsv({
+    const missingAmount = parseWithLegacyFormat({
       currentAccount,
       text: [
         "date,amount,original amount,original currency,exchange rate,description",
@@ -644,9 +665,8 @@ describe("statement import CSV parser", () => {
   });
 
   test("rejects CSVs with fewer than six columns", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
-      format: DEFAULT_STATEMENT_IMPORT_CSV_FORMAT,
       text: ["date,amount,original amount", "2026-02-03,100.25,92.50"].join(
         "\n",
       ),
@@ -659,7 +679,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("rejects headerless CSVs instead of dropping the first data row", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       text: [
         "2026-02-03,100.25,92.50,EUR,1.083784,First transaction",
@@ -674,7 +694,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("rejects headerless CSVs when the first transaction row is invalid", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       text: [
         "2026-02-03,100.25,92.50,eur,1.083784,First transaction",
@@ -689,7 +709,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("rejects headerless CSVs when the first row has localized date and amount values", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       text: [
         "03.02.2026;100,25;92,50;EUR;ignored;First transaction",
@@ -704,7 +724,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("rejects headerless CSVs for indexed mappings with a configured header row", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       format: {
         hasHeader: true,
@@ -728,7 +748,7 @@ describe("statement import CSV parser", () => {
   });
 
   test("rejects invalid dates and numeric fields", () => {
-    const result = parseStatementImportCsv({
+    const result = parseWithLegacyFormat({
       currentAccount,
       text: [
         "date,amount,original amount,original currency,exchange rate,description",

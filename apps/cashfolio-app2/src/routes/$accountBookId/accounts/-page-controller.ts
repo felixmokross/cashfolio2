@@ -107,6 +107,7 @@ export function createAccountsMutationActions(args: {
           cryptocurrency: values.cryptocurrency,
           symbol: values.symbol,
           tradeCurrency: values.tradeCurrency,
+          statementImportCsvFormat: values.statementImportCsvFormat,
           openingBalance: values.openingBalance,
         },
       });
@@ -132,6 +133,7 @@ export function createAccountsMutationActions(args: {
           cryptocurrency: values.cryptocurrency,
           symbol: values.symbol,
           tradeCurrency: values.tradeCurrency,
+          statementImportCsvFormat: values.statementImportCsvFormat,
           openingBalance: values.openingBalance,
         },
       });

@@ -1,15 +1,25 @@
 import {
+  ActionIcon,
+  Box,
   Button,
+  Code,
+  CopyButton,
   Group,
+  Input,
+  Popover,
   Modal,
   NumberInput,
   Stack,
+  Text,
   TextInput,
   Grid,
   Select,
+  Textarea,
+  Tooltip,
 } from "@mantine/core";
 import { isNotEmpty, useForm } from "@mantine/form";
-import { useEffect, useMemo, useReducer, useRef } from "react";
+import { IconCheck, IconCopy, IconInfoCircle } from "@tabler/icons-react";
+import { useEffect, useId, useMemo, useReducer, useRef } from "react";
 import { Fragment } from "react/jsx-runtime";
 import {
   AccountType,
@@ -29,6 +39,88 @@ import { useDialogSubmitState } from "../hooks/use-dialog-submit-state";
 import { FormattedNumberInput } from "./formatted-number-input";
 import { GroupTreeSelect, type GroupTreeOption } from "./group-tree-select";
 import { CryptocurrencySelect, CurrencySelect } from "./unit-select";
+import {
+  parseStatementImportCsvFormatJson,
+  type StatementImportCsvFormat,
+} from "@/shared/statement-import-csv-format";
+
+const STATEMENT_IMPORT_CSV_FORMAT_EXAMPLE = JSON.stringify(
+  {
+    hasHeader: true,
+    delimitersToGuess: [",", ";"],
+    columns: [
+      "date",
+      "amount",
+      "original amount",
+      "original currency",
+      "exchange rate",
+      "description",
+    ],
+    dateFormat: "yyyy-MM-dd",
+    numberFormat: {
+      decimalSeparator: ".",
+    },
+  },
+  null,
+  2,
+);
+const STATEMENT_IMPORT_CSV_FORMAT_PLACEHOLDER =
+  "Paste a statement import CSV format JSON object.";
+const STATEMENT_IMPORT_CSV_FORMAT_HELP_VIEWPORT_PADDING = 12;
+
+function StatementImportCsvFormatHelp() {
+  return (
+    <Popover
+      width={420}
+      position="bottom-start"
+      withArrow
+      shadow="md"
+      withinPortal
+      middlewares={{
+        flip: true,
+        shift: { padding: STATEMENT_IMPORT_CSV_FORMAT_HELP_VIEWPORT_PADDING },
+      }}
+    >
+      <Popover.Target>
+        <Tooltip label="Show CSV format JSON help">
+          <ActionIcon
+            aria-label="Show statement import CSV format help"
+            size="sm"
+            variant="subtle"
+          >
+            <IconInfoCircle size={16} />
+          </ActionIcon>
+        </Tooltip>
+      </Popover.Target>
+      <Popover.Dropdown>
+        <Stack gap="xs">
+          <Text size="sm">
+            Use ordered columns for positional CSVs. Use mappings with index or
+            header refs for custom layouts. Leave the field empty to make
+            imports unavailable for this account.
+          </Text>
+          <Box mah="32vh" style={{ overflow: "auto" }}>
+            <Code block>{STATEMENT_IMPORT_CSV_FORMAT_EXAMPLE}</Code>
+          </Box>
+          <CopyButton value={STATEMENT_IMPORT_CSV_FORMAT_EXAMPLE}>
+            {({ copied, copy }) => (
+              <Button
+                leftSection={
+                  copied ? <IconCheck size={16} /> : <IconCopy size={16} />
+                }
+                onClick={copy}
+                size="xs"
+                variant="light"
+              >
+                {copied ? "Copied" : "Copy example"}
+              </Button>
+            )}
+          </CopyButton>
+        </Stack>
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
 
 export type AccountTypeDescriptor =
   | "ASSET"
@@ -46,6 +138,7 @@ type FormValues = {
   cryptocurrency?: string;
   symbol?: string;
   tradeCurrency?: string;
+  statementImportCsvFormat?: string;
 };
 
 export type TransformedFormValues = Omit<
@@ -56,6 +149,7 @@ export type TransformedFormValues = Omit<
   | "cryptocurrency"
   | "symbol"
   | "tradeCurrency"
+  | "statementImportCsvFormat"
 > & {
   type: AccountType;
   equityAccountSubtype?: EquityAccountSubtype;
@@ -64,6 +158,7 @@ export type TransformedFormValues = Omit<
   cryptocurrency?: string;
   symbol?: string;
   tradeCurrency?: string;
+  statementImportCsvFormat?: StatementImportCsvFormat | null;
   openingBalance?: number | null;
 };
 
@@ -78,6 +173,7 @@ export type AccountInitialValues = {
   cryptocurrency?: string | null;
   symbol?: string | null;
   tradeCurrency?: string | null;
+  statementImportCsvFormat?: StatementImportCsvFormat | null;
   openingBalance?: number | null;
 };
 
@@ -98,7 +194,24 @@ function toFormValues(initial: AccountInitialValues): FormValues {
     cryptocurrency: initial.cryptocurrency ?? undefined,
     symbol: initial.symbol ?? undefined,
     tradeCurrency: initial.tradeCurrency ?? undefined,
+    statementImportCsvFormat: initial.statementImportCsvFormat
+      ? JSON.stringify(initial.statementImportCsvFormat, null, 2)
+      : undefined,
   };
+}
+
+export function validateStatementImportCsvFormatFormValue(
+  value: string | undefined,
+  typeDescriptor?: AccountTypeDescriptor,
+): string | null {
+  if (
+    typeDescriptor !== AccountType.ASSET &&
+    typeDescriptor !== AccountType.LIABILITY
+  ) {
+    return null;
+  }
+
+  return parseStatementImportCsvFormatJson(value).errors[0] ?? null;
 }
 
 export function transformAccountValues(
@@ -114,6 +227,9 @@ export function transformAccountValues(
     ...values,
     type,
     openingBalance,
+    statementImportCsvFormat: parseStatementImportCsvFormatJson(
+      values.statementImportCsvFormat,
+    ).format,
     ...(type === AccountType.EQUITY ? { equityAccountSubtype } : undefined),
   };
 
@@ -125,6 +241,7 @@ export function transformAccountValues(
       cryptocurrency: undefined,
       symbol: undefined,
       tradeCurrency: undefined,
+      statementImportCsvFormat: null,
     };
   }
 
@@ -170,6 +287,7 @@ export function EditAccountModal({
   unitUsage,
 }: EditAccountModalProps) {
   const isEdit = !!initialValues;
+  const statementImportCsvFormatInputId = useId();
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
   const { isSubmitting, runSubmit } = useDialogSubmitState();
   const form = useForm<FormValues, TransformedFormValues>({
@@ -231,6 +349,8 @@ export function EditAccountModal({
           values.unit,
           values.typeDescriptor as AccountType,
         ),
+      statementImportCsvFormat: (value, values) =>
+        validateStatementImportCsvFormatFormValue(value, values.typeDescriptor),
     },
     transformValues: transformAccountValues,
     onValuesChange: (values: FormValues, previous: FormValues) => {
@@ -441,6 +561,25 @@ export function EditAccountModal({
                     </Grid.Col>
                   </Fragment>
                 ) : null}
+                <Grid.Col span={12}>
+                  <Stack gap={4}>
+                    <Group gap={4}>
+                      <Input.Label htmlFor={statementImportCsvFormatInputId}>
+                        Statement import CSV format
+                      </Input.Label>
+                      <StatementImportCsvFormatHelp />
+                    </Group>
+                    <Textarea
+                      id={statementImportCsvFormatInputId}
+                      description="Required for statement imports. Open help to copy an example format."
+                      placeholder={STATEMENT_IMPORT_CSV_FORMAT_PLACEHOLDER}
+                      autosize
+                      minRows={6}
+                      maxRows={12}
+                      {...form.getInputProps("statementImportCsvFormat")}
+                    />
+                  </Stack>
+                </Grid.Col>
               </>
             )}
           </Grid>

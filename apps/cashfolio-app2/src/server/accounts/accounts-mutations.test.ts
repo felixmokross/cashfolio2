@@ -156,11 +156,11 @@ describe("updateAccount opening balance management", () => {
       where: {
         id_accountBookId: { id: "account-1", accountBookId: "book-1" },
       },
-      data: {
+      data: expect.objectContaining({
         name: "Cash renamed",
         groupId: "group-1",
         sortOrder: 7,
-      },
+      }),
     });
   });
 
@@ -216,11 +216,11 @@ describe("updateAccount opening balance management", () => {
       where: {
         id_accountBookId: { id: "account-1", accountBookId: "book-1" },
       },
-      data: {
+      data: expect.objectContaining({
         name: "Groceries renamed",
         groupId: "group-expenses",
         sortOrder: 2,
-      },
+      }),
     });
   });
 
@@ -263,7 +263,7 @@ describe("updateAccount opening balance management", () => {
       [],
     );
     expect(tx.account.create).toHaveBeenCalledWith({
-      data: {
+      data: expect.objectContaining({
         name: "Groceries",
         type: AccountType.EQUITY,
         equityAccountSubtype: EquityAccountSubtype.EXPENSE,
@@ -275,7 +275,114 @@ describe("updateAccount opening balance management", () => {
         symbol: undefined,
         tradeCurrency: undefined,
         accountBookId: "book-1",
+      }),
+    });
+  });
+
+  it("persists statement import CSV formats when creating accounts", async () => {
+    const statementImportCsvFormat = {
+      hasHeader: true,
+      delimitersToGuess: [";"],
+      columns: ["date", "amount", "description"],
+    };
+    tx.account.create.mockResolvedValueOnce({
+      id: "account-2",
+      name: "Checking",
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      unit: Unit.CURRENCY,
+      currency: "CHF",
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
+    });
+
+    await createAccount({
+      data: {
+        accountBookId: "book-1",
+        name: "Checking",
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        statementImportCsvFormat,
       },
+    });
+
+    expect(validateAccountInput).toHaveBeenCalledWith(
+      expect.objectContaining({ statementImportCsvFormat }),
+      [],
+    );
+    expect(tx.account.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ statementImportCsvFormat }),
+    });
+  });
+
+  it("persists statement import CSV formats when updating accounts", async () => {
+    const statementImportCsvFormat = {
+      hasHeader: false,
+      delimitersToGuess: [";"],
+      mappings: {
+        date: 0,
+        amount: { mode: "signed" as const, column: 2 },
+        description: 1,
+      },
+    };
+
+    await updateAccount({
+      data: {
+        id: "account-1",
+        accountBookId: "book-1",
+        name: "Cash",
+        type: AccountType.ASSET,
+        statementImportCsvFormat,
+      },
+    });
+
+    expect(validateAccountInput).toHaveBeenCalledWith(
+      expect.objectContaining({ statementImportCsvFormat }),
+      [],
+    );
+    expect(tx.account.update).toHaveBeenCalledWith({
+      where: {
+        id_accountBookId: { id: "account-1", accountBookId: "book-1" },
+      },
+      data: expect.objectContaining({ statementImportCsvFormat }),
+    });
+  });
+
+  it("preserves statement import CSV formats when an update omits the field", async () => {
+    const existingStatementImportCsvFormat = {
+      hasHeader: true,
+      delimitersToGuess: [","],
+      columns: ["date", "amount", "description"],
+    };
+    prisma.account.findUniqueOrThrow.mockResolvedValueOnce({
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      unit: Unit.CURRENCY,
+      currency: "CHF",
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
+      statementImportCsvFormat: existingStatementImportCsvFormat,
+    });
+
+    await updateAccount({
+      data: {
+        id: "account-1",
+        accountBookId: "book-1",
+        name: "Cash",
+        type: AccountType.ASSET,
+      },
+    });
+
+    expect(tx.account.update).toHaveBeenCalledWith({
+      where: {
+        id_accountBookId: { id: "account-1", accountBookId: "book-1" },
+      },
+      data: expect.objectContaining({
+        statementImportCsvFormat: existingStatementImportCsvFormat,
+      }),
     });
   });
 

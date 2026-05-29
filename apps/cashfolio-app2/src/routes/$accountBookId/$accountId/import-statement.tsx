@@ -125,6 +125,7 @@ function StatementImportRoutePage() {
       <AccountStatementImportPageView
         accountBookId={accountBookId}
         account={loaderData.account}
+        statementImportCsvFormat={loaderData.account.statementImportCsvFormat!}
         accountBookStartDate={accountBookStartDate}
         accountOptions={accountOptions}
         persistedBalance={loaderData.persistedBalance}

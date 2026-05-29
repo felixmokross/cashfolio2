@@ -3,6 +3,7 @@ import type {
   EquityAccountSubtype,
   Unit,
 } from "../.prisma-client/enums";
+import type { StatementImportCsvFormat } from "./statement-import-csv-format";
 
 export type AccountInput = {
   accountBookId: string;
@@ -16,6 +17,7 @@ export type AccountInput = {
   cryptocurrency?: string;
   symbol?: string;
   tradeCurrency?: string;
+  statementImportCsvFormat?: StatementImportCsvFormat | null;
   openingBalance?: number | null;
 };
 

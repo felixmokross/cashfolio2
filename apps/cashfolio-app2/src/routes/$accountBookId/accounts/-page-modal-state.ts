@@ -41,6 +41,7 @@ export function useAccountsPageModalState() {
           cryptocurrency: data.cryptocurrency,
           symbol: data.symbol,
           tradeCurrency: data.tradeCurrency,
+          statementImportCsvFormat: data.statementImportCsvFormat ?? null,
           openingBalance: data.openingBalance,
         },
       });

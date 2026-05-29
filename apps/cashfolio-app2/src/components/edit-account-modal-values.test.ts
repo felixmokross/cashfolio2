@@ -4,7 +4,10 @@ import {
   EquityAccountSubtype,
   Unit,
 } from "../.prisma-client/enums";
-import { transformAccountValues } from "./edit-account-modal";
+import {
+  transformAccountValues,
+  validateStatementImportCsvFormatFormValue,
+} from "./edit-account-modal";
 
 describe("transformAccountValues", () => {
   test("strips hidden unit identity fields for equity accounts", () => {
@@ -19,6 +22,11 @@ describe("transformAccountValues", () => {
         cryptocurrency: "BTC",
         symbol: "AAPL",
         tradeCurrency: "USD",
+        statementImportCsvFormat: JSON.stringify({
+          hasHeader: true,
+          delimitersToGuess: [","],
+          columns: ["date", "amount", "description"],
+        }),
       }),
     ).toEqual({
       name: "Groceries",
@@ -30,6 +38,7 @@ describe("transformAccountValues", () => {
       cryptocurrency: undefined,
       symbol: undefined,
       tradeCurrency: undefined,
+      statementImportCsvFormat: null,
       type: AccountType.EQUITY,
       equityAccountSubtype: EquityAccountSubtype.EXPENSE,
       openingBalance: null,
@@ -37,6 +46,12 @@ describe("transformAccountValues", () => {
   });
 
   test("keeps selected unit identity fields for non-equity accounts", () => {
+    const statementImportCsvFormat = {
+      hasHeader: true,
+      delimitersToGuess: [";"],
+      columns: ["date", "amount", "description"],
+    };
+
     expect(
       transformAccountValues({
         name: "Brokerage",
@@ -47,6 +62,7 @@ describe("transformAccountValues", () => {
         unit: Unit.SECURITY,
         symbol: "AAPL",
         tradeCurrency: "USD",
+        statementImportCsvFormat: JSON.stringify(statementImportCsvFormat),
       }),
     ).toEqual({
       name: "Brokerage",
@@ -57,7 +73,38 @@ describe("transformAccountValues", () => {
       unit: Unit.SECURITY,
       symbol: "AAPL",
       tradeCurrency: "USD",
+      statementImportCsvFormat,
       type: AccountType.ASSET,
     });
+  });
+
+  test("transforms blank statement import format to null", () => {
+    expect(
+      transformAccountValues({
+        name: "Cash",
+        typeDescriptor: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        statementImportCsvFormat: "   ",
+      }),
+    ).toMatchObject({
+      statementImportCsvFormat: null,
+    });
+  });
+
+  test("validates statement import format JSON", () => {
+    expect(
+      validateStatementImportCsvFormatFormValue("{not-json", AccountType.ASSET),
+    ).toBe("Statement import CSV format must be valid JSON.");
+    expect(
+      validateStatementImportCsvFormatFormValue(
+        JSON.stringify({
+          hasHeader: true,
+          delimitersToGuess: [","],
+          columns: ["date", "amount", "description"],
+        }),
+        AccountType.ASSET,
+      ),
+    ).toBeNull();
   });
 });

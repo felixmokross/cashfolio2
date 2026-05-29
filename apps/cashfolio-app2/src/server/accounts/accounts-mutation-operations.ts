@@ -98,6 +98,10 @@ type ExistingAccountUnitIdentity = {
   tradeCurrency: string | null;
 };
 
+type ExistingAccountStatementImportConfig = {
+  statementImportCsvFormat: Prisma.JsonValue | null;
+};
+
 function normalizeSubmittedUnitField(value: string | null | undefined) {
   return value ?? null;
 }
@@ -168,6 +172,21 @@ function normalizeEquityAccountUnitIdentity<T extends AccountInput>(
     symbol: undefined,
     tradeCurrency: undefined,
   };
+}
+
+function toStatementImportCsvFormatJsonInput(
+  format: AccountInput["statementImportCsvFormat"],
+) {
+  return format == null ? Prisma.DbNull : (format as Prisma.InputJsonValue);
+}
+
+function getStatementImportCsvFormatUpdateInput(
+  data: AccountInput,
+  existing: ExistingAccountStatementImportConfig,
+) {
+  return data.statementImportCsvFormat === undefined
+    ? (existing.statementImportCsvFormat as AccountInput["statementImportCsvFormat"])
+    : data.statementImportCsvFormat;
 }
 
 async function getOrCreateOpeningBalancesAccountId(
@@ -593,6 +612,9 @@ export async function createAccountOperation(data: AccountInput) {
         cryptocurrency: normalizedData.cryptocurrency,
         symbol: normalizedData.symbol,
         tradeCurrency: normalizedData.tradeCurrency,
+        statementImportCsvFormat: toStatementImportCsvFormatJsonInput(
+          normalizedData.statementImportCsvFormat,
+        ),
         accountBookId: normalizedData.accountBookId,
       },
     });
@@ -635,6 +657,7 @@ export async function updateAccountOperation(data: AccountUpdateInput) {
       cryptocurrency: true,
       symbol: true,
       tradeCurrency: true,
+      statementImportCsvFormat: true,
     },
   });
   assertNoSystemManagedAccountSubtype(existing);
@@ -677,6 +700,9 @@ export async function updateAccountOperation(data: AccountUpdateInput) {
           typeof normalizedData.sortOrder === "number"
             ? normalizedData.sortOrder
             : null,
+        statementImportCsvFormat: toStatementImportCsvFormatJsonInput(
+          getStatementImportCsvFormatUpdateInput(normalizedData, existing),
+        ),
       },
     });
 

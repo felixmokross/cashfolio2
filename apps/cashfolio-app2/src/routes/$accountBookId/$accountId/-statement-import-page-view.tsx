@@ -8,6 +8,7 @@ import { TopPageHeader } from "@/components/top-page-header";
 import type { AccountBookUnitUsage } from "@/shared/account-book-unit-usage";
 import type { TransactionMutationValues } from "./-page-view";
 import type { LedgerAccount } from "./-page-types";
+import type { StatementImportCsvFormat } from "./-statement-import";
 import { StatementImportActions } from "./-statement-import-actions";
 import { StatementImportDiscardUploadModal } from "./-statement-import-discard-upload-modal";
 import { StatementImportEditModal } from "./-statement-import-edit-modal";
@@ -22,6 +23,7 @@ import { isStatementImportReviewDraftRow } from "./-statement-import-page-contro
 type StatementImportPageViewProps = {
   accountBookId: string;
   account: LedgerAccount;
+  statementImportCsvFormat: StatementImportCsvFormat;
   accountBookStartDate: Date;
   accountOptions: AccountOption[];
   persistedBalance: number;
@@ -35,6 +37,7 @@ type StatementImportPageViewProps = {
 export function AccountStatementImportPageView({
   accountBookId,
   account,
+  statementImportCsvFormat,
   accountBookStartDate,
   accountOptions,
   persistedBalance,
@@ -46,6 +49,7 @@ export function AccountStatementImportPageView({
 }: StatementImportPageViewProps) {
   const state = useStatementImportPageState({
     account,
+    statementImportCsvFormat,
     accountBookStartDate,
     accountOptions,
     persistedBalance,

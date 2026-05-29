@@ -369,6 +369,7 @@ export function useLedgerPageController(args: {
       cryptocurrency: accountTreeRow.cryptocurrency,
       symbol: accountTreeRow.symbol,
       tradeCurrency: accountTreeRow.tradeCurrency,
+      statementImportCsvFormat: accountTreeRow.statementImportCsvFormat ?? null,
       openingBalance: accountTreeRow.openingBalance,
     }),
     [accountTreeRow],

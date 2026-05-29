@@ -12,6 +12,7 @@ import {
   validateGroupEquitySubtypeTypeCombination,
   validateAccountTradeCurrency,
   validateAccountUnit,
+  validateAccountStatementImportCsvFormat,
 } from "./account-validation";
 import type { AccountInput } from "./account-validation-types";
 
@@ -83,6 +84,39 @@ describe("validateAccountInput", () => {
 
     expect(() => validateAccountInput(invalid)).toThrowError(
       "Equity subtype is only allowed for equity accounts",
+    );
+  });
+
+  test("rejects invalid statement import CSV formats", () => {
+    expect(
+      validateAccountStatementImportCsvFormat(
+        {
+          hasHeader: false,
+          delimitersToGuess: [","],
+          mappings: {
+            date: { header: "Date" },
+            amount: { mode: "signed", column: 1 },
+          },
+        },
+        AccountType.ASSET,
+      ),
+    ).toBe(
+      'CSV format cannot use header column "Date" when hasHeader is false.',
+    );
+  });
+
+  test("rejects statement import CSV formats for equity accounts", () => {
+    expect(
+      validateAccountStatementImportCsvFormat(
+        {
+          hasHeader: true,
+          delimitersToGuess: [","],
+          columns: ["date", "amount", "description"],
+        },
+        AccountType.EQUITY,
+      ),
+    ).toBe(
+      "Statement import CSV format is only allowed for asset and liability accounts",
     );
   });
 });

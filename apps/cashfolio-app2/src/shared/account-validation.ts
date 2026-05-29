@@ -3,6 +3,7 @@ import type {
   AccountGroupInput,
   AccountInput,
 } from "./account-validation-types";
+import { readStatementImportCsvFormat } from "./statement-import-csv-format";
 
 // Per-field validators return an error message string or null if valid.
 
@@ -100,6 +101,19 @@ export function validateAccountTradeCurrency(
   return tradeCurrency ? null : "Trade Currency is required";
 }
 
+export function validateAccountStatementImportCsvFormat(
+  statementImportCsvFormat: AccountInput["statementImportCsvFormat"],
+  type?: AccountType,
+): string | null {
+  if (statementImportCsvFormat == null) return null;
+  if (!isAssetOrLiability(type)) {
+    return "Statement import CSV format is only allowed for asset and liability accounts";
+  }
+
+  const result = readStatementImportCsvFormat(statementImportCsvFormat);
+  return result.errors[0] ?? null;
+}
+
 export function validateAccountGroupName(
   name?: string,
   siblingNames?: string[],
@@ -148,6 +162,10 @@ export function validateAccountInput(
     validateAccountCryptocurrency(data.cryptocurrency, data.unit, data.type),
     validateAccountSymbol(data.symbol, data.unit, data.type),
     validateAccountTradeCurrency(data.tradeCurrency, data.unit, data.type),
+    validateAccountStatementImportCsvFormat(
+      data.statementImportCsvFormat,
+      data.type,
+    ),
   ].filter(Boolean);
 
   if (errors.length > 0) {
