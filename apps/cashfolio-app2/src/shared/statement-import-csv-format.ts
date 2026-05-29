@@ -624,7 +624,9 @@ function readOptionalDescriptionMapping(
       .map((column) =>
         readColumnRef(column, "CSV format description column", errors),
       )
-      .filter((column): column is StatementImportCsvColumnRef => !!column);
+      .filter(
+        (column): column is StatementImportCsvColumnRef => column !== undefined,
+      );
     if (columns.length !== value.columns.length) {
       return undefined;
     }

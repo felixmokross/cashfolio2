@@ -36,7 +36,7 @@ describe("statement import CSV format validation", () => {
       mappings: {
         date: 0,
         amount: { mode: "signed", column: 0 },
-        description: 1,
+        description: { columns: [0, 2] },
       },
     });
 
@@ -45,7 +45,7 @@ describe("statement import CSV format validation", () => {
       mappings: {
         date: 0,
         amount: { mode: "signed", column: 0 },
-        description: 1,
+        description: { columns: [0, 2] },
       },
     });
   });
