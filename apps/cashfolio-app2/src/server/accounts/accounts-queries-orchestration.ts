@@ -469,6 +469,7 @@ export async function queryLedgerAccountActionData(
     cryptocurrency: account.cryptocurrency as string | null,
     symbol: account.symbol as string | null,
     tradeCurrency: account.tradeCurrency as string | null,
+    statementImportCsvFormat: account.statementImportCsvFormat,
     balance:
       account.type === "ASSET"
         ? rawBalance

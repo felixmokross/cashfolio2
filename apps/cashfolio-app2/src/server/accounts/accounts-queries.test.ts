@@ -34,6 +34,7 @@ const prisma = vi.hoisted(() => ({
     findMany: vi.fn(),
     groupBy: vi.fn(),
     findFirst: vi.fn(),
+    findUnique: vi.fn(),
   },
   accountGroup: {
     findMany: vi.fn(),
@@ -41,6 +42,8 @@ const prisma = vi.hoisted(() => ({
   },
   booking: {
     groupBy: vi.fn(),
+    aggregate: vi.fn(),
+    count: vi.fn(),
   },
   accountBook: {
     findUniqueOrThrow: vi.fn(),
@@ -69,6 +72,7 @@ import {
   getActiveAccountBookUnitUsage,
   getAccountsPageData,
   getAccountTreeData,
+  getLedgerAccountActionData,
   getGainLossEquityAccountId,
 } from "./accounts-queries";
 
@@ -87,9 +91,12 @@ describe("getAccountTreeData", () => {
     prisma.account.findMany.mockResolvedValue([]);
     prisma.account.groupBy.mockResolvedValue([]);
     prisma.account.findFirst.mockResolvedValue(null);
+    prisma.account.findUnique.mockResolvedValue(null);
     prisma.accountGroup.findMany.mockResolvedValue([]);
     prisma.accountGroup.groupBy.mockResolvedValue([]);
     prisma.booking.groupBy.mockResolvedValue([]);
+    prisma.booking.aggregate.mockResolvedValue({ _sum: { value: null } });
+    prisma.booking.count.mockResolvedValue(0);
     prisma.accountBook.findUniqueOrThrow.mockResolvedValue({
       referenceCurrency: "CHF",
       startDate: new Date("2026-01-08T00:00:00.000Z"),
@@ -357,6 +364,66 @@ describe("getAccountTreeData", () => {
   });
 });
 
+describe("getLedgerAccountActionData", () => {
+  const statementImportCsvFormat = {
+    hasHeader: true,
+    delimitersToGuess: [","],
+    columns: ["date", "amount", "description"],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    prisma.account.findUnique.mockResolvedValue({
+      id: "asset-1",
+      name: "Asset One",
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      unit: Unit.CURRENCY,
+      currency: "CHF",
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
+      statementImportCsvFormat,
+      groupId: "group-1",
+      isActive: true,
+      sortOrder: 1,
+    });
+    prisma.accountBook.findUniqueOrThrow.mockResolvedValue({
+      startDate: new Date("2026-01-08T00:00:00.000Z"),
+    });
+    prisma.booking.aggregate
+      .mockResolvedValueOnce({ _sum: { value: 10 } })
+      .mockResolvedValueOnce({ _sum: { value: 10 } })
+      .mockResolvedValueOnce({ _sum: { value: 8 } });
+    prisma.booking.count.mockResolvedValue(1);
+    prisma.accountGroup.findMany.mockResolvedValue([
+      {
+        id: "group-1",
+        parentGroupId: null,
+        isActive: true,
+      },
+    ]);
+  });
+
+  it("preserves statement import CSV format for ledger account edits", async () => {
+    const result = await getLedgerAccountActionData({
+      data: {
+        accountBookId: "book-1",
+        accountId: "asset-1",
+      },
+    });
+
+    expect(ensureAuthorizedForAccountBookId).toHaveBeenCalledWith("book-1");
+    expect(result).toMatchObject({
+      id: "asset-1",
+      statementImportCsvFormat,
+      openingBalance: 8,
+      balance: 10,
+    });
+  });
+});
+
 describe("getAccountsPageData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -364,9 +431,12 @@ describe("getAccountsPageData", () => {
     prisma.account.findMany.mockResolvedValue([]);
     prisma.account.groupBy.mockResolvedValue([]);
     prisma.account.findFirst.mockResolvedValue(null);
+    prisma.account.findUnique.mockResolvedValue(null);
     prisma.accountGroup.findMany.mockResolvedValue([]);
     prisma.accountGroup.groupBy.mockResolvedValue([]);
     prisma.booking.groupBy.mockResolvedValue([]);
+    prisma.booking.aggregate.mockResolvedValue({ _sum: { value: null } });
+    prisma.booking.count.mockResolvedValue(0);
     prisma.accountBook.findUniqueOrThrow.mockResolvedValue({
       referenceCurrency: "CHF",
       startDate: new Date("2026-01-08T00:00:00.000Z"),
