@@ -13,7 +13,7 @@ import { useStatementImportUploadState } from "./-statement-import-page-upload-s
 
 export function useStatementImportPageState(args: {
   account: LedgerAccount;
-  statementImportCsvFormat?: StatementImportCsvFormat | null;
+  statementImportCsvFormat: StatementImportCsvFormat;
   accountBookStartDate: Date;
   accountOptions: AccountOption[];
   persistedBalance: number;

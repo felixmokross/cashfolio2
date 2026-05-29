@@ -10,6 +10,24 @@ import {
   DEFAULT_EXTERNAL_ID,
   prisma,
 } from "./db-client";
+import type { StatementImportCsvFormat } from "../../src/shared/statement-import-csv-format";
+
+const e2eStatementImportCsvFormat: StatementImportCsvFormat = {
+  hasHeader: true,
+  delimitersToGuess: [",", ";"],
+  columns: [
+    "date",
+    "amount",
+    "original amount",
+    "original currency",
+    "exchange rate",
+    "description",
+  ],
+  dateFormat: "yyyy-MM-dd",
+  numberFormat: {
+    decimalSeparator: ".",
+  },
+};
 
 export type SeededData = {
   accountBookId: string;
@@ -147,6 +165,7 @@ async function createSeedAccounts(args: {
       groupId: args.assetRootId,
       unit: Unit.CURRENCY,
       currency: "CHF",
+      statementImportCsvFormat: e2eStatementImportCsvFormat,
       sortOrder: 0,
     },
   });

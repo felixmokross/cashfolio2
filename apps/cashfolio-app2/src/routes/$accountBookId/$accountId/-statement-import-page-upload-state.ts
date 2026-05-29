@@ -10,7 +10,7 @@ export type StatementImportPageStep = "upload" | "review";
 
 export function useStatementImportUploadState(args: {
   account: LedgerAccount;
-  statementImportCsvFormat?: StatementImportCsvFormat | null;
+  statementImportCsvFormat: StatementImportCsvFormat;
   draftsLength: number;
   isSubmitting: boolean;
   isEditSubmitting: boolean;
@@ -58,7 +58,7 @@ export function useStatementImportUploadState(args: {
     const result = parseStatementImportCsv({
       text,
       currentAccount: account,
-      format: statementImportCsvFormat ?? undefined,
+      format: statementImportCsvFormat,
     });
     if (requestId !== fileReadRequestId.current) {
       return;

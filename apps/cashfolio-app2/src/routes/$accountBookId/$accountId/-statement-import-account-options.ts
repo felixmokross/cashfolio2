@@ -7,6 +7,7 @@ import {
   getSimpleTransactionUnitIdentifier,
   isOpeningBalancesAccount,
 } from "@/shared/account-utils";
+import type { StatementImportCsvFormat } from "@/shared/statement-import-csv-format";
 
 export function getStatementImportDisabledReason(account: {
   type: AccountType;
@@ -15,6 +16,7 @@ export function getStatementImportDisabledReason(account: {
   cryptocurrency: string | null;
   symbol: string | null;
   tradeCurrency: string | null;
+  statementImportCsvFormat?: StatementImportCsvFormat | null;
 }): string | null {
   if (
     account.type !== AccountType.ASSET &&
@@ -25,6 +27,10 @@ export function getStatementImportDisabledReason(account: {
 
   if (!getSimpleTransactionUnitIdentifier(account)) {
     return "Statement imports require a current account with a complete unit.";
+  }
+
+  if (!account.statementImportCsvFormat) {
+    return "Statement imports require a CSV format configured on this account.";
   }
 
   return null;

@@ -23,7 +23,7 @@ import { isStatementImportReviewDraftRow } from "./-statement-import-page-contro
 type StatementImportPageViewProps = {
   accountBookId: string;
   account: LedgerAccount;
-  statementImportCsvFormat?: StatementImportCsvFormat | null;
+  statementImportCsvFormat: StatementImportCsvFormat;
   accountBookStartDate: Date;
   accountOptions: AccountOption[];
   persistedBalance: number;

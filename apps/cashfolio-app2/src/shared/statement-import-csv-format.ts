@@ -62,16 +62,6 @@ export type StatementImportCsvFormat = {
   numberFormat?: StatementImportCsvNumberFormat;
 };
 
-export const DEFAULT_STATEMENT_IMPORT_CSV_FORMAT = {
-  hasHeader: true,
-  delimitersToGuess: [",", ";"],
-  columns: STATEMENT_IMPORT_CSV_HEADERS,
-  dateFormat: "yyyy-MM-dd",
-  numberFormat: {
-    decimalSeparator: ".",
-  },
-} as const satisfies StatementImportCsvFormat;
-
 export type NormalizedStatementImportCsvFormat = {
   hasHeader: boolean;
   delimitersToGuess: readonly string[];

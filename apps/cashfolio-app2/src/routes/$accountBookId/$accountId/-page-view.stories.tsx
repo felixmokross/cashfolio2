@@ -17,6 +17,7 @@ import {
   getYearPickerValue,
   type PeriodMode,
 } from "@/shared/period-selector-model";
+import type { StatementImportCsvFormat } from "@/shared/statement-import-csv-format";
 import { useLedgerColumnDefs } from "./-page-columns";
 import type { SimpleTransactionEditInitialValues } from "./-page-data";
 import { PeriodFilterAction } from "../-period-filter-action";
@@ -31,6 +32,23 @@ import {
   type TransactionMutationValues,
 } from "./-page-view";
 
+const statementImportCsvFormat: StatementImportCsvFormat = {
+  hasHeader: true,
+  delimitersToGuess: [",", ";"],
+  columns: [
+    "date",
+    "amount",
+    "original amount",
+    "original currency",
+    "exchange rate",
+    "description",
+  ],
+  dateFormat: "yyyy-MM-dd",
+  numberFormat: {
+    decimalSeparator: ".",
+  },
+};
+
 const assetAccount = {
   id: "account-checking",
   name: "Checking",
@@ -42,7 +60,7 @@ const assetAccount = {
   cryptocurrency: null,
   symbol: null,
   tradeCurrency: null,
-  statementImportCsvFormat: null,
+  statementImportCsvFormat,
   groupPathSegments: ["Assets", "Cash"],
 };
 

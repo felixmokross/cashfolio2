@@ -35,6 +35,27 @@ import {
   type StatementImportCsvFormat,
 } from "@/shared/statement-import-csv-format";
 
+const STATEMENT_IMPORT_CSV_FORMAT_PLACEHOLDER = JSON.stringify(
+  {
+    hasHeader: true,
+    delimitersToGuess: [",", ";"],
+    columns: [
+      "date",
+      "amount",
+      "original amount",
+      "original currency",
+      "exchange rate",
+      "description",
+    ],
+    dateFormat: "yyyy-MM-dd",
+    numberFormat: {
+      decimalSeparator: ".",
+    },
+  },
+  null,
+  2,
+);
+
 export type AccountTypeDescriptor =
   | "ASSET"
   | "LIABILITY"
@@ -476,6 +497,8 @@ export function EditAccountModal({
                 <Grid.Col span={12}>
                   <Textarea
                     label="Statement import CSV format"
+                    description="Required for statement imports. JSON can use columns for positional mapping, or mappings with index/header refs. Leave empty to make imports unavailable."
+                    placeholder={STATEMENT_IMPORT_CSV_FORMAT_PLACEHOLDER}
                     autosize
                     minRows={6}
                     maxRows={12}

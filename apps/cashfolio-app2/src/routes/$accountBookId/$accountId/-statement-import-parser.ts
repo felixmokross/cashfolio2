@@ -5,10 +5,7 @@ import {
   type StatementImportDraft,
   type StatementImportParseResult,
 } from "./-statement-import-types";
-import {
-  DEFAULT_STATEMENT_IMPORT_CSV_FORMAT,
-  type StatementImportCsvFormat,
-} from "@/shared/statement-import-csv-format";
+import { type StatementImportCsvFormat } from "@/shared/statement-import-csv-format";
 import {
   collectColumnRefs,
   createHeaderIndex,
@@ -38,11 +35,9 @@ type ParsedCsvDataRow = {
 export function parseStatementImportCsv(args: {
   text: string;
   currentAccount: CurrentAccountForStatementImport;
-  format?: StatementImportCsvFormat;
+  format: StatementImportCsvFormat;
 }): StatementImportParseResult {
-  const formatResult = normalizeStatementImportCsvFormat(
-    args.format ?? DEFAULT_STATEMENT_IMPORT_CSV_FORMAT,
-  );
+  const formatResult = normalizeStatementImportCsvFormat(args.format);
   if (formatResult.errors.length > 0) {
     return { drafts: [], errors: formatResult.errors };
   }
