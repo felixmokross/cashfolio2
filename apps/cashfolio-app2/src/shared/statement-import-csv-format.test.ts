@@ -76,6 +76,19 @@ describe("statement import CSV format validation", () => {
     );
   });
 
+  test("rejects empty delimiters", () => {
+    const result = readStatementImportCsvFormat({
+      hasHeader: true,
+      delimitersToGuess: [""],
+      columns: ["date", "amount", "description"],
+    });
+
+    expect(result.format).toBeNull();
+    expect(result.errors).toContain(
+      "CSV format delimitersToGuess must be a non-empty string array.",
+    );
+  });
+
   test("rejects identical decimal and thousands separators", () => {
     const result = readStatementImportCsvFormat({
       hasHeader: true,

@@ -411,7 +411,7 @@ function readRequiredStringArray(
   if (
     !Array.isArray(value) ||
     value.length === 0 ||
-    value.some((item) => typeof item !== "string")
+    value.some((item) => typeof item !== "string" || item.length === 0)
   ) {
     errors.push(message);
     return undefined;
