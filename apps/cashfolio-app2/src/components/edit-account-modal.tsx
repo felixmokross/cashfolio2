@@ -1,16 +1,24 @@
 import {
+  ActionIcon,
   Button,
+  Code,
+  CopyButton,
   Group,
+  Input,
+  Popover,
   Modal,
   NumberInput,
   Stack,
+  Text,
   TextInput,
   Grid,
   Select,
   Textarea,
+  Tooltip,
 } from "@mantine/core";
 import { isNotEmpty, useForm } from "@mantine/form";
-import { useEffect, useMemo, useReducer, useRef } from "react";
+import { IconCheck, IconCopy, IconInfoCircle } from "@tabler/icons-react";
+import { useEffect, useId, useMemo, useReducer, useRef } from "react";
 import { Fragment } from "react/jsx-runtime";
 import {
   AccountType,
@@ -35,7 +43,7 @@ import {
   type StatementImportCsvFormat,
 } from "@/shared/statement-import-csv-format";
 
-const STATEMENT_IMPORT_CSV_FORMAT_PLACEHOLDER = JSON.stringify(
+const STATEMENT_IMPORT_CSV_FORMAT_EXAMPLE = JSON.stringify(
   {
     hasHeader: true,
     delimitersToGuess: [",", ";"],
@@ -55,6 +63,50 @@ const STATEMENT_IMPORT_CSV_FORMAT_PLACEHOLDER = JSON.stringify(
   null,
   2,
 );
+const STATEMENT_IMPORT_CSV_FORMAT_PLACEHOLDER =
+  "Paste a statement import CSV format JSON object.";
+
+function StatementImportCsvFormatHelp() {
+  return (
+    <Popover width={420} position="bottom-start" withArrow shadow="md">
+      <Popover.Target>
+        <Tooltip label="Show CSV format JSON help">
+          <ActionIcon
+            aria-label="Show statement import CSV format help"
+            size="sm"
+            variant="subtle"
+          >
+            <IconInfoCircle size={16} />
+          </ActionIcon>
+        </Tooltip>
+      </Popover.Target>
+      <Popover.Dropdown>
+        <Stack gap="xs">
+          <Text size="sm">
+            Use ordered columns for positional CSVs. Use mappings with index or
+            header refs for custom layouts. Leave the field empty to make
+            imports unavailable for this account.
+          </Text>
+          <Code block>{STATEMENT_IMPORT_CSV_FORMAT_EXAMPLE}</Code>
+          <CopyButton value={STATEMENT_IMPORT_CSV_FORMAT_EXAMPLE}>
+            {({ copied, copy }) => (
+              <Button
+                leftSection={
+                  copied ? <IconCheck size={16} /> : <IconCopy size={16} />
+                }
+                onClick={copy}
+                size="xs"
+                variant="light"
+              >
+                {copied ? "Copied" : "Copy example"}
+              </Button>
+            )}
+          </CopyButton>
+        </Stack>
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
 
 export type AccountTypeDescriptor =
   | "ASSET"
@@ -221,6 +273,7 @@ export function EditAccountModal({
   unitUsage,
 }: EditAccountModalProps) {
   const isEdit = !!initialValues;
+  const statementImportCsvFormatInputId = useId();
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
   const { isSubmitting, runSubmit } = useDialogSubmitState();
   const form = useForm<FormValues, TransformedFormValues>({
@@ -495,15 +548,23 @@ export function EditAccountModal({
                   </Fragment>
                 ) : null}
                 <Grid.Col span={12}>
-                  <Textarea
-                    label="Statement import CSV format"
-                    description="Required for statement imports. JSON can use columns for positional mapping, or mappings with index/header refs. Leave empty to make imports unavailable."
-                    placeholder={STATEMENT_IMPORT_CSV_FORMAT_PLACEHOLDER}
-                    autosize
-                    minRows={6}
-                    maxRows={12}
-                    {...form.getInputProps("statementImportCsvFormat")}
-                  />
+                  <Stack gap={4}>
+                    <Group gap={4}>
+                      <Input.Label htmlFor={statementImportCsvFormatInputId}>
+                        Statement import CSV format
+                      </Input.Label>
+                      <StatementImportCsvFormatHelp />
+                    </Group>
+                    <Textarea
+                      id={statementImportCsvFormatInputId}
+                      description="Required for statement imports. Open help to copy an example format."
+                      placeholder={STATEMENT_IMPORT_CSV_FORMAT_PLACEHOLDER}
+                      autosize
+                      minRows={6}
+                      maxRows={12}
+                      {...form.getInputProps("statementImportCsvFormat")}
+                    />
+                  </Stack>
                 </Grid.Col>
               </>
             )}
