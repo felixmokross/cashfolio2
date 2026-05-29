@@ -270,6 +270,7 @@ export async function queryAccountTreeData(data: AccountTreeDataInput) {
     cryptocurrency: account.cryptocurrency as string | null,
     symbol: account.symbol as string | null,
     tradeCurrency: account.tradeCurrency as string | null,
+    statementImportCsvFormat: account.statementImportCsvFormat,
     groupId: account.groupId,
     isActive: account.isActive,
     sortOrder: account.sortOrder,

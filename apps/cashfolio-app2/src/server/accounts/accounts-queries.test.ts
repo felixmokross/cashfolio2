@@ -73,6 +73,12 @@ import {
 } from "./accounts-queries";
 
 describe("getAccountTreeData", () => {
+  const statementImportCsvFormat = {
+    hasHeader: true,
+    delimitersToGuess: [","],
+    columns: ["date", "amount", "description"],
+  };
+
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-02-10T12:00:00.000Z"));
@@ -110,6 +116,7 @@ describe("getAccountTreeData", () => {
         cryptocurrency: null,
         symbol: null,
         tradeCurrency: null,
+        statementImportCsvFormat,
         groupId: "group-1",
         isActive: true,
         sortOrder: 1,
@@ -182,6 +189,7 @@ describe("getAccountTreeData", () => {
       balance: 10,
       balanceInReferenceCurrency: null,
       openingBalance: 8,
+      statementImportCsvFormat,
       deletable: false,
       deleteDisabledReason: "Action availability not requested",
       archivable: false,
