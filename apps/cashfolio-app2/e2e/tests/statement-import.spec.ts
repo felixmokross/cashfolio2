@@ -33,6 +33,13 @@ function ledgerUrlPattern(args: { accountBookId: string; accountId: string }) {
   return new RegExp(`/${args.accountBookId}/${args.accountId}(?:[?]|$)`);
 }
 
+async function expectStatementUploadDropzone(page: Page) {
+  await expect(page.getByText("Drop CSV File Here")).toBeVisible();
+  await expect(
+    page.getByText("Drag and drop a statement, or click to select one."),
+  ).toBeVisible();
+}
+
 test("imports a statement after selecting the counter account in the review grid", async ({
   page,
 }) => {
@@ -256,11 +263,9 @@ test("bulk ignores statement rows and skips them during import", async ({
   await discardDialog
     .getByRole("button", { name: "Discard and upload another file" })
     .click();
-  await expect(page.getByText("CSV File", { exact: true })).toBeVisible();
-  await expect(page.getByText("Select CSV file")).toBeVisible();
+  await expectStatementUploadDropzone(page);
   await page.getByRole("button", { name: /Review/ }).click();
-  await expect(page.getByText("CSV File", { exact: true })).toBeVisible();
-  await expect(page.getByText("Select CSV file")).toBeVisible();
+  await expectStatementUploadDropzone(page);
   await page.locator('input[type="file"]').setInputFiles({
     name: "statement-import-ignore-reupload.csv",
     mimeType: "text/csv",
