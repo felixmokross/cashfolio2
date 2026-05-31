@@ -78,6 +78,8 @@ export type ExistingNode = {
   nodeType: "account" | "accountGroup";
   parentId?: string;
   groupId?: string;
+  type: AccountType;
+  unit?: Unit | null;
 };
 
 export async function queryAccountGroups(
@@ -145,6 +147,8 @@ export async function queryExistingNodes(
         id: true,
         name: true,
         groupId: true,
+        type: true,
+        unit: true,
       },
     }),
     prisma.accountGroup.findMany({
@@ -186,6 +190,8 @@ export async function queryExistingNodes(
         name: account.name,
         nodeType: "account",
         groupId: account.groupId ?? undefined,
+        type: account.type,
+        unit: account.unit as Unit | null,
       }),
     ),
     ...filteredAccountGroups.map(
@@ -194,6 +200,7 @@ export async function queryExistingNodes(
         name: group.name,
         nodeType: "accountGroup",
         parentId: group.parentGroupId ?? undefined,
+        type: group.type,
       }),
     ),
   ];

@@ -323,6 +323,18 @@ export function isRootCashAccountEditable(args: {
   );
 }
 
+export function getCashAccountDisabledReason(args: {
+  type?: AccountType;
+  unit?: Unit;
+  groupId?: string | null;
+}) {
+  if (isRootCashAccountEditable(args)) return undefined;
+  if (args.groupId) {
+    return "Cash account status is inherited from the selected group.";
+  }
+  return "Only root-level currency asset accounts can be marked as cash accounts.";
+}
+
 export function resolveAccountCashAccountFormValue(args: {
   type?: AccountType;
   unit?: Unit;
@@ -370,9 +382,11 @@ export function applyAccountGroupCashInheritance(
 export type ExistingNode = {
   id: string;
   name: string;
-  nodeType: string;
+  nodeType: "account" | "accountGroup";
   parentId?: string;
   groupId?: string;
+  type?: AccountType;
+  unit?: Unit | null;
 };
 
 export type EditAccountModalProps = {
@@ -502,6 +516,11 @@ export function EditAccountModal({
     type === AccountType.ASSET && unit === Unit.CURRENCY;
   const groupId = form.getValues().groupId;
   const cashAccountEditable = isRootCashAccountEditable({
+    type,
+    unit,
+    groupId,
+  });
+  const cashAccountDisabledReason = getCashAccountDisabledReason({
     type,
     unit,
     groupId,
@@ -723,17 +742,24 @@ export function EditAccountModal({
                 </Grid.Col>
                 {canMarkAsCashAccount ? (
                   <Grid.Col span={12}>
-                    <Checkbox
-                      label="Cash account"
-                      checked={cashAccountValue}
-                      disabled={!cashAccountEditable}
-                      onChange={(event) =>
-                        form.setFieldValue(
-                          "isCashAccount",
-                          event.currentTarget.checked,
-                        )
-                      }
-                    />
+                    <Tooltip
+                      label={cashAccountDisabledReason}
+                      disabled={cashAccountEditable}
+                    >
+                      <span style={{ display: "inline-flex" }}>
+                        <Checkbox
+                          label="Cash account"
+                          checked={cashAccountValue}
+                          disabled={!cashAccountEditable}
+                          onChange={(event) =>
+                            form.setFieldValue(
+                              "isCashAccount",
+                              event.currentTarget.checked,
+                            )
+                          }
+                        />
+                      </span>
+                    </Tooltip>
                   </Grid.Col>
                 ) : null}
               </>

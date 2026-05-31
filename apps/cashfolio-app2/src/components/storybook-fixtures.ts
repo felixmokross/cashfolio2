@@ -66,29 +66,36 @@ export const existingNodes: ExistingNode[] = [
     id: "group-assets",
     name: "Assets",
     nodeType: "accountGroup",
+    type: AccountType.ASSET,
   },
   {
     id: "group-cash",
     name: "Cash",
     nodeType: "accountGroup",
     parentId: "group-assets",
+    type: AccountType.ASSET,
   },
   {
     id: "account-checking",
     name: "Checking",
     nodeType: "account",
     groupId: "group-cash",
+    type: AccountType.ASSET,
+    unit: Unit.CURRENCY,
   },
   {
     id: "account-savings",
     name: "Savings",
     nodeType: "account",
     groupId: "group-assets",
+    type: AccountType.ASSET,
+    unit: Unit.CURRENCY,
   },
   {
     id: "group-income",
     name: "Income",
     nodeType: "accountGroup",
+    type: AccountType.EQUITY,
   },
 ];
 

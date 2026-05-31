@@ -1,10 +1,13 @@
 import { describe, expect, test } from "vitest";
-import { AccountType } from "../.prisma-client/enums";
+import { AccountType, Unit } from "../.prisma-client/enums";
 import {
   applyAccountGroupParentCashInheritance,
+  canMarkAccountGroupSubtreeAsCash,
+  getCashAccountGroupDisabledReason,
   isRootCashAccountGroupEditable,
   resolveAccountGroupCashAccountFormValue,
 } from "./edit-account-group-modal";
+import type { ExistingNode } from "./edit-account-modal";
 
 const accountGroups = [
   {
@@ -77,5 +80,121 @@ describe("account group cash helpers", () => {
         accountGroups,
       ),
     ).toMatchObject({ isCashAccount: true });
+  });
+
+  test("allows cash marking for root asset groups with cashable descendants", () => {
+    const existingNodes: ExistingNode[] = [
+      {
+        id: "group-cash",
+        name: "Cash",
+        nodeType: "accountGroup",
+        type: AccountType.ASSET,
+      },
+      {
+        id: "group-wallets",
+        name: "Wallets",
+        nodeType: "accountGroup",
+        type: AccountType.ASSET,
+        parentId: "group-cash",
+      },
+      {
+        id: "account-wallet",
+        name: "Wallet",
+        nodeType: "account",
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        groupId: "group-wallets",
+      },
+    ];
+
+    expect(
+      canMarkAccountGroupSubtreeAsCash({
+        groupId: "group-cash",
+        existingNodes,
+      }),
+    ).toBe(true);
+    expect(
+      getCashAccountGroupDisabledReason({
+        type: AccountType.ASSET,
+        groupId: "group-cash",
+        existingNodes,
+      }),
+    ).toBeUndefined();
+  });
+
+  test.each([
+    ["security account", AccountType.ASSET, Unit.SECURITY],
+    ["crypto account", AccountType.ASSET, Unit.CRYPTOCURRENCY],
+    ["liability account", AccountType.LIABILITY, Unit.CURRENCY],
+    ["equity account", AccountType.EQUITY, Unit.CURRENCY],
+  ])(
+    "disables cash marking when descendants include a %s",
+    (_label, type, unit) => {
+      const existingNodes: ExistingNode[] = [
+        {
+          id: "group-assets",
+          name: "Assets",
+          nodeType: "accountGroup",
+          type: AccountType.ASSET,
+        },
+        {
+          id: "account-child",
+          name: "Child",
+          nodeType: "account",
+          type,
+          unit,
+          groupId: "group-assets",
+        },
+      ];
+
+      expect(
+        getCashAccountGroupDisabledReason({
+          type: AccountType.ASSET,
+          groupId: "group-assets",
+          existingNodes,
+        }),
+      ).toBe(
+        "Cash account groups can contain only currency asset accounts and asset sub-groups.",
+      );
+    },
+  );
+
+  test("disables cash marking when descendants include a non-asset group", () => {
+    const existingNodes: ExistingNode[] = [
+      {
+        id: "group-assets",
+        name: "Assets",
+        nodeType: "accountGroup",
+        type: AccountType.ASSET,
+      },
+      {
+        id: "group-liability",
+        name: "Liabilities",
+        nodeType: "accountGroup",
+        type: AccountType.LIABILITY,
+        parentId: "group-assets",
+      },
+    ];
+
+    expect(
+      getCashAccountGroupDisabledReason({
+        type: AccountType.ASSET,
+        groupId: "group-assets",
+        existingNodes,
+      }),
+    ).toBe(
+      "Cash account groups can contain only currency asset accounts and asset sub-groups.",
+    );
+  });
+
+  test("explains inherited cash status for nested groups", () => {
+    expect(
+      getCashAccountGroupDisabledReason({
+        type: AccountType.ASSET,
+        parentGroupId: "asset-parent",
+        groupId: "group-child",
+        existingNodes: [],
+      }),
+    ).toBe("Cash account status is inherited from the parent group.");
   });
 });

@@ -8,10 +8,15 @@ import {
   Grid,
   Select,
   Checkbox,
+  Tooltip,
 } from "@mantine/core";
 import { isNotEmpty, useForm } from "@mantine/form";
 import { useEffect, useMemo, useReducer, useRef } from "react";
-import { AccountType, EquityAccountSubtype } from "../.prisma-client/enums";
+import {
+  AccountType,
+  EquityAccountSubtype,
+  Unit,
+} from "../.prisma-client/enums";
 import {
   validateAccountGroupName,
   validateAccountGroupParentGroupId,
@@ -24,6 +29,11 @@ type AccountGroupOption = GroupTreeOption & {
   type: string;
   equityAccountSubtype: string | null;
 };
+
+const CASH_GROUP_INHERITED_DISABLED_REASON =
+  "Cash account status is inherited from the parent group.";
+const CASH_GROUP_INELIGIBLE_DESCENDANTS_DISABLED_REASON =
+  "Cash account groups can contain only currency asset accounts and asset sub-groups.";
 
 type FormValues = {
   name?: string;
@@ -91,6 +101,72 @@ export function isRootCashAccountGroupEditable(args: {
   parentGroupId?: string | null;
 }) {
   return args.type === AccountType.ASSET && !args.parentGroupId;
+}
+
+function getDescendantNodes(args: {
+  groupId?: string;
+  existingNodes?: ExistingNode[];
+}) {
+  if (!args.groupId || !args.existingNodes) return [];
+
+  const childGroupIdsByParentId = new Map<string, string[]>();
+  for (const node of args.existingNodes) {
+    if (node.nodeType !== "accountGroup" || !node.parentId) continue;
+    const childGroupIds = childGroupIdsByParentId.get(node.parentId) ?? [];
+    childGroupIds.push(node.id);
+    childGroupIdsByParentId.set(node.parentId, childGroupIds);
+  }
+
+  const descendantGroupIds = new Set<string>();
+  const stack = [...(childGroupIdsByParentId.get(args.groupId) ?? [])];
+  while (stack.length > 0) {
+    const groupId = stack.pop();
+    if (!groupId || descendantGroupIds.has(groupId)) continue;
+    descendantGroupIds.add(groupId);
+    stack.push(...(childGroupIdsByParentId.get(groupId) ?? []));
+  }
+
+  return args.existingNodes.filter((node) => {
+    if (node.nodeType === "accountGroup") {
+      return descendantGroupIds.has(node.id);
+    }
+    return (
+      node.groupId === args.groupId ||
+      descendantGroupIds.has(node.groupId ?? "")
+    );
+  });
+}
+
+export function canMarkAccountGroupSubtreeAsCash(args: {
+  groupId?: string;
+  existingNodes?: ExistingNode[];
+}) {
+  const descendants = getDescendantNodes(args);
+  return descendants.every((node) => {
+    if (node.nodeType === "accountGroup") {
+      return node.type === AccountType.ASSET;
+    }
+    return node.type === AccountType.ASSET && node.unit === Unit.CURRENCY;
+  });
+}
+
+export function getCashAccountGroupDisabledReason(args: {
+  type?: AccountType;
+  parentGroupId?: string | null;
+  groupId?: string;
+  existingNodes?: ExistingNode[];
+}) {
+  if (args.type !== AccountType.ASSET) return undefined;
+  if (args.parentGroupId) return CASH_GROUP_INHERITED_DISABLED_REASON;
+  if (
+    !canMarkAccountGroupSubtreeAsCash({
+      groupId: args.groupId,
+      existingNodes: args.existingNodes,
+    })
+  ) {
+    return CASH_GROUP_INELIGIBLE_DESCENDANTS_DISABLED_REASON;
+  }
+  return undefined;
 }
 
 export function resolveAccountGroupCashAccountFormValue(args: {
@@ -196,6 +272,17 @@ export function EditAccountGroupModal({
           editingId,
           descendantGroupIds,
         }),
+      isCashAccount: (value, values) => {
+        if (!value) return null;
+        return (
+          getCashAccountGroupDisabledReason({
+            type: transformAccountGroupValues(values).type,
+            parentGroupId: values.parentGroupId,
+            groupId: editingId,
+            existingNodes,
+          }) ?? null
+        );
+      },
     },
     transformValues: transformAccountGroupValues,
     onValuesChange: (values: FormValues, previous: FormValues) => {
@@ -230,6 +317,12 @@ export function EditAccountGroupModal({
   const cashAccountEditable = isRootCashAccountGroupEditable({
     type,
     parentGroupId,
+  });
+  const cashAccountDisabledReason = getCashAccountGroupDisabledReason({
+    type,
+    parentGroupId,
+    groupId: editingId,
+    existingNodes,
   });
   const cashAccountValue = resolveAccountGroupCashAccountFormValue({
     type,
@@ -349,17 +442,26 @@ export function EditAccountGroupModal({
             </Grid.Col>
             {type === AccountType.ASSET ? (
               <Grid.Col span={12}>
-                <Checkbox
-                  label="Cash account"
-                  checked={cashAccountValue}
-                  disabled={!cashAccountEditable}
-                  onChange={(event) =>
-                    form.setFieldValue(
-                      "isCashAccount",
-                      event.currentTarget.checked,
-                    )
-                  }
-                />
+                <Tooltip
+                  label={cashAccountDisabledReason}
+                  disabled={!cashAccountDisabledReason}
+                >
+                  <span style={{ display: "inline-flex" }}>
+                    <Checkbox
+                      label="Cash account"
+                      checked={cashAccountValue}
+                      disabled={
+                        !!cashAccountDisabledReason || !cashAccountEditable
+                      }
+                      onChange={(event) =>
+                        form.setFieldValue(
+                          "isCashAccount",
+                          event.currentTarget.checked,
+                        )
+                      }
+                    />
+                  </span>
+                </Tooltip>
               </Grid.Col>
             ) : null}
           </Grid>

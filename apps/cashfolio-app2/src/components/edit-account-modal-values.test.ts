@@ -7,6 +7,7 @@ import {
 import {
   applyAccountGroupCashInheritance,
   createAccountInitialValues,
+  getCashAccountDisabledReason,
   isAccountGroupCompatibleWithAccountCashRules,
   resolveAccountCashAccountFormValue,
   transformAccountValues,
@@ -224,6 +225,24 @@ describe("account cash group helpers", () => {
         accountGroups,
       }),
     ).toBe(true);
+  });
+
+  test("explains disabled cash account state", () => {
+    expect(
+      getCashAccountDisabledReason({
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        groupId: "cash-group",
+      }),
+    ).toBe("Cash account status is inherited from the selected group.");
+    expect(
+      getCashAccountDisabledReason({
+        type: AccountType.ASSET,
+        unit: Unit.SECURITY,
+      }),
+    ).toBe(
+      "Only root-level currency asset accounts can be marked as cash accounts.",
+    );
   });
 
   test("blocks cash group options for non-currency assets", () => {
