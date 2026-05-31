@@ -54,6 +54,12 @@ export function buildReportPageStats(args: {
       secondaryValue: savingsRateLabel,
     },
     {
+      id: "cashFlow",
+      label: "Cash Flow",
+      value: currencyFormatter.format(overview.stats.cashFlow),
+      valueColor: overview.stats.cashFlow >= 0 ? "green" : "red",
+    },
+    {
       id: "income",
       label: "Income",
       value: currencyFormatter.format(overview.stats.income),

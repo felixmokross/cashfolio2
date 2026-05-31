@@ -14,6 +14,7 @@ describe("buildReportPageStats", () => {
         stats: {
           totalReturn: 100,
           savings: 80,
+          cashFlow: 70,
           income: 0,
           expenses: 20,
           gainsLosses: 20,
@@ -35,6 +36,14 @@ describe("buildReportPageStats", () => {
 
     expect(savingsCard?.secondaryValue).toBe("—");
     expect(gainsLossesCard?.label).toBe("Gain");
+    expect(result.statCards.map((card) => card.id)).toEqual([
+      "totalReturn",
+      "savings",
+      "cashFlow",
+      "income",
+      "expenses",
+      "gainsLosses",
+    ]);
   });
 
   it("labels negative gains/losses as losses with red value", () => {
@@ -43,6 +52,7 @@ describe("buildReportPageStats", () => {
         stats: {
           totalReturn: -5,
           savings: -30,
+          cashFlow: -25,
           income: 100,
           expenses: 130,
           gainsLosses: -10,
@@ -63,6 +73,9 @@ describe("buildReportPageStats", () => {
     const liabilitiesCard = result.endOfPeriodStatCards.find(
       (card) => card.id === "endOfPeriodLiabilities",
     );
+    const cashFlowCard = result.statCards.find(
+      (card) => card.id === "cashFlow",
+    );
 
     expect(gainsLossesCard).toMatchObject({
       label: "Loss",
@@ -70,5 +83,10 @@ describe("buildReportPageStats", () => {
     });
     expect(gainsLossesCard?.secondaryValue).toBeUndefined();
     expect(liabilitiesCard?.valueColor).toBe("red");
+    expect(cashFlowCard).toMatchObject({
+      label: "Cash Flow",
+      valueColor: "red",
+      value: "CHF:-25.00",
+    });
   });
 });

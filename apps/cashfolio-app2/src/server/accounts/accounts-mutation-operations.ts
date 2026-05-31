@@ -189,6 +189,13 @@ function getStatementImportCsvFormatUpdateInput(
     : data.statementImportCsvFormat;
 }
 
+function normalizeMissingCashAccountFlag<T extends AccountInput>(data: T): T {
+  return {
+    ...data,
+    isCashAccount: data.isCashAccount ?? false,
+  };
+}
+
 async function getOrCreateOpeningBalancesAccountId(
   tx: Prisma.TransactionClient,
   accountBookId: string,
@@ -584,7 +591,9 @@ async function applyOpeningBalanceTarget(args: {
 }
 
 export async function createAccountOperation(data: AccountInput) {
-  const normalizedData = normalizeEquityAccountUnitIdentity(data);
+  const normalizedData = normalizeMissingCashAccountFlag(
+    normalizeEquityAccountUnitIdentity(data),
+  );
   assertNoSystemManagedAccountSubtype(normalizedData);
   const siblingNames = (
     await prisma.account.findMany({
@@ -615,6 +624,7 @@ export async function createAccountOperation(data: AccountInput) {
         statementImportCsvFormat: toStatementImportCsvFormatJsonInput(
           normalizedData.statementImportCsvFormat,
         ),
+        isCashAccount: normalizedData.isCashAccount ?? false,
         accountBookId: normalizedData.accountBookId,
       },
     });
@@ -641,7 +651,9 @@ export async function createAccountOperation(data: AccountInput) {
 }
 
 export async function updateAccountOperation(data: AccountUpdateInput) {
-  const normalizedData = normalizeEquityAccountUnitIdentity(data);
+  const normalizedData = normalizeMissingCashAccountFlag(
+    normalizeEquityAccountUnitIdentity(data),
+  );
   const existing = await prisma.account.findUniqueOrThrow({
     where: {
       id_accountBookId: {
@@ -658,6 +670,7 @@ export async function updateAccountOperation(data: AccountUpdateInput) {
       symbol: true,
       tradeCurrency: true,
       statementImportCsvFormat: true,
+      isCashAccount: true,
     },
   });
   assertNoSystemManagedAccountSubtype(existing);
@@ -703,6 +716,7 @@ export async function updateAccountOperation(data: AccountUpdateInput) {
         statementImportCsvFormat: toStatementImportCsvFormatJsonInput(
           getStatementImportCsvFormatUpdateInput(normalizedData, existing),
         ),
+        isCashAccount: normalizedData.isCashAccount ?? false,
       },
     });
 

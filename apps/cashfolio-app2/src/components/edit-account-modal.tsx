@@ -16,6 +16,7 @@ import {
   Select,
   Textarea,
   Tooltip,
+  Checkbox,
 } from "@mantine/core";
 import { isNotEmpty, useForm } from "@mantine/form";
 import { IconCheck, IconCopy, IconInfoCircle } from "@tabler/icons-react";
@@ -139,6 +140,7 @@ type FormValues = {
   symbol?: string;
   tradeCurrency?: string;
   statementImportCsvFormat?: string;
+  isCashAccount?: boolean;
 };
 
 export type TransformedFormValues = Omit<
@@ -159,6 +161,7 @@ export type TransformedFormValues = Omit<
   symbol?: string;
   tradeCurrency?: string;
   statementImportCsvFormat?: StatementImportCsvFormat | null;
+  isCashAccount?: boolean;
   openingBalance?: number | null;
 };
 
@@ -174,6 +177,7 @@ export type AccountInitialValues = {
   symbol?: string | null;
   tradeCurrency?: string | null;
   statementImportCsvFormat?: StatementImportCsvFormat | null;
+  isCashAccount?: boolean | null;
   openingBalance?: number | null;
 };
 
@@ -197,6 +201,7 @@ function toFormValues(initial: AccountInitialValues): FormValues {
     statementImportCsvFormat: initial.statementImportCsvFormat
       ? JSON.stringify(initial.statementImportCsvFormat, null, 2)
       : undefined,
+    isCashAccount: initial.isCashAccount ?? false,
   };
 }
 
@@ -242,11 +247,16 @@ export function transformAccountValues(
       symbol: undefined,
       tradeCurrency: undefined,
       statementImportCsvFormat: null,
+      isCashAccount: false,
     };
   }
 
   return {
     ...transformed,
+    isCashAccount:
+      type === AccountType.ASSET && values.unit === Unit.CURRENCY
+        ? (values.isCashAccount ?? false)
+        : false,
   };
 }
 
@@ -381,6 +391,8 @@ export function EditAccountModal({
   const { unit, type, equityAccountSubtype } = transformAccountValues(
     form.getValues(),
   );
+  const canMarkAsCashAccount =
+    type === AccountType.ASSET && unit === Unit.CURRENCY;
   const unitIdentityDisabled = isEdit;
   const handleClose = () => {
     if (isSubmitting) return;
@@ -580,6 +592,16 @@ export function EditAccountModal({
                     />
                   </Stack>
                 </Grid.Col>
+                {canMarkAsCashAccount ? (
+                  <Grid.Col span={12}>
+                    <Checkbox
+                      label="Cash account"
+                      {...form.getInputProps("isCashAccount", {
+                        type: "checkbox",
+                      })}
+                    />
+                  </Grid.Col>
+                ) : null}
               </>
             )}
           </Grid>

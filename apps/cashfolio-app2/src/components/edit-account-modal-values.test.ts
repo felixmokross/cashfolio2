@@ -27,6 +27,7 @@ describe("transformAccountValues", () => {
           delimitersToGuess: [","],
           columns: ["date", "amount", "description"],
         }),
+        isCashAccount: true,
       }),
     ).toEqual({
       name: "Groceries",
@@ -39,6 +40,7 @@ describe("transformAccountValues", () => {
       symbol: undefined,
       tradeCurrency: undefined,
       statementImportCsvFormat: null,
+      isCashAccount: false,
       type: AccountType.EQUITY,
       equityAccountSubtype: EquityAccountSubtype.EXPENSE,
       openingBalance: null,
@@ -63,6 +65,7 @@ describe("transformAccountValues", () => {
         symbol: "AAPL",
         tradeCurrency: "USD",
         statementImportCsvFormat: JSON.stringify(statementImportCsvFormat),
+        isCashAccount: true,
       }),
     ).toEqual({
       name: "Brokerage",
@@ -74,6 +77,7 @@ describe("transformAccountValues", () => {
       symbol: "AAPL",
       tradeCurrency: "USD",
       statementImportCsvFormat,
+      isCashAccount: false,
       type: AccountType.ASSET,
     });
   });
@@ -106,5 +110,22 @@ describe("transformAccountValues", () => {
         AccountType.ASSET,
       ),
     ).toBeNull();
+  });
+
+  test("keeps cash flag for currency asset accounts", () => {
+    expect(
+      transformAccountValues({
+        name: "Checking",
+        typeDescriptor: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        isCashAccount: true,
+      }),
+    ).toMatchObject({
+      type: AccountType.ASSET,
+      unit: Unit.CURRENCY,
+      currency: "CHF",
+      isCashAccount: true,
+    });
   });
 });

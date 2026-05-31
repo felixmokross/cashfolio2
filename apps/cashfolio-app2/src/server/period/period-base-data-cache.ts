@@ -15,8 +15,8 @@ import {
 
 const PERIOD_BASE_CACHE_MAX_SERIALIZED_BYTES = 2 * 1024 * 1024;
 
-const PERIOD_BASE_CACHE_ENTRY_PREFIX = "period:base:v1";
-const PERIOD_BASE_CACHE_INDEX_PREFIX = "period:base:index:v1";
+const PERIOD_BASE_CACHE_ENTRY_PREFIX = "period:base:v2";
+const PERIOD_BASE_CACHE_INDEX_PREFIX = "period:base:index:v2";
 
 let hasWarnedPeriodBaseCacheReadFailure = false;
 let hasWarnedPeriodBaseCacheWriteFailure = false;

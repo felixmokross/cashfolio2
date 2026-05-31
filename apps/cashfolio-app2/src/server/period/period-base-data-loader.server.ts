@@ -42,6 +42,7 @@ type PeriodBaseAssetLiabilityAccount = {
   cryptocurrency: string | null;
   symbol: string | null;
   tradeCurrency: string | null;
+  isCashAccount?: boolean;
 };
 
 type PeriodBaseAccountGroup = {
@@ -96,6 +97,24 @@ type PeriodBaseHoldingTransaction = {
   bookings: PeriodBaseHoldingBooking[];
 };
 
+type PeriodBaseCashFlowTransaction = {
+  id: string;
+  bookings: Array<{
+    id: string;
+    date: Date;
+    value: number;
+    unit: Unit;
+    currency: string | null;
+    cryptocurrency: string | null;
+    symbol: string | null;
+    tradeCurrency: string | null;
+    account: {
+      type: AccountType;
+      isCashAccount: boolean;
+    };
+  }>;
+};
+
 type PeriodBaseInitialHoldingBalance = {
   accountId: string;
   rawBalance: number;
@@ -115,6 +134,7 @@ export type PeriodBaseData = {
   explicitCounterparts: PeriodBaseExplicitCounterpart[];
   initialHoldingBalances: PeriodBaseInitialHoldingBalance[];
   holdingTransactions: PeriodBaseHoldingTransaction[];
+  cashFlowTransactions?: PeriodBaseCashFlowTransaction[];
 };
 
 async function loadPeriodEquityBookingsRaw(args: {
@@ -391,6 +411,103 @@ async function loadPeriodHoldingTransactionsRaw(args: {
   return results;
 }
 
+async function loadPeriodCashFlowTransactionsRaw(args: {
+  accountBookId: string;
+  cashAccountIds: string[];
+  queryStart: Date;
+  queryEndExclusive: Date;
+}): Promise<PeriodBaseCashFlowTransaction[]> {
+  const results: PeriodBaseCashFlowTransaction[] = [];
+  if (args.cashAccountIds.length === 0) {
+    return results;
+  }
+
+  let nextTransactionIdCursor: string | undefined;
+
+  while (true) {
+    const transactionsPage = await prisma.transaction.findMany({
+      where: {
+        accountBookId: args.accountBookId,
+        bookings: {
+          some: {
+            accountId: { in: args.cashAccountIds },
+            date: {
+              gte: args.queryStart,
+              lt: args.queryEndExclusive,
+            },
+          },
+        },
+      },
+      orderBy: { id: "asc" },
+      take: 200,
+      ...(nextTransactionIdCursor
+        ? {
+            cursor: {
+              id_accountBookId: {
+                id: nextTransactionIdCursor,
+                accountBookId: args.accountBookId,
+              },
+            },
+            skip: 1,
+          }
+        : {}),
+      select: {
+        id: true,
+        bookings: {
+          select: {
+            id: true,
+            date: true,
+            value: true,
+            unit: true,
+            currency: true,
+            cryptocurrency: true,
+            symbol: true,
+            tradeCurrency: true,
+            account: {
+              select: {
+                type: true,
+                isCashAccount: true,
+              },
+            },
+          },
+          orderBy: [{ date: "asc" }, { id: "asc" }],
+        },
+      },
+    });
+
+    if (transactionsPage.length === 0) {
+      break;
+    }
+
+    for (const transaction of transactionsPage) {
+      results.push({
+        id: transaction.id,
+        bookings: transaction.bookings.map((booking) => ({
+          id: booking.id,
+          date: booking.date,
+          value: toMoneyNumber(booking.value),
+          unit: booking.unit,
+          currency: booking.currency,
+          cryptocurrency: booking.cryptocurrency,
+          symbol: booking.symbol,
+          tradeCurrency: booking.tradeCurrency,
+          account: {
+            type: booking.account.type,
+            isCashAccount: booking.account.isCashAccount,
+          },
+        })),
+      });
+    }
+
+    nextTransactionIdCursor = transactionsPage[transactionsPage.length - 1].id;
+    if (transactionsPage.length < 200) {
+      break;
+    }
+  }
+
+  return results;
+}
+
 export async function loadPeriodBaseDataUncached(args: {
   accountBookId: string;
   period?: unknown;
@@ -433,6 +550,7 @@ export async function loadPeriodBaseDataUncached(args: {
           cryptocurrency: true,
           symbol: true,
           tradeCurrency: true,
+          isCashAccount: true,
         },
       }),
       prisma.account.findMany({
@@ -477,6 +595,9 @@ export async function loadPeriodBaseDataUncached(args: {
   const holdingAccountIds = holdingAccountsResolved.map(
     (account) => account.id,
   );
+  const cashAccountIds = baseAssetLiabilityAccounts
+    .filter((account) => account.isCashAccount === true)
+    .map((account) => account.id);
   const equityAccountIds = equityAccounts.map((account) => account.id);
   const equityAccountById = new Map(
     equityAccounts.map((account) => [account.id, account]),
@@ -502,37 +623,49 @@ export async function loadPeriodBaseDataUncached(args: {
       }),
     ]);
 
-  const [equityBookings, initialHoldingBalancesGrouped, holdingTransactions] =
-    await Promise.all([
-      isBeforeAccountBookStart
-        ? Promise.resolve([])
-        : loadPeriodEquityBookingsRaw({
+  const [
+    equityBookings,
+    initialHoldingBalancesGrouped,
+    holdingTransactions,
+    cashFlowTransactions,
+  ] = await Promise.all([
+    isBeforeAccountBookStart
+      ? Promise.resolve([])
+      : loadPeriodEquityBookingsRaw({
+          accountBookId: args.accountBookId,
+          queryStart,
+          queryEndExclusive,
+          equityAccountById,
+          equityAccountIds,
+        }),
+    isBeforeAccountBookStart || holdingAccountIds.length === 0
+      ? Promise.resolve([])
+      : prisma.booking.groupBy({
+          by: ["accountId"],
+          where: {
             accountBookId: args.accountBookId,
-            queryStart,
-            queryEndExclusive,
-            equityAccountById,
-            equityAccountIds,
-          }),
-      isBeforeAccountBookStart || holdingAccountIds.length === 0
-        ? Promise.resolve([])
-        : prisma.booking.groupBy({
-            by: ["accountId"],
-            where: {
-              accountBookId: args.accountBookId,
-              accountId: { in: holdingAccountIds },
-              date: { lt: queryStart },
-            },
-            _sum: { value: true },
-          }),
-      isBeforeAccountBookStart
-        ? Promise.resolve([])
-        : loadPeriodHoldingTransactionsRaw({
-            accountBookId: args.accountBookId,
-            holdingAccountIds,
-            queryStart,
-            queryEndExclusive,
-          }),
-    ]);
+            accountId: { in: holdingAccountIds },
+            date: { lt: queryStart },
+          },
+          _sum: { value: true },
+        }),
+    isBeforeAccountBookStart
+      ? Promise.resolve([])
+      : loadPeriodHoldingTransactionsRaw({
+          accountBookId: args.accountBookId,
+          holdingAccountIds,
+          queryStart,
+          queryEndExclusive,
+        }),
+    isBeforeAccountBookStart
+      ? Promise.resolve([])
+      : loadPeriodCashFlowTransactionsRaw({
+          accountBookId: args.accountBookId,
+          cashAccountIds,
+          queryStart,
+          queryEndExclusive,
+        }),
+  ]);
 
   const explicitTransactionIds = Array.from(
     new Set(
@@ -596,5 +729,6 @@ export async function loadPeriodBaseDataUncached(args: {
       rawBalance: toMoneyNumber(row._sum.value ?? 0),
     })),
     holdingTransactions,
+    cashFlowTransactions,
   };
 }

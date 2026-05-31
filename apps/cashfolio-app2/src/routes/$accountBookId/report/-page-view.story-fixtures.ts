@@ -137,6 +137,7 @@ export const baseOverview: ReportPageViewProps["overview"] = {
   stats: {
     totalReturn: 4200,
     savings: 2500,
+    cashFlow: 2100,
     income: 8000,
     expenses: 5500,
     gainsLosses: 1700,

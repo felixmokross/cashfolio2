@@ -108,6 +108,7 @@ export function createAccountsMutationActions(args: {
           symbol: values.symbol,
           tradeCurrency: values.tradeCurrency,
           statementImportCsvFormat: values.statementImportCsvFormat,
+          isCashAccount: values.isCashAccount,
           openingBalance: values.openingBalance,
         },
       });
@@ -134,6 +135,7 @@ export function createAccountsMutationActions(args: {
           symbol: values.symbol,
           tradeCurrency: values.tradeCurrency,
           statementImportCsvFormat: values.statementImportCsvFormat,
+          isCashAccount: values.isCashAccount,
           openingBalance: values.openingBalance,
         },
       });

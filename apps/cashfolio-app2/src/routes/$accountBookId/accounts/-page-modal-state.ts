@@ -42,6 +42,7 @@ export function useAccountsPageModalState() {
           symbol: data.symbol,
           tradeCurrency: data.tradeCurrency,
           statementImportCsvFormat: data.statementImportCsvFormat ?? null,
+          isCashAccount: data.isCashAccount ?? false,
           openingBalance: data.openingBalance,
         },
       });

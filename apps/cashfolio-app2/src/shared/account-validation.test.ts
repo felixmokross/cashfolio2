@@ -7,6 +7,7 @@ import {
 import {
   validateAccountGroupInput,
   validateAccountGroupParentGroupId,
+  validateAccountCashAccountFlag,
   validateAccountInput,
   validateEquitySubtypeTypeCombination,
   validateGroupEquitySubtypeTypeCombination,
@@ -42,6 +43,27 @@ describe("validateAccountTradeCurrency", () => {
     expect(
       validateAccountTradeCurrency(undefined, Unit.CURRENCY, AccountType.ASSET),
     ).toBeNull();
+  });
+});
+
+describe("validateAccountCashAccountFlag", () => {
+  test("allows currency asset accounts to be marked as cash", () => {
+    expect(
+      validateAccountCashAccountFlag(true, Unit.CURRENCY, AccountType.ASSET),
+    ).toBeNull();
+  });
+
+  test("rejects non-currency asset cash accounts", () => {
+    expect(
+      validateAccountCashAccountFlag(true, Unit.SECURITY, AccountType.ASSET),
+    ).toBe("Cash accounts must be currency asset accounts");
+    expect(
+      validateAccountCashAccountFlag(
+        true,
+        Unit.CURRENCY,
+        AccountType.LIABILITY,
+      ),
+    ).toBe("Cash accounts must be currency asset accounts");
   });
 });
 
@@ -117,6 +139,22 @@ describe("validateAccountInput", () => {
       ),
     ).toBe(
       "Statement import CSV format is only allowed for asset and liability accounts",
+    );
+  });
+
+  test("rejects cash flag on non-currency asset input", () => {
+    const invalid: AccountInput = {
+      accountBookId: "book-1",
+      name: "Broker",
+      type: AccountType.ASSET,
+      unit: Unit.SECURITY,
+      symbol: "AAPL",
+      tradeCurrency: "USD",
+      isCashAccount: true,
+    };
+
+    expect(() => validateAccountInput(invalid)).toThrowError(
+      "Cash accounts must be currency asset accounts",
     );
   });
 });

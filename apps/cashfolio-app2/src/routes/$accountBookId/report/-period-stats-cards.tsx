@@ -44,7 +44,7 @@ export function PeriodStatsCardsSection(args: {
 }) {
   return (
     <>
-      <SimpleGrid cols={{ base: 1, sm: 2, lg: 3, xl: 5 }} spacing="lg">
+      <SimpleGrid cols={{ base: 1, sm: 2, lg: 3, xl: 6 }} spacing="lg">
         {args.statCards.map((card) => (
           <StatCard
             key={card.id}

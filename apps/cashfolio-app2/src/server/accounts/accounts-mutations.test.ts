@@ -149,6 +149,7 @@ describe("updateAccount opening balance management", () => {
         cryptocurrency: undefined,
         symbol: undefined,
         tradeCurrency: undefined,
+        isCashAccount: false,
       }),
       [],
     );
@@ -160,6 +161,7 @@ describe("updateAccount opening balance management", () => {
         name: "Cash renamed",
         groupId: "group-1",
         sortOrder: 7,
+        isCashAccount: false,
       }),
     });
   });
@@ -209,6 +211,7 @@ describe("updateAccount opening balance management", () => {
         cryptocurrency: undefined,
         symbol: undefined,
         tradeCurrency: undefined,
+        isCashAccount: false,
       }),
       [],
     );
@@ -220,6 +223,7 @@ describe("updateAccount opening balance management", () => {
         name: "Groceries renamed",
         groupId: "group-expenses",
         sortOrder: 2,
+        isCashAccount: false,
       }),
     });
   });
@@ -259,6 +263,7 @@ describe("updateAccount opening balance management", () => {
         cryptocurrency: undefined,
         symbol: undefined,
         tradeCurrency: undefined,
+        isCashAccount: false,
       }),
       [],
     );
@@ -274,6 +279,7 @@ describe("updateAccount opening balance management", () => {
         cryptocurrency: undefined,
         symbol: undefined,
         tradeCurrency: undefined,
+        isCashAccount: false,
         accountBookId: "book-1",
       }),
     });
@@ -384,6 +390,49 @@ describe("updateAccount opening balance management", () => {
         statementImportCsvFormat: existingStatementImportCsvFormat,
       }),
     });
+  });
+
+  it("persists cash flag for currency asset accounts", async () => {
+    tx.account.create.mockResolvedValueOnce({
+      id: "account-3",
+      name: "Checking",
+      type: AccountType.ASSET,
+      unit: Unit.CURRENCY,
+      currency: "CHF",
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
+      isCashAccount: true,
+    });
+
+    await createAccount({
+      data: {
+        accountBookId: "book-1",
+        name: "Checking",
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        isCashAccount: true,
+      },
+    });
+
+    expect(validateAccountInput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        isCashAccount: true,
+      }),
+      [],
+    );
+    expect(tx.account.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: "Checking",
+          isCashAccount: true,
+        }),
+      }),
+    );
   });
 
   it.each([

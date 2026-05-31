@@ -370,6 +370,7 @@ export function useLedgerPageController(args: {
       symbol: accountTreeRow.symbol,
       tradeCurrency: accountTreeRow.tradeCurrency,
       statementImportCsvFormat: accountTreeRow.statementImportCsvFormat ?? null,
+      isCashAccount: accountTreeRow.isCashAccount ?? false,
       openingBalance: accountTreeRow.openingBalance,
     }),
     [accountTreeRow],

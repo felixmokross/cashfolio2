@@ -373,6 +373,7 @@ export async function queryLedgerAccountActionData(
           symbol: true,
           tradeCurrency: true,
           statementImportCsvFormat: true,
+          isCashAccount: true,
           groupId: true,
           isActive: true,
           sortOrder: true,
@@ -470,6 +471,7 @@ export async function queryLedgerAccountActionData(
     symbol: account.symbol as string | null,
     tradeCurrency: account.tradeCurrency as string | null,
     statementImportCsvFormat: account.statementImportCsvFormat,
+    isCashAccount: account.isCashAccount,
     balance:
       account.type === "ASSET"
         ? rawBalance

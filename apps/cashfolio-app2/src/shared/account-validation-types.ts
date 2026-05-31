@@ -18,6 +18,7 @@ export type AccountInput = {
   symbol?: string;
   tradeCurrency?: string;
   statementImportCsvFormat?: StatementImportCsvFormat | null;
+  isCashAccount?: boolean;
   openingBalance?: number | null;
 };
 

@@ -120,6 +120,7 @@ model Account {
   cryptocurrency String?
   symbol         String?
   tradeCurrency  String?
+  isCashAccount  Boolean @default(false)
 
   statementImportCsvFormat Json?
 
