@@ -124,6 +124,15 @@ export function validateAccountCashAccountFlag(
   return "Cash accounts must be currency asset accounts";
 }
 
+export function validateAccountGroupCashAccountFlag(
+  isCashAccount?: boolean,
+  type?: AccountType,
+): string | null {
+  if (!isCashAccount) return null;
+  if (type === "ASSET") return null;
+  return "Cash account groups must be asset groups";
+}
+
 export function validateAccountGroupName(
   name?: string,
   siblingNames?: string[],
@@ -194,6 +203,7 @@ export function validateAccountGroupInput(
       data.type,
       data.equityAccountSubtype,
     ),
+    validateAccountGroupCashAccountFlag(data.isCashAccount, data.type),
   ].filter(Boolean);
 
   if (errors.length > 0) {

@@ -29,5 +29,6 @@ export type AccountGroupInput = {
   equityAccountSubtype?: EquityAccountSubtype;
   parentGroupId?: string;
   sortOrder?: number;
+  isCashAccount?: boolean;
   isActive?: boolean;
 };

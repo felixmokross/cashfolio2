@@ -8,6 +8,7 @@ import {
   validateAccountGroupInput,
   validateAccountGroupParentGroupId,
   validateAccountCashAccountFlag,
+  validateAccountGroupCashAccountFlag,
   validateAccountInput,
   validateEquitySubtypeTypeCombination,
   validateGroupEquitySubtypeTypeCombination,
@@ -64,6 +65,20 @@ describe("validateAccountCashAccountFlag", () => {
         AccountType.LIABILITY,
       ),
     ).toBe("Cash accounts must be currency asset accounts");
+  });
+});
+
+describe("validateAccountGroupCashAccountFlag", () => {
+  test("allows asset groups to be marked as cash", () => {
+    expect(
+      validateAccountGroupCashAccountFlag(true, AccountType.ASSET),
+    ).toBeNull();
+  });
+
+  test("rejects non-asset cash account groups", () => {
+    expect(
+      validateAccountGroupCashAccountFlag(true, AccountType.LIABILITY),
+    ).toBe("Cash account groups must be asset groups");
   });
 });
 
@@ -201,6 +216,17 @@ describe("validateAccountGroupInput", () => {
         equityAccountSubtype: EquityAccountSubtype.OPENING_BALANCES,
       }),
     ).toThrowError("Equity subtype is only allowed for equity groups");
+  });
+
+  test("rejects cash flag on non-asset group input", () => {
+    expect(() =>
+      validateAccountGroupInput({
+        accountBookId: "book-1",
+        name: "Invalid cash group",
+        type: AccountType.LIABILITY,
+        isCashAccount: true,
+      }),
+    ).toThrowError("Cash account groups must be asset groups");
   });
 });
 

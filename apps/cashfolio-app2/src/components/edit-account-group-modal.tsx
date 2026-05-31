@@ -7,6 +7,7 @@ import {
   TextInput,
   Grid,
   Select,
+  Checkbox,
 } from "@mantine/core";
 import { isNotEmpty, useForm } from "@mantine/form";
 import { useEffect, useMemo, useReducer, useRef } from "react";
@@ -19,11 +20,17 @@ import { useDialogSubmitState } from "../hooks/use-dialog-submit-state";
 import type { ExistingNode } from "./edit-account-modal";
 import { GroupTreeSelect, type GroupTreeOption } from "./group-tree-select";
 
+type AccountGroupOption = GroupTreeOption & {
+  type: string;
+  equityAccountSubtype: string | null;
+};
+
 type FormValues = {
   name?: string;
   typeDescriptor?: "ASSET" | "LIABILITY" | `EQUITY-${EquityAccountSubtype}`;
   parentGroupId?: string;
   sortOrder?: number;
+  isCashAccount?: boolean;
 };
 
 export type AccountGroupTransformedFormValues = FormValues & {
@@ -37,6 +44,7 @@ export type AccountGroupInitialValues = {
   equityAccountSubtype?: EquityAccountSubtype | null;
   parentGroupId?: string | null;
   sortOrder?: number | null;
+  isCashAccount?: boolean | null;
 };
 
 function toFormValues(initial: AccountGroupInitialValues): FormValues {
@@ -50,6 +58,7 @@ function toFormValues(initial: AccountGroupInitialValues): FormValues {
     typeDescriptor,
     parentGroupId: initial.parentGroupId ?? undefined,
     sortOrder: initial.sortOrder ?? undefined,
+    isCashAccount: initial.isCashAccount ?? false,
   };
 }
 
@@ -62,7 +71,59 @@ function transformAccountGroupValues(
   return {
     ...values,
     type,
+    isCashAccount:
+      type === AccountType.ASSET ? (values.isCashAccount ?? false) : false,
     ...(type === AccountType.EQUITY ? { equityAccountSubtype } : undefined),
+  };
+}
+
+function getSelectedParentGroup(
+  accountGroups: AccountGroupOption[],
+  parentGroupId?: string | null,
+) {
+  return parentGroupId
+    ? accountGroups.find((group) => group.value === parentGroupId)
+    : undefined;
+}
+
+export function isRootCashAccountGroupEditable(args: {
+  type?: AccountType;
+  parentGroupId?: string | null;
+}) {
+  return args.type === AccountType.ASSET && !args.parentGroupId;
+}
+
+export function resolveAccountGroupCashAccountFormValue(args: {
+  type?: AccountType;
+  parentGroupId?: string | null;
+  isCashAccount?: boolean | null;
+  accountGroups: AccountGroupOption[];
+}) {
+  const parentGroup = getSelectedParentGroup(
+    args.accountGroups,
+    args.parentGroupId,
+  );
+  if (parentGroup) {
+    return parentGroup.isCashAccount ?? false;
+  }
+
+  return isRootCashAccountGroupEditable(args)
+    ? (args.isCashAccount ?? false)
+    : false;
+}
+
+export function applyAccountGroupParentCashInheritance(
+  values: AccountGroupTransformedFormValues,
+  accountGroups: AccountGroupOption[],
+): AccountGroupTransformedFormValues {
+  return {
+    ...values,
+    isCashAccount: resolveAccountGroupCashAccountFormValue({
+      type: values.type,
+      parentGroupId: values.parentGroupId,
+      isCashAccount: values.isCashAccount,
+      accountGroups,
+    }),
   };
 }
 
@@ -80,10 +141,7 @@ export function EditAccountGroupModal({
   opened: boolean;
   onClose: () => void;
   onExitTransitionEnd?: () => void;
-  accountGroups: (GroupTreeOption & {
-    type: string;
-    equityAccountSubtype: string | null;
-  })[];
+  accountGroups: AccountGroupOption[];
   onSubmit: (values: AccountGroupTransformedFormValues) => void | Promise<void>;
   initialValues?: AccountGroupInitialValues;
   existingNodes?: ExistingNode[];
@@ -140,6 +198,14 @@ export function EditAccountGroupModal({
         }),
     },
     transformValues: transformAccountGroupValues,
+    onValuesChange: (values: FormValues, previous: FormValues) => {
+      if (
+        values.parentGroupId !== previous.parentGroupId ||
+        values.typeDescriptor !== previous.typeDescriptor
+      ) {
+        forceUpdate();
+      }
+    },
   });
   const formRef = useRef(form);
   formRef.current = form;
@@ -160,6 +226,17 @@ export function EditAccountGroupModal({
   const { type, equityAccountSubtype } = transformAccountGroupValues(
     form.getValues(),
   );
+  const parentGroupId = form.getValues().parentGroupId;
+  const cashAccountEditable = isRootCashAccountGroupEditable({
+    type,
+    parentGroupId,
+  });
+  const cashAccountValue = resolveAccountGroupCashAccountFormValue({
+    type,
+    parentGroupId,
+    isCashAccount: form.getValues().isCashAccount,
+    accountGroups,
+  });
   const handleClose = () => {
     if (isSubmitting) return;
     onClose();
@@ -178,7 +255,14 @@ export function EditAccountGroupModal({
     >
       <form
         onSubmit={form.onSubmit((values) =>
-          runSubmit(() => onSubmit(transformAccountGroupValues(values))),
+          runSubmit(() =>
+            onSubmit(
+              applyAccountGroupParentCashInheritance(
+                transformAccountGroupValues(values),
+                accountGroups,
+              ),
+            ),
+          ),
         )}
       >
         <Stack gap="xl">
@@ -263,6 +347,21 @@ export function EditAccountGroupModal({
                 {...form.getInputProps("sortOrder")}
               />
             </Grid.Col>
+            {type === AccountType.ASSET ? (
+              <Grid.Col span={12}>
+                <Checkbox
+                  label="Cash account"
+                  checked={cashAccountValue}
+                  disabled={!cashAccountEditable}
+                  onChange={(event) =>
+                    form.setFieldValue(
+                      "isCashAccount",
+                      event.currentTarget.checked,
+                    )
+                  }
+                />
+              </Grid.Col>
+            ) : null}
           </Grid>
           <Group justify="end">
             <Button

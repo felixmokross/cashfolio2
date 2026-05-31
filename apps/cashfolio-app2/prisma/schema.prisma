@@ -86,6 +86,7 @@ model AccountGroup {
   equityAccountSubtype EquityAccountSubtype?
   isActive             Boolean               @default(true)
   sortOrder            Int?
+  isCashAccount        Boolean               @default(false)
 
   parentGroup   AccountGroup? @relation("parent-child", fields: [parentGroupId, accountBookId], references: [id, accountBookId], onDelete: Restrict)
   parentGroupId String?

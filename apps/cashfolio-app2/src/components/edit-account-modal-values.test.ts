@@ -5,7 +5,10 @@ import {
   Unit,
 } from "../.prisma-client/enums";
 import {
+  applyAccountGroupCashInheritance,
   createAccountInitialValues,
+  isAccountGroupCompatibleWithAccountCashRules,
+  resolveAccountCashAccountFormValue,
   transformAccountValues,
   validateStatementImportCsvFormatFormValue,
 } from "./edit-account-modal";
@@ -170,5 +173,90 @@ describe("createAccountInitialValues", () => {
       isCashAccount: true,
       openingBalance: 100,
     });
+  });
+});
+
+describe("account cash group helpers", () => {
+  const accountGroups = [
+    {
+      value: "cash-group",
+      label: "Cash",
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      isCashAccount: true,
+    },
+    {
+      value: "asset-group",
+      label: "Assets",
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      isCashAccount: false,
+    },
+  ];
+
+  test("inherits cash status from selected account group", () => {
+    expect(
+      resolveAccountCashAccountFormValue({
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        groupId: "cash-group",
+        isCashAccount: false,
+        accountGroups,
+      }),
+    ).toBe(true);
+    expect(
+      resolveAccountCashAccountFormValue({
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        groupId: "asset-group",
+        isCashAccount: true,
+        accountGroups,
+      }),
+    ).toBe(false);
+  });
+
+  test("keeps root cash account selections independent", () => {
+    expect(
+      resolveAccountCashAccountFormValue({
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        isCashAccount: true,
+        accountGroups,
+      }),
+    ).toBe(true);
+  });
+
+  test("blocks cash group options for non-currency assets", () => {
+    expect(
+      isAccountGroupCompatibleWithAccountCashRules({
+        accountType: AccountType.ASSET,
+        accountUnit: Unit.SECURITY,
+        group: { isCashAccount: true },
+      }),
+    ).toBe(false);
+    expect(
+      isAccountGroupCompatibleWithAccountCashRules({
+        accountType: AccountType.ASSET,
+        accountUnit: Unit.SECURITY,
+        group: { isCashAccount: false },
+      }),
+    ).toBe(true);
+  });
+
+  test("applies inherited cash status before submit", () => {
+    expect(
+      applyAccountGroupCashInheritance(
+        {
+          name: "Brokerage",
+          typeDescriptor: AccountType.ASSET,
+          type: AccountType.ASSET,
+          unit: Unit.SECURITY,
+          groupId: "asset-group",
+          isCashAccount: true,
+          openingBalance: null,
+        },
+        accountGroups,
+      ),
+    ).toMatchObject({ isCashAccount: false });
   });
 });

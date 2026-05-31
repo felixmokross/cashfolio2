@@ -48,6 +48,7 @@ export type AccountTreeGroup = {
   name: string;
   type: AccountType;
   equityAccountSubtype: EquityAccountSubtype | null;
+  isCashAccount: boolean;
   parentGroupId: string | null;
   isActive: boolean;
   sortOrder: number | null;
@@ -259,7 +260,7 @@ export function buildGroupRows(args: {
       cryptocurrency: null,
       symbol: null,
       tradeCurrency: null,
-      isCashAccount: false,
+      isCashAccount: group.isCashAccount,
       balance: null,
       balanceInReferenceCurrency: null,
       openingBalance: null,

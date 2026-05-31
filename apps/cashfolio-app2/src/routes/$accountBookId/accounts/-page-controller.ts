@@ -152,6 +152,7 @@ export function createAccountsMutationActions(args: {
           equityAccountSubtype: values.equityAccountSubtype,
           parentGroupId: values.parentGroupId,
           sortOrder: values.sortOrder,
+          isCashAccount: values.isCashAccount,
           isActive: args.createGroupIsActive ?? true,
         },
       });
@@ -172,6 +173,7 @@ export function createAccountsMutationActions(args: {
           equityAccountSubtype: values.equityAccountSubtype,
           parentGroupId: values.parentGroupId,
           sortOrder: values.sortOrder,
+          isCashAccount: values.isCashAccount,
         },
       });
       args.state.setEditGroupModalOpen(false);

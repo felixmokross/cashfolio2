@@ -14,6 +14,7 @@ export const accountGroupOptions = [
     label: "Assets",
     type: AccountType.ASSET,
     equityAccountSubtype: null,
+    isCashAccount: false,
     parentGroupId: null,
     treePath: [],
     treeLabel: "Assets",
@@ -23,6 +24,7 @@ export const accountGroupOptions = [
     label: "Assets / Cash",
     type: AccountType.ASSET,
     equityAccountSubtype: null,
+    isCashAccount: true,
     parentGroupId: "group-assets",
     treePath: ["Assets"],
     treeLabel: "Cash",
@@ -32,6 +34,7 @@ export const accountGroupOptions = [
     label: "Liabilities",
     type: AccountType.LIABILITY,
     equityAccountSubtype: null,
+    isCashAccount: false,
     parentGroupId: null,
     treePath: [],
     treeLabel: "Liabilities",
@@ -41,6 +44,7 @@ export const accountGroupOptions = [
     label: "Income",
     type: AccountType.EQUITY,
     equityAccountSubtype: EquityAccountSubtype.INCOME,
+    isCashAccount: false,
     parentGroupId: null,
     treePath: [],
     treeLabel: "Income",
@@ -50,6 +54,7 @@ export const accountGroupOptions = [
     label: "Expense",
     type: AccountType.EQUITY,
     equityAccountSubtype: EquityAccountSubtype.EXPENSE,
+    isCashAccount: false,
     parentGroupId: null,
     treePath: [],
     treeLabel: "Expense",
@@ -101,6 +106,7 @@ export const editAccountGroupInitialValues: AccountGroupInitialValues = {
   type: AccountType.ASSET,
   parentGroupId: "group-assets",
   sortOrder: 20,
+  isCashAccount: false,
 };
 
 export const accountOptions: AccountOption[] = [

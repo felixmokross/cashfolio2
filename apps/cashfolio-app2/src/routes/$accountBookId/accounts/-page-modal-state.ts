@@ -47,6 +47,7 @@ export function useAccountsPageModalState() {
         equityAccountSubtype: data.equityAccountSubtype,
         parentGroupId: data.parentId,
         sortOrder: data.sortOrder ?? undefined,
+        isCashAccount: data.isCashAccount ?? false,
       },
     });
     setEditGroupModalOpen(true);
