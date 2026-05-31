@@ -36,8 +36,8 @@ export type AccountTreeAccount = {
   cryptocurrency: string | null;
   symbol: string | null;
   tradeCurrency: string | null;
-  statementImportCsvFormat?: StatementImportCsvFormat | null;
-  isCashAccount?: boolean;
+  statementImportCsvFormat: StatementImportCsvFormat | null;
+  isCashAccount: boolean;
   groupId: string | null;
   isActive: boolean;
   sortOrder: number | null;
@@ -187,7 +187,7 @@ export function buildAccountRows(args: {
       symbol: account.symbol,
       tradeCurrency: account.tradeCurrency,
       statementImportCsvFormat: account.statementImportCsvFormat,
-      isCashAccount: account.isCashAccount ?? false,
+      isCashAccount: account.isCashAccount,
       balance: displayBalance,
       balanceInReferenceCurrency: displayBalanceInReferenceCurrency,
       openingBalance: displayOpeningBalance,

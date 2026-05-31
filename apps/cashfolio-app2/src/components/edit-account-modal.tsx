@@ -181,6 +181,43 @@ export type AccountInitialValues = {
   openingBalance?: number | null;
 };
 
+export type AccountInitialValuesSource = Pick<
+  AccountInitialValues,
+  | "name"
+  | "type"
+  | "equityAccountSubtype"
+  | "groupId"
+  | "sortOrder"
+  | "unit"
+  | "currency"
+  | "cryptocurrency"
+  | "symbol"
+  | "tradeCurrency"
+  | "statementImportCsvFormat"
+  | "isCashAccount"
+  | "openingBalance"
+>;
+
+export function createAccountInitialValues(
+  source: AccountInitialValuesSource,
+): AccountInitialValues {
+  return {
+    name: source.name,
+    type: source.type,
+    equityAccountSubtype: source.equityAccountSubtype,
+    groupId: source.groupId ?? undefined,
+    sortOrder: source.sortOrder ?? undefined,
+    unit: source.unit,
+    currency: source.currency,
+    cryptocurrency: source.cryptocurrency,
+    symbol: source.symbol,
+    tradeCurrency: source.tradeCurrency,
+    statementImportCsvFormat: source.statementImportCsvFormat ?? null,
+    isCashAccount: source.isCashAccount ?? false,
+    openingBalance: source.openingBalance,
+  };
+}
+
 function toFormValues(initial: AccountInitialValues): FormValues {
   const typeDescriptor: FormValues["typeDescriptor"] =
     initial.type === AccountType.EQUITY && initial.equityAccountSubtype

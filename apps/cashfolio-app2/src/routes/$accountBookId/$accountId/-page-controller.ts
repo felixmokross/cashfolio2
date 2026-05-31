@@ -1,6 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { AccountType, EquityAccountSubtype } from "@/.prisma-client/enums";
-import type { TransformedFormValues } from "@/components/edit-account-modal";
+import {
+  createAccountInitialValues,
+  type TransformedFormValues,
+} from "@/components/edit-account-modal";
 import type {
   SimpleTransactionDraftValues,
   SimpleTransactionInitialValues,
@@ -358,21 +361,7 @@ export function useLedgerPageController(args: {
     ? getSystemManagedAccountSubtypeMessage(account.equityAccountSubtype)
     : undefined;
   const accountEditInitialValues = useMemo(
-    () => ({
-      name: accountTreeRow.name,
-      type: accountTreeRow.type,
-      equityAccountSubtype: accountTreeRow.equityAccountSubtype,
-      groupId: accountTreeRow.groupId ?? undefined,
-      sortOrder: accountTreeRow.sortOrder ?? undefined,
-      unit: accountTreeRow.unit,
-      currency: accountTreeRow.currency,
-      cryptocurrency: accountTreeRow.cryptocurrency,
-      symbol: accountTreeRow.symbol,
-      tradeCurrency: accountTreeRow.tradeCurrency,
-      statementImportCsvFormat: accountTreeRow.statementImportCsvFormat ?? null,
-      isCashAccount: accountTreeRow.isCashAccount ?? false,
-      openingBalance: accountTreeRow.openingBalance,
-    }),
+    () => createAccountInitialValues(accountTreeRow),
     [accountTreeRow],
   );
   const accountArchiveDisabledReason =

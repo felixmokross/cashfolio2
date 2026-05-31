@@ -5,6 +5,7 @@ import {
   Unit,
 } from "../.prisma-client/enums";
 import {
+  createAccountInitialValues,
   transformAccountValues,
   validateStatementImportCsvFormatFormValue,
 } from "./edit-account-modal";
@@ -126,6 +127,48 @@ describe("transformAccountValues", () => {
       unit: Unit.CURRENCY,
       currency: "CHF",
       isCashAccount: true,
+    });
+  });
+});
+
+describe("createAccountInitialValues", () => {
+  test("preserves cash account and import settings for account edit sources", () => {
+    const statementImportCsvFormat = {
+      hasHeader: true,
+      delimitersToGuess: [","],
+      columns: ["date", "amount", "description"],
+    } as const;
+
+    expect(
+      createAccountInitialValues({
+        name: "Checking",
+        type: AccountType.ASSET,
+        equityAccountSubtype: null,
+        groupId: null,
+        sortOrder: null,
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        cryptocurrency: null,
+        symbol: null,
+        tradeCurrency: null,
+        statementImportCsvFormat,
+        isCashAccount: true,
+        openingBalance: 100,
+      }),
+    ).toEqual({
+      name: "Checking",
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      groupId: undefined,
+      sortOrder: undefined,
+      unit: Unit.CURRENCY,
+      currency: "CHF",
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
+      statementImportCsvFormat,
+      isCashAccount: true,
+      openingBalance: 100,
     });
   });
 });

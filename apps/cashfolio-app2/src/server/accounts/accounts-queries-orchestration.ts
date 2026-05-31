@@ -271,6 +271,7 @@ export async function queryAccountTreeData(data: AccountTreeDataInput) {
     symbol: account.symbol as string | null,
     tradeCurrency: account.tradeCurrency as string | null,
     statementImportCsvFormat: account.statementImportCsvFormat,
+    isCashAccount: account.isCashAccount,
     groupId: account.groupId,
     isActive: account.isActive,
     sortOrder: account.sortOrder,
