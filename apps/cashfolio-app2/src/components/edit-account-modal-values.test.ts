@@ -7,6 +7,7 @@ import {
 import {
   applyAccountGroupCashInheritance,
   createAccountInitialValues,
+  getAccountGroupCashParentCompatibilityError,
   getCashAccountDisabledReason,
   isAccountGroupCompatibleWithAccountCashRules,
   resolveAccountCashAccountFormValue,
@@ -260,6 +261,36 @@ describe("account cash group helpers", () => {
         group: { isCashAccount: false },
       }),
     ).toBe(true);
+  });
+
+  test.each([
+    ["security asset", AccountType.ASSET, Unit.SECURITY],
+    ["crypto asset", AccountType.ASSET, Unit.CRYPTOCURRENCY],
+    ["liability", AccountType.LIABILITY, Unit.CURRENCY],
+    ["equity", AccountType.EQUITY, Unit.CURRENCY],
+  ])(
+    "returns a group error when moving a %s account into a cash group",
+    (_label, accountType, accountUnit) => {
+      expect(
+        getAccountGroupCashParentCompatibilityError({
+          accountType,
+          accountUnit,
+          groupId: "cash-group",
+          accountGroups,
+        }),
+      ).toBe("Cash account groups can contain only currency asset accounts.");
+    },
+  );
+
+  test("allows currency asset accounts in cash groups", () => {
+    expect(
+      getAccountGroupCashParentCompatibilityError({
+        accountType: AccountType.ASSET,
+        accountUnit: Unit.CURRENCY,
+        groupId: "cash-group",
+        accountGroups,
+      }),
+    ).toBeNull();
   });
 
   test("applies inherited cash status before submit", () => {

@@ -3,6 +3,7 @@ import { AccountType, Unit } from "../.prisma-client/enums";
 import {
   applyAccountGroupParentCashInheritance,
   canMarkAccountGroupSubtreeAsCash,
+  getAccountGroupCashParentCompatibilityError,
   getCashAccountGroupDisabledReason,
   isRootCashAccountGroupEditable,
   resolveAccountGroupCashAccountFormValue,
@@ -196,5 +197,65 @@ describe("account group cash helpers", () => {
         existingNodes: [],
       }),
     ).toBe("Cash account status is inherited from the parent group.");
+  });
+
+  test("returns a parent group error when moving a non-cashable subtree into a cash group", () => {
+    const existingNodes: ExistingNode[] = [
+      {
+        id: "group-assets",
+        name: "Assets",
+        nodeType: "accountGroup",
+        type: AccountType.ASSET,
+      },
+      {
+        id: "account-brokerage",
+        name: "Brokerage",
+        nodeType: "account",
+        type: AccountType.ASSET,
+        unit: Unit.SECURITY,
+        groupId: "group-assets",
+      },
+    ];
+
+    expect(
+      getAccountGroupCashParentCompatibilityError({
+        type: AccountType.ASSET,
+        parentGroupId: "cash-parent",
+        groupId: "group-assets",
+        accountGroups,
+        existingNodes,
+      }),
+    ).toBe(
+      "Cash account groups can contain only currency asset accounts and asset sub-groups.",
+    );
+  });
+
+  test("allows eligible subtrees to move into cash groups", () => {
+    const existingNodes: ExistingNode[] = [
+      {
+        id: "group-assets",
+        name: "Assets",
+        nodeType: "accountGroup",
+        type: AccountType.ASSET,
+      },
+      {
+        id: "account-wallet",
+        name: "Wallet",
+        nodeType: "account",
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        groupId: "group-assets",
+      },
+    ];
+
+    expect(
+      getAccountGroupCashParentCompatibilityError({
+        type: AccountType.ASSET,
+        parentGroupId: "cash-parent",
+        groupId: "group-assets",
+        accountGroups,
+        existingNodes,
+      }),
+    ).toBeNull();
   });
 });

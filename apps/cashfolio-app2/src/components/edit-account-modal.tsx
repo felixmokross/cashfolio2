@@ -20,7 +20,7 @@ import {
 } from "@mantine/core";
 import { isNotEmpty, useForm } from "@mantine/form";
 import { IconCheck, IconCopy, IconInfoCircle } from "@tabler/icons-react";
-import { useEffect, useId, useMemo, useReducer, useRef } from "react";
+import { useEffect, useId, useMemo, useReducer, useRef, useState } from "react";
 import { Fragment } from "react/jsx-runtime";
 import {
   AccountType,
@@ -68,6 +68,8 @@ const STATEMENT_IMPORT_CSV_FORMAT_EXAMPLE = JSON.stringify(
 const STATEMENT_IMPORT_CSV_FORMAT_PLACEHOLDER =
   "Paste a statement import CSV format JSON object.";
 const STATEMENT_IMPORT_CSV_FORMAT_HELP_VIEWPORT_PADDING = 12;
+const CASH_GROUP_ACCOUNT_COMPATIBILITY_ERROR =
+  "Cash account groups can contain only currency asset accounts.";
 
 function StatementImportCsvFormatHelp() {
   return (
@@ -363,6 +365,23 @@ export function isAccountGroupCompatibleWithAccountCashRules(args: {
   );
 }
 
+export function getAccountGroupCashParentCompatibilityError(args: {
+  accountType?: AccountType;
+  accountUnit?: Unit;
+  groupId?: string | null;
+  accountGroups: AccountGroupOption[];
+}) {
+  const selectedGroup = getSelectedGroup(args.accountGroups, args.groupId);
+  if (!selectedGroup?.isCashAccount) return null;
+  return isAccountGroupCompatibleWithAccountCashRules({
+    accountType: args.accountType,
+    accountUnit: args.accountUnit,
+    group: selectedGroup,
+  })
+    ? null
+    : CASH_GROUP_ACCOUNT_COMPATIBILITY_ERROR;
+}
+
 export function applyAccountGroupCashInheritance(
   values: TransformedFormValues,
   accountGroups: AccountGroupOption[],
@@ -418,6 +437,7 @@ export function EditAccountModal({
   const statementImportCsvFormatInputId = useId();
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
   const { isSubmitting, runSubmit } = useDialogSubmitState();
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const form = useForm<FormValues, TransformedFormValues>({
     mode: "uncontrolled",
     initialValues: initialValues
@@ -436,7 +456,13 @@ export function EditAccountModal({
         return validateAccountName(value, siblingNames);
       },
       typeDescriptor: isNotEmpty("Type is required"),
-      groupId: () => null,
+      groupId: (value, values) =>
+        getAccountGroupCashParentCompatibilityError({
+          accountType: transformAccountValues(values).type,
+          accountUnit: values.unit,
+          groupId: value,
+          accountGroups,
+        }),
       openingBalance: (value, values) => {
         if (
           values.typeDescriptor !== AccountType.ASSET &&
@@ -484,8 +510,10 @@ export function EditAccountModal({
     onValuesChange: (values: FormValues, previous: FormValues) => {
       if (
         values.unit !== previous.unit ||
+        values.typeDescriptor !== previous.typeDescriptor ||
         values.groupId !== previous.groupId
       ) {
+        setSubmitError(null);
         forceUpdate();
       }
     },
@@ -505,6 +533,7 @@ export function EditAccountModal({
       const currentForm = formRef.current;
       currentForm.setInitialValues(resetInitialValues);
       currentForm.reset();
+      setSubmitError(null);
       forceUpdate();
     }
   }, [opened, resetInitialValues]);
@@ -550,11 +579,22 @@ export function EditAccountModal({
       size="lg"
     >
       <form
-        onSubmit={form.onSubmit((values) =>
-          runSubmit(() =>
-            onSubmit(applyAccountGroupCashInheritance(values, accountGroups)),
-          ),
-        )}
+        onSubmit={form.onSubmit((values) => {
+          setSubmitError(null);
+          return runSubmit(async () => {
+            try {
+              await onSubmit(
+                applyAccountGroupCashInheritance(values, accountGroups),
+              );
+            } catch (error) {
+              setSubmitError(
+                error instanceof Error
+                  ? error.message
+                  : "Failed to save account.",
+              );
+            }
+          });
+        })}
       >
         <Stack gap="xl">
           <Grid>
@@ -765,6 +805,11 @@ export function EditAccountModal({
               </>
             )}
           </Grid>
+          {submitError && (
+            <Text size="sm" c="red">
+              {submitError}
+            </Text>
+          )}
           <Group justify="end">
             <Button
               variant="subtle"

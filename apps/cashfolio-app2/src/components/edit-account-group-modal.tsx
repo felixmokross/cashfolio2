@@ -4,6 +4,7 @@ import {
   Modal,
   NumberInput,
   Stack,
+  Text,
   TextInput,
   Grid,
   Select,
@@ -11,7 +12,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { isNotEmpty, useForm } from "@mantine/form";
-import { useEffect, useMemo, useReducer, useRef } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   AccountType,
   EquityAccountSubtype,
@@ -169,6 +170,29 @@ export function getCashAccountGroupDisabledReason(args: {
   return undefined;
 }
 
+export function getAccountGroupCashParentCompatibilityError(args: {
+  type?: AccountType;
+  parentGroupId?: string | null;
+  groupId?: string;
+  accountGroups: AccountGroupOption[];
+  existingNodes?: ExistingNode[];
+}) {
+  const parentGroup = getSelectedParentGroup(
+    args.accountGroups,
+    args.parentGroupId,
+  );
+  if (!parentGroup?.isCashAccount) return null;
+  if (args.type !== AccountType.ASSET) {
+    return "Cash account groups must contain only asset groups.";
+  }
+  return canMarkAccountGroupSubtreeAsCash({
+    groupId: args.groupId,
+    existingNodes: args.existingNodes,
+  })
+    ? null
+    : CASH_GROUP_INELIGIBLE_DESCENDANTS_DISABLED_REASON;
+}
+
 export function resolveAccountGroupCashAccountFormValue(args: {
   type?: AccountType;
   parentGroupId?: string | null;
@@ -227,6 +251,7 @@ export function EditAccountGroupModal({
   const isEdit = !!initialValues;
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
   const { isSubmitting, runSubmit } = useDialogSubmitState();
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const descendantGroupIds = useMemo(() => {
     if (!editingId || !existingNodes) return new Set<string>();
 
@@ -267,10 +292,17 @@ export function EditAccountGroupModal({
         return validateAccountGroupName(value, siblingNames);
       },
       typeDescriptor: isNotEmpty("Type is required"),
-      parentGroupId: (value) =>
+      parentGroupId: (value, values) =>
         validateAccountGroupParentGroupId(value, {
           editingId,
           descendantGroupIds,
+        }) ??
+        getAccountGroupCashParentCompatibilityError({
+          type: transformAccountGroupValues(values).type,
+          parentGroupId: value,
+          groupId: editingId,
+          accountGroups,
+          existingNodes,
         }),
       isCashAccount: (value, values) => {
         if (!value) return null;
@@ -290,6 +322,7 @@ export function EditAccountGroupModal({
         values.parentGroupId !== previous.parentGroupId ||
         values.typeDescriptor !== previous.typeDescriptor
       ) {
+        setSubmitError(null);
         forceUpdate();
       }
     },
@@ -306,6 +339,7 @@ export function EditAccountGroupModal({
       const currentForm = formRef.current;
       currentForm.setInitialValues(resetInitialValues);
       currentForm.reset();
+      setSubmitError(null);
       forceUpdate();
     }
   }, [opened, resetInitialValues]);
@@ -347,16 +381,25 @@ export function EditAccountGroupModal({
       size="lg"
     >
       <form
-        onSubmit={form.onSubmit((values) =>
-          runSubmit(() =>
-            onSubmit(
-              applyAccountGroupParentCashInheritance(
-                transformAccountGroupValues(values),
-                accountGroups,
-              ),
-            ),
-          ),
-        )}
+        onSubmit={form.onSubmit((values) => {
+          setSubmitError(null);
+          return runSubmit(async () => {
+            try {
+              await onSubmit(
+                applyAccountGroupParentCashInheritance(
+                  transformAccountGroupValues(values),
+                  accountGroups,
+                ),
+              );
+            } catch (error) {
+              setSubmitError(
+                error instanceof Error
+                  ? error.message
+                  : "Failed to save account group.",
+              );
+            }
+          });
+        })}
       >
         <Stack gap="xl">
           <Grid>
@@ -465,6 +508,11 @@ export function EditAccountGroupModal({
               </Grid.Col>
             ) : null}
           </Grid>
+          {submitError && (
+            <Text size="sm" c="red">
+              {submitError}
+            </Text>
+          )}
           <Group justify="end">
             <Button
               variant="subtle"
