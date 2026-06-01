@@ -367,6 +367,62 @@ describe("getPeriodOverview", () => {
     expect(holdingBalanceGroupByCall?.[0].where?.transaction).toBeUndefined();
   });
 
+  it("excludes opening-balance transactions from cash flow in the account-book start period", async () => {
+    vi.setSystemTime(new Date("2026-02-10T12:00:00.000Z"));
+    prisma.account.findMany.mockResolvedValue([
+      {
+        id: "asset-cash",
+        name: "Cash",
+        groupId: null,
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        cryptocurrency: null,
+        symbol: null,
+        tradeCurrency: null,
+        isCashAccount: true,
+      },
+    ]);
+    prisma.booking.findMany.mockResolvedValue([]);
+    prisma.booking.groupBy.mockResolvedValue([]);
+
+    await getPeriodOverview({
+      data: { accountBookId: "book-2", period: "2026-01" },
+    });
+
+    expect(prisma.transaction.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            expect.objectContaining({
+              bookings: {
+                some: {
+                  accountId: {
+                    in: ["asset-cash"],
+                  },
+                  date: {
+                    gte: new Date("2026-01-01T00:00:00.000Z"),
+                    lt: new Date("2026-02-01T00:00:00.000Z"),
+                  },
+                },
+              },
+            }),
+            expect.objectContaining({
+              bookings: {
+                none: {
+                  account: {
+                    type: AccountType.EQUITY,
+                    equityAccountSubtype: EquityAccountSubtype.OPENING_BALANCES,
+                  },
+                },
+              },
+            }),
+          ]),
+        }),
+      }),
+    );
+  });
+
   it("returns a zeroed overview when no bookings are present", async () => {
     vi.setSystemTime(new Date("2026-05-10T10:00:00.000Z"));
     prisma.account.findMany.mockResolvedValue([]);

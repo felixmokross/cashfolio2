@@ -164,6 +164,7 @@ const accountGroups: AccountsPageViewProps["accountGroups"] = [
     label: "Assets",
     type: AccountType.ASSET,
     equityAccountSubtype: null,
+    isCashAccount: false,
     parentGroupId: null,
     treePath: [],
     treeLabel: "Assets",
@@ -173,6 +174,7 @@ const accountGroups: AccountsPageViewProps["accountGroups"] = [
     label: "Assets / Cash",
     type: AccountType.ASSET,
     equityAccountSubtype: null,
+    isCashAccount: true,
     parentGroupId: "group-assets",
     treePath: ["Assets"],
     treeLabel: "Cash",
@@ -186,6 +188,7 @@ const existingNodes: AccountsPageViewProps["existingNodes"] = [
     nodeType: "accountGroup",
     parentId: undefined,
     groupId: undefined,
+    type: AccountType.ASSET,
   },
   {
     id: "group-cash",
@@ -193,6 +196,7 @@ const existingNodes: AccountsPageViewProps["existingNodes"] = [
     nodeType: "accountGroup",
     parentId: "group-assets",
     groupId: undefined,
+    type: AccountType.ASSET,
   },
   {
     id: "account-checking",
@@ -200,6 +204,8 @@ const existingNodes: AccountsPageViewProps["existingNodes"] = [
     nodeType: "account",
     parentId: undefined,
     groupId: "group-cash",
+    type: AccountType.ASSET,
+    unit: Unit.CURRENCY,
   },
   {
     id: "account-wallet",
@@ -207,6 +213,8 @@ const existingNodes: AccountsPageViewProps["existingNodes"] = [
     nodeType: "account",
     parentId: undefined,
     groupId: "group-assets",
+    type: AccountType.ASSET,
+    unit: Unit.CURRENCY,
   },
 ];
 

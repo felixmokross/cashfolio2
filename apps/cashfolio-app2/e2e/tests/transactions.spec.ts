@@ -125,7 +125,7 @@ test("create simple transaction", async ({ page }) => {
   await expect(agGridCellByColId(cashRow, "balance")).toHaveText(/^\s*$/);
   await expect(
     agGridCellByColId(cashRow, "balanceInReferenceCurrency"),
-  ).toHaveText("-342.00");
+  ).toHaveText("-42.00");
 });
 
 test("copy simple transaction keeps source date and saves selected copy date", async ({

@@ -247,6 +247,7 @@ export function createLedgerAccountMutationActions(args: {
           symbol: values.symbol,
           tradeCurrency: values.tradeCurrency,
           statementImportCsvFormat: values.statementImportCsvFormat,
+          isCashAccount: values.isCashAccount,
           openingBalance: values.openingBalance,
         },
       });

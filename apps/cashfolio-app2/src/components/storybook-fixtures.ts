@@ -3,8 +3,9 @@ import {
   EquityAccountSubtype,
   Unit,
 } from "../.prisma-client/enums";
+import type { ExistingNode } from "./account-cash-form-rules";
 import type { AccountGroupInitialValues } from "./edit-account-group-modal";
-import type { AccountInitialValues, ExistingNode } from "./edit-account-modal";
+import type { AccountInitialValues } from "./edit-account-modal";
 import type { AccountOption } from "./edit-transaction-modal";
 import type { ReorderGroupChildRow } from "./reorder-group-children-modal";
 
@@ -14,6 +15,7 @@ export const accountGroupOptions = [
     label: "Assets",
     type: AccountType.ASSET,
     equityAccountSubtype: null,
+    isCashAccount: false,
     parentGroupId: null,
     treePath: [],
     treeLabel: "Assets",
@@ -23,6 +25,7 @@ export const accountGroupOptions = [
     label: "Assets / Cash",
     type: AccountType.ASSET,
     equityAccountSubtype: null,
+    isCashAccount: true,
     parentGroupId: "group-assets",
     treePath: ["Assets"],
     treeLabel: "Cash",
@@ -32,6 +35,7 @@ export const accountGroupOptions = [
     label: "Liabilities",
     type: AccountType.LIABILITY,
     equityAccountSubtype: null,
+    isCashAccount: false,
     parentGroupId: null,
     treePath: [],
     treeLabel: "Liabilities",
@@ -41,6 +45,7 @@ export const accountGroupOptions = [
     label: "Income",
     type: AccountType.EQUITY,
     equityAccountSubtype: EquityAccountSubtype.INCOME,
+    isCashAccount: false,
     parentGroupId: null,
     treePath: [],
     treeLabel: "Income",
@@ -50,6 +55,7 @@ export const accountGroupOptions = [
     label: "Expense",
     type: AccountType.EQUITY,
     equityAccountSubtype: EquityAccountSubtype.EXPENSE,
+    isCashAccount: false,
     parentGroupId: null,
     treePath: [],
     treeLabel: "Expense",
@@ -61,29 +67,36 @@ export const existingNodes: ExistingNode[] = [
     id: "group-assets",
     name: "Assets",
     nodeType: "accountGroup",
+    type: AccountType.ASSET,
   },
   {
     id: "group-cash",
     name: "Cash",
     nodeType: "accountGroup",
     parentId: "group-assets",
+    type: AccountType.ASSET,
   },
   {
     id: "account-checking",
     name: "Checking",
     nodeType: "account",
     groupId: "group-cash",
+    type: AccountType.ASSET,
+    unit: Unit.CURRENCY,
   },
   {
     id: "account-savings",
     name: "Savings",
     nodeType: "account",
     groupId: "group-assets",
+    type: AccountType.ASSET,
+    unit: Unit.CURRENCY,
   },
   {
     id: "group-income",
     name: "Income",
     nodeType: "accountGroup",
+    type: AccountType.EQUITY,
   },
 ];
 
@@ -101,6 +114,7 @@ export const editAccountGroupInitialValues: AccountGroupInitialValues = {
   type: AccountType.ASSET,
   parentGroupId: "group-assets",
   sortOrder: 20,
+  isCashAccount: false,
 };
 
 export const accountOptions: AccountOption[] = [

@@ -78,6 +78,8 @@ export type ExistingNode = {
   nodeType: "account" | "accountGroup";
   parentId?: string;
   groupId?: string;
+  type: AccountType;
+  unit?: Unit | null;
 };
 
 export async function queryAccountGroups(
@@ -105,6 +107,7 @@ export async function queryAccountGroups(
       name: group.name,
       type: group.type,
       equityAccountSubtype: group.equityAccountSubtype,
+      isCashAccount: group.isCashAccount,
       parentGroupId: group.parentGroupId,
       isActive: group.isActive,
       sortOrder: group.sortOrder,
@@ -121,6 +124,7 @@ export async function queryAccountGroups(
         label: pathSegments.join(" / "),
         type: group.type,
         equityAccountSubtype: group.equityAccountSubtype,
+        isCashAccount: group.isCashAccount,
         parentGroupId: group.parentGroupId,
         treePath: pathSegments.slice(0, -1),
         treeLabel: group.name,
@@ -143,6 +147,8 @@ export async function queryExistingNodes(
         id: true,
         name: true,
         groupId: true,
+        type: true,
+        unit: true,
       },
     }),
     prisma.accountGroup.findMany({
@@ -156,6 +162,7 @@ export async function queryExistingNodes(
         parentGroupId: true,
         type: true,
         equityAccountSubtype: true,
+        isCashAccount: true,
         isActive: true,
         sortOrder: true,
       },
@@ -168,6 +175,7 @@ export async function queryExistingNodes(
       name: group.name,
       type: group.type,
       equityAccountSubtype: group.equityAccountSubtype,
+      isCashAccount: group.isCashAccount,
       parentGroupId: group.parentGroupId,
       isActive: group.isActive,
       sortOrder: group.sortOrder,
@@ -182,6 +190,8 @@ export async function queryExistingNodes(
         name: account.name,
         nodeType: "account",
         groupId: account.groupId ?? undefined,
+        type: account.type,
+        unit: account.unit as Unit | null,
       }),
     ),
     ...filteredAccountGroups.map(
@@ -190,6 +200,7 @@ export async function queryExistingNodes(
         name: group.name,
         nodeType: "accountGroup",
         parentId: group.parentGroupId ?? undefined,
+        type: group.type,
       }),
     ),
   ];
@@ -271,6 +282,7 @@ export async function queryAccountTreeData(data: AccountTreeDataInput) {
     symbol: account.symbol as string | null,
     tradeCurrency: account.tradeCurrency as string | null,
     statementImportCsvFormat: account.statementImportCsvFormat,
+    isCashAccount: account.isCashAccount,
     groupId: account.groupId,
     isActive: account.isActive,
     sortOrder: account.sortOrder,
@@ -308,6 +320,7 @@ export async function queryAccountTreeData(data: AccountTreeDataInput) {
       name: group.name,
       type: group.type,
       equityAccountSubtype: group.equityAccountSubtype,
+      isCashAccount: group.isCashAccount,
       parentGroupId: group.parentGroupId,
       isActive: group.isActive,
       sortOrder: group.sortOrder,
@@ -373,6 +386,7 @@ export async function queryLedgerAccountActionData(
           symbol: true,
           tradeCurrency: true,
           statementImportCsvFormat: true,
+          isCashAccount: true,
           groupId: true,
           isActive: true,
           sortOrder: true,
@@ -470,6 +484,7 @@ export async function queryLedgerAccountActionData(
     symbol: account.symbol as string | null,
     tradeCurrency: account.tradeCurrency as string | null,
     statementImportCsvFormat: account.statementImportCsvFormat,
+    isCashAccount: account.isCashAccount,
     balance:
       account.type === "ASSET"
         ? rawBalance

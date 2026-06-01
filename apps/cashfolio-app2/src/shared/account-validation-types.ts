@@ -18,6 +18,7 @@ export type AccountInput = {
   symbol?: string;
   tradeCurrency?: string;
   statementImportCsvFormat?: StatementImportCsvFormat | null;
+  isCashAccount?: boolean;
   openingBalance?: number | null;
 };
 
@@ -28,5 +29,6 @@ export type AccountGroupInput = {
   equityAccountSubtype?: EquityAccountSubtype;
   parentGroupId?: string;
   sortOrder?: number;
+  isCashAccount?: boolean;
   isActive?: boolean;
 };

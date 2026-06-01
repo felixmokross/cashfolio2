@@ -67,9 +67,9 @@ Related docs:
   Redis instance.
 - Redis key namespace includes deployment scope and invalidation generation:
   - Entry:
-    `period:base:v1:{PERIOD_BASE_CACHE_ENV}:{accountBookId}:{generation}:{periodCacheKey}`
+    `period:base:v2:{PERIOD_BASE_CACHE_ENV}:{accountBookId}:{generation}:{periodCacheKey}`
   - Index:
-    `period:base:index:v1:{PERIOD_BASE_CACHE_ENV}:{accountBookId}:{generation}`
+    `period:base:index:v2:{PERIOD_BASE_CACHE_ENV}:{accountBookId}:{generation}`
   - Generation pointer:
     `period:base:generation:v1:{PERIOD_BASE_CACHE_ENV}:{accountBookId}`
 - History metrics entry:

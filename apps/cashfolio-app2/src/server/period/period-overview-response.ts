@@ -44,6 +44,7 @@ export function buildPeriodOverviewResponse(args: {
   equityAggregation: PeriodOverviewEquityAggregation;
   realizedGainLoss: number;
   unrealizedGainLoss: number;
+  cashFlow: number;
   isBeforeAccountBookStart: boolean;
   endOfPeriodBalanceStats: PeriodOverviewEndOfPeriodStats;
   bookingsCount: number;
@@ -68,6 +69,9 @@ export function buildPeriodOverviewResponse(args: {
   const roundedIncome = round2(income);
   const roundedExpenses = round2(expenses);
   const roundedGainsLosses = round2(gainsLosses);
+  const roundedCashFlow = round2(
+    args.isBeforeAccountBookStart ? 0 : args.cashFlow,
+  );
   const roundedSavings = round2(
     toMoneyNumber(moneyAdd(roundedIncome, -roundedExpenses)),
   );
@@ -190,6 +194,7 @@ export function buildPeriodOverviewResponse(args: {
     stats: {
       totalReturn: roundedTotalReturn,
       savings: roundedSavings,
+      cashFlow: roundedCashFlow,
       income: roundedIncome,
       expenses: roundedExpenses,
       gainsLosses: roundedGainsLosses,

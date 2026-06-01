@@ -9,6 +9,7 @@ export type GroupTreeOption = {
   value: string;
   label: string;
   parentGroupId?: string | null;
+  isCashAccount?: boolean;
   treePath?: string[];
   treeLabel?: string;
 };

@@ -1,5 +1,8 @@
 import { useCallback, useState } from "react";
-import type { AccountInitialValues } from "@/components/edit-account-modal";
+import {
+  createAccountInitialValues,
+  type AccountInitialValues,
+} from "@/components/edit-account-modal";
 import type { AccountGroupInitialValues } from "@/components/edit-account-group-modal";
 import type { TreeRow } from "./-page-types";
 
@@ -30,20 +33,7 @@ export function useAccountsPageModalState() {
     if (data.nodeType === "account") {
       setEditingAccount({
         id: data.id,
-        initialValues: {
-          name: data.name,
-          type: data.type,
-          equityAccountSubtype: data.equityAccountSubtype,
-          groupId: data.groupId ?? undefined,
-          sortOrder: data.sortOrder ?? undefined,
-          unit: data.unit,
-          currency: data.currency,
-          cryptocurrency: data.cryptocurrency,
-          symbol: data.symbol,
-          tradeCurrency: data.tradeCurrency,
-          statementImportCsvFormat: data.statementImportCsvFormat ?? null,
-          openingBalance: data.openingBalance,
-        },
+        initialValues: createAccountInitialValues(data),
       });
       setEditModalOpen(true);
       return;
@@ -57,6 +47,7 @@ export function useAccountsPageModalState() {
         equityAccountSubtype: data.equityAccountSubtype,
         parentGroupId: data.parentId,
         sortOrder: data.sortOrder ?? undefined,
+        isCashAccount: data.isCashAccount ?? false,
       },
     });
     setEditGroupModalOpen(true);

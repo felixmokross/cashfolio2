@@ -12,6 +12,14 @@ import {
 } from "../../shared/date";
 import { moneyIsZero } from "../../shared/money";
 import {
+  applyGroupCashFlagToSubtree,
+  assertCashableGroupSubtree,
+  normalizeMissingCashAccountFlag,
+  normalizeMissingGroupCashAccountFlag,
+  resolveAccountCashFlag,
+  resolveAccountGroupCashFlag,
+} from "./accounts-cash-rules";
+import {
   ensureNoGroupCycle,
   getGroupHierarchy,
   hasInactiveAncestorGroup,
@@ -143,10 +151,10 @@ function assertAccountUnitIdentityUnchanged(
   }
 }
 
-function mergeExistingAccountUnitIdentity(
-  data: AccountInput,
+function mergeExistingAccountUnitIdentity<T extends AccountInput>(
+  data: T,
   existing: ExistingAccountUnitIdentity,
-): AccountInput {
+): T {
   return {
     ...data,
     unit: existing.unit ?? undefined,
@@ -584,7 +592,9 @@ async function applyOpeningBalanceTarget(args: {
 }
 
 export async function createAccountOperation(data: AccountInput) {
-  const normalizedData = normalizeEquityAccountUnitIdentity(data);
+  const normalizedData = await resolveAccountCashFlag(
+    normalizeMissingCashAccountFlag(normalizeEquityAccountUnitIdentity(data)),
+  );
   assertNoSystemManagedAccountSubtype(normalizedData);
   const siblingNames = (
     await prisma.account.findMany({
@@ -615,6 +625,7 @@ export async function createAccountOperation(data: AccountInput) {
         statementImportCsvFormat: toStatementImportCsvFormatJsonInput(
           normalizedData.statementImportCsvFormat,
         ),
+        isCashAccount: normalizedData.isCashAccount ?? false,
         accountBookId: normalizedData.accountBookId,
       },
     });
@@ -641,12 +652,12 @@ export async function createAccountOperation(data: AccountInput) {
 }
 
 export async function updateAccountOperation(data: AccountUpdateInput) {
-  const normalizedData = normalizeEquityAccountUnitIdentity(data);
+  const submittedData = normalizeEquityAccountUnitIdentity(data);
   const existing = await prisma.account.findUniqueOrThrow({
     where: {
       id_accountBookId: {
-        id: normalizedData.id,
-        accountBookId: normalizedData.accountBookId,
+        id: submittedData.id,
+        accountBookId: submittedData.accountBookId,
       },
     },
     select: {
@@ -658,17 +669,28 @@ export async function updateAccountOperation(data: AccountUpdateInput) {
       symbol: true,
       tradeCurrency: true,
       statementImportCsvFormat: true,
+      isCashAccount: true,
     },
   });
   assertNoSystemManagedAccountSubtype(existing);
   if (
-    normalizedData.type !== existing.type ||
-    normalizedData.equityAccountSubtype !==
+    submittedData.type !== existing.type ||
+    submittedData.equityAccountSubtype !==
       (existing.equityAccountSubtype ?? undefined)
   ) {
     throw new Error("Account type cannot be changed");
   }
-  assertAccountUnitIdentityUnchanged(normalizedData, existing);
+  assertAccountUnitIdentityUnchanged(submittedData, existing);
+  const submittedDataWithExistingCashFlag = {
+    ...submittedData,
+    isCashAccount: submittedData.isCashAccount ?? existing.isCashAccount,
+  };
+  const normalizedData = await resolveAccountCashFlag(
+    mergeExistingAccountUnitIdentity(
+      submittedDataWithExistingCashFlag,
+      existing,
+    ),
+  );
   const dataWithExistingUnitIdentity = mergeExistingAccountUnitIdentity(
     normalizedData,
     existing,
@@ -703,6 +725,7 @@ export async function updateAccountOperation(data: AccountUpdateInput) {
         statementImportCsvFormat: toStatementImportCsvFormatJsonInput(
           getStatementImportCsvFormatUpdateInput(normalizedData, existing),
         ),
+        isCashAccount: normalizedData.isCashAccount ?? false,
       },
     });
 
@@ -728,26 +751,33 @@ export async function updateAccountOperation(data: AccountUpdateInput) {
 }
 
 export async function createAccountGroupOperation(data: AccountGroupInput) {
-  assertNoSystemManagedGroupSubtype(data);
+  const normalizedData = await resolveAccountGroupCashFlag(
+    normalizeMissingGroupCashAccountFlag(data),
+  );
+  assertNoSystemManagedGroupSubtype(normalizedData);
   const siblingNames = (
     await prisma.accountGroup.findMany({
       where: {
-        parentGroupId: data.parentGroupId ?? null,
-        accountBookId: data.accountBookId,
+        parentGroupId: normalizedData.parentGroupId ?? null,
+        accountBookId: normalizedData.accountBookId,
       },
       select: { name: true },
     })
   ).map((g) => g.name);
-  validateAccountGroupInput(data, siblingNames);
+  validateAccountGroupInput(normalizedData, siblingNames);
   const group = await prisma.accountGroup.create({
     data: {
-      name: data.name,
-      type: data.type,
-      equityAccountSubtype: data.equityAccountSubtype,
-      isActive: data.isActive ?? true,
-      parentGroupId: data.parentGroupId,
-      sortOrder: typeof data.sortOrder === "number" ? data.sortOrder : null,
-      accountBookId: data.accountBookId,
+      name: normalizedData.name,
+      type: normalizedData.type,
+      equityAccountSubtype: normalizedData.equityAccountSubtype,
+      isActive: normalizedData.isActive ?? true,
+      parentGroupId: normalizedData.parentGroupId,
+      sortOrder:
+        typeof normalizedData.sortOrder === "number"
+          ? normalizedData.sortOrder
+          : null,
+      isCashAccount: normalizedData.isCashAccount ?? false,
+      accountBookId: normalizedData.accountBookId,
     },
   });
   return { data: group, invalidatePeriodCache: true };
@@ -756,47 +786,82 @@ export async function createAccountGroupOperation(data: AccountGroupInput) {
 export async function updateAccountGroupOperation(
   data: AccountGroupUpdateInput,
 ) {
+  const submittedData = data;
   const existing = await prisma.accountGroup.findUniqueOrThrow({
     where: {
-      id_accountBookId: { id: data.id, accountBookId: data.accountBookId },
+      id_accountBookId: {
+        id: submittedData.id,
+        accountBookId: submittedData.accountBookId,
+      },
     },
-    select: { type: true, equityAccountSubtype: true },
+    select: { type: true, equityAccountSubtype: true, isCashAccount: true },
   });
   assertNoSystemManagedGroupSubtype(existing);
   if (
-    data.type !== existing.type ||
-    data.equityAccountSubtype !== (existing.equityAccountSubtype ?? undefined)
+    submittedData.type !== existing.type ||
+    submittedData.equityAccountSubtype !==
+      (existing.equityAccountSubtype ?? undefined)
   ) {
     throw new Error("Group type cannot be changed");
   }
+  const normalizedData = await resolveAccountGroupCashFlag({
+    ...submittedData,
+    isCashAccount: submittedData.isCashAccount ?? existing.isCashAccount,
+  });
 
   const [siblingGroups, groupById] = await Promise.all([
     prisma.accountGroup.findMany({
       where: {
-        parentGroupId: data.parentGroupId ?? null,
-        accountBookId: data.accountBookId,
-        id: { not: data.id },
+        parentGroupId: normalizedData.parentGroupId ?? null,
+        accountBookId: normalizedData.accountBookId,
+        id: { not: normalizedData.id },
       },
       select: { name: true },
     }),
-    getGroupHierarchy(data.accountBookId),
+    getGroupHierarchy(normalizedData.accountBookId),
   ]);
   const siblingNames = siblingGroups.map((g) => g.name);
-  validateAccountGroupInput(data, siblingNames);
+  validateAccountGroupInput(normalizedData, siblingNames);
   ensureNoGroupCycle({
-    groupId: data.id,
-    parentGroupId: data.parentGroupId,
+    groupId: normalizedData.id,
+    parentGroupId: normalizedData.parentGroupId,
     groupById,
   });
-  const group = await prisma.accountGroup.update({
-    where: {
-      id_accountBookId: { id: data.id, accountBookId: data.accountBookId },
-    },
-    data: {
-      name: data.name,
-      parentGroupId: data.parentGroupId,
-      sortOrder: typeof data.sortOrder === "number" ? data.sortOrder : null,
-    },
+  const group = await prisma.$transaction(async (tx) => {
+    if (normalizedData.isCashAccount) {
+      await assertCashableGroupSubtree({
+        tx,
+        accountBookId: normalizedData.accountBookId,
+        groupId: normalizedData.id,
+      });
+    }
+
+    const updatedGroup = await tx.accountGroup.update({
+      where: {
+        id_accountBookId: {
+          id: normalizedData.id,
+          accountBookId: normalizedData.accountBookId,
+        },
+      },
+      data: {
+        name: normalizedData.name,
+        parentGroupId: normalizedData.parentGroupId,
+        sortOrder:
+          typeof normalizedData.sortOrder === "number"
+            ? normalizedData.sortOrder
+            : null,
+        isCashAccount: normalizedData.isCashAccount ?? false,
+      },
+    });
+
+    await applyGroupCashFlagToSubtree({
+      tx,
+      accountBookId: normalizedData.accountBookId,
+      groupId: normalizedData.id,
+      isCashAccount: normalizedData.isCashAccount ?? false,
+    });
+
+    return updatedGroup;
   });
   return { data: group, invalidatePeriodCache: true };
 }

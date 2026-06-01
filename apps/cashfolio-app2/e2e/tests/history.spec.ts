@@ -47,7 +47,7 @@ test("history page is reachable and persists selected period mode across refresh
     .getByRole("link", { name: "Report" })
     .click();
   await expect(page).toHaveURL(new RegExp(`/${seeded.accountBookId}/report$`));
-  await expect(page.getByRole("heading", { name: "April 2026" })).toBeVisible();
+  await expect(page.getByTestId("period-picker-trigger")).toBeVisible();
 });
 
 test("history mode toggles update URL mode and keep history compact", async ({

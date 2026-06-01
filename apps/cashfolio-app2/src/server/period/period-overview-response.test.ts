@@ -73,6 +73,7 @@ describe("period overview response", () => {
       equityAggregation,
       realizedGainLoss: 12,
       unrealizedGainLoss: 8,
+      cashFlow: 90,
       isBeforeAccountBookStart: true,
       endOfPeriodBalanceStats: {
         assets: 0,
@@ -90,6 +91,7 @@ describe("period overview response", () => {
       expenses: 40,
       savings: 60,
       gainsLosses: 0,
+      cashFlow: 0,
       totalReturn: 60,
       explicitGainLoss: 20,
       realizedGainLoss: 0,
@@ -162,6 +164,7 @@ describe("period overview response", () => {
       equityAggregation,
       realizedGainLoss: 5,
       unrealizedGainLoss: 15,
+      cashFlow: 75,
       isBeforeAccountBookStart: false,
       endOfPeriodBalanceStats: {
         assets: 100,
@@ -256,6 +259,7 @@ describe("period overview response", () => {
       expenses: 20,
       savings: 100,
       gainsLosses: 30,
+      cashFlow: 75,
       realizedGainLoss: 5,
       unrealizedGainLoss: 15,
       explicitGainLoss: 10,
@@ -400,6 +404,7 @@ describe("period overview response", () => {
       equityAggregation,
       realizedGainLoss: 4.444,
       unrealizedGainLoss: -1.111,
+      cashFlow: 0,
       isBeforeAccountBookStart: false,
       endOfPeriodBalanceStats: {
         assets: 0,

@@ -114,6 +114,25 @@ export function validateAccountStatementImportCsvFormat(
   return result.errors[0] ?? null;
 }
 
+export function validateAccountCashAccountFlag(
+  isCashAccount?: boolean,
+  unit?: Unit,
+  type?: AccountType,
+): string | null {
+  if (!isCashAccount) return null;
+  if (type === "ASSET" && unit === "CURRENCY") return null;
+  return "Cash accounts must be currency asset accounts";
+}
+
+export function validateAccountGroupCashAccountFlag(
+  isCashAccount?: boolean,
+  type?: AccountType,
+): string | null {
+  if (!isCashAccount) return null;
+  if (type === "ASSET") return null;
+  return "Cash account groups must be asset groups";
+}
+
 export function validateAccountGroupName(
   name?: string,
   siblingNames?: string[],
@@ -166,6 +185,7 @@ export function validateAccountInput(
       data.statementImportCsvFormat,
       data.type,
     ),
+    validateAccountCashAccountFlag(data.isCashAccount, data.unit, data.type),
   ].filter(Boolean);
 
   if (errors.length > 0) {
@@ -183,6 +203,7 @@ export function validateAccountGroupInput(
       data.type,
       data.equityAccountSubtype,
     ),
+    validateAccountGroupCashAccountFlag(data.isCashAccount, data.type),
   ].filter(Boolean);
 
   if (errors.length > 0) {

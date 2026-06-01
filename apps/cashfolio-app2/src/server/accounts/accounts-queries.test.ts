@@ -455,6 +455,8 @@ describe("getAccountsPageData", () => {
           id: "archived-account",
           name: "Archived Account",
           groupId: "group-child",
+          type: AccountType.ASSET,
+          unit: Unit.CURRENCY,
         },
       ])
       .mockResolvedValueOnce([
@@ -462,6 +464,8 @@ describe("getAccountsPageData", () => {
           id: "archived-account",
           name: "Archived Account",
           groupId: "group-child",
+          type: AccountType.ASSET,
+          unit: Unit.CURRENCY,
         },
       ]);
     prisma.accountGroup.findMany
@@ -546,18 +550,22 @@ describe("getAccountsPageData", () => {
         name: "Archived Account",
         nodeType: "account",
         groupId: "group-child",
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
       },
       {
         id: "group-root",
         name: "Root",
         nodeType: "accountGroup",
         parentId: undefined,
+        type: AccountType.ASSET,
       },
       {
         id: "group-child",
         name: "Archived Child",
         nodeType: "accountGroup",
         parentId: "group-root",
+        type: AccountType.ASSET,
       },
     ]);
     expect(result).toMatchObject({

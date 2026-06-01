@@ -26,6 +26,7 @@ export type AccountTreeQueryAccount = {
   symbol: string | null;
   tradeCurrency: string | null;
   statementImportCsvFormat?: StatementImportCsvFormat | null;
+  isCashAccount: boolean;
   groupId: string | null;
   isActive: boolean;
   sortOrder: number | null;
@@ -36,6 +37,7 @@ export type AccountTreeQueryGroup = {
   name: string;
   type: AccountType;
   equityAccountSubtype: EquityAccountSubtype | null;
+  isCashAccount: boolean;
   parentGroupId: string | null;
   isActive: boolean;
   sortOrder: number | null;
@@ -74,6 +76,7 @@ export async function fetchAccountTreeQueryData(args: {
           symbol: true,
           tradeCurrency: true,
           statementImportCsvFormat: true,
+          isCashAccount: true,
           groupId: true,
           isActive: true,
           sortOrder: true,
@@ -105,6 +108,7 @@ export async function fetchAccountTreeQueryData(args: {
         name: true,
         type: true,
         equityAccountSubtype: true,
+        isCashAccount: true,
         parentGroupId: true,
         isActive: true,
         sortOrder: true,
@@ -284,6 +288,7 @@ export async function fetchAccountReferenceBalancesQueryData(args: {
       cryptocurrency: true,
       symbol: true,
       tradeCurrency: true,
+      isCashAccount: true,
     },
   });
 

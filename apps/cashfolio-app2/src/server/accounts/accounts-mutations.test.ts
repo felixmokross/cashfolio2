@@ -33,8 +33,15 @@ const invalidatePeriodBaseDataCacheForAccountBook = vi.hoisted(() => vi.fn());
 const tx = vi.hoisted(() => ({
   account: {
     update: vi.fn(),
+    updateMany: vi.fn(),
     findFirst: vi.fn(),
+    findMany: vi.fn(),
     create: vi.fn(),
+  },
+  accountGroup: {
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    findMany: vi.fn(),
   },
   accountBook: {
     findUniqueOrThrow: vi.fn(),
@@ -57,7 +64,9 @@ const prisma = vi.hoisted(() => ({
   },
   accountGroup: {
     findMany: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
     create: vi.fn(),
+    update: vi.fn(),
   },
   $transaction: vi.fn(),
 }));
@@ -91,6 +100,7 @@ import {
   createAccount,
   createAccountGroup,
   updateAccount,
+  updateAccountGroup,
 } from "./accounts-mutations";
 
 describe("updateAccount opening balance management", () => {
@@ -106,6 +116,10 @@ describe("updateAccount opening balance management", () => {
       cryptocurrency: null,
       symbol: null,
       tradeCurrency: null,
+      isCashAccount: false,
+    });
+    prisma.accountGroup.findUniqueOrThrow.mockResolvedValue({
+      isCashAccount: false,
     });
     prisma.$transaction.mockImplementation(async (callback) => callback(tx));
 
@@ -118,7 +132,18 @@ describe("updateAccount opening balance management", () => {
       cryptocurrency: null,
       symbol: null,
       tradeCurrency: null,
+      isCashAccount: false,
     });
+    tx.account.updateMany.mockResolvedValue({ count: 0 });
+    tx.account.findMany.mockResolvedValue([]);
+    tx.accountGroup.update.mockResolvedValue({
+      id: "group-1",
+      name: "Group",
+      type: AccountType.ASSET,
+      isCashAccount: false,
+    });
+    tx.accountGroup.updateMany.mockResolvedValue({ count: 0 });
+    tx.accountGroup.findMany.mockResolvedValue([]);
     tx.account.findFirst.mockResolvedValue(null);
     tx.account.create.mockResolvedValue({ id: "opening-account" });
     tx.accountBook.findUniqueOrThrow.mockResolvedValue({
@@ -149,6 +174,7 @@ describe("updateAccount opening balance management", () => {
         cryptocurrency: undefined,
         symbol: undefined,
         tradeCurrency: undefined,
+        isCashAccount: false,
       }),
       [],
     );
@@ -160,6 +186,7 @@ describe("updateAccount opening balance management", () => {
         name: "Cash renamed",
         groupId: "group-1",
         sortOrder: 7,
+        isCashAccount: false,
       }),
     });
   });
@@ -209,6 +236,7 @@ describe("updateAccount opening balance management", () => {
         cryptocurrency: undefined,
         symbol: undefined,
         tradeCurrency: undefined,
+        isCashAccount: false,
       }),
       [],
     );
@@ -220,6 +248,7 @@ describe("updateAccount opening balance management", () => {
         name: "Groceries renamed",
         groupId: "group-expenses",
         sortOrder: 2,
+        isCashAccount: false,
       }),
     });
   });
@@ -259,6 +288,7 @@ describe("updateAccount opening balance management", () => {
         cryptocurrency: undefined,
         symbol: undefined,
         tradeCurrency: undefined,
+        isCashAccount: false,
       }),
       [],
     );
@@ -274,6 +304,7 @@ describe("updateAccount opening balance management", () => {
         cryptocurrency: undefined,
         symbol: undefined,
         tradeCurrency: undefined,
+        isCashAccount: false,
         accountBookId: "book-1",
       }),
     });
@@ -382,6 +413,139 @@ describe("updateAccount opening balance management", () => {
       },
       data: expect.objectContaining({
         statementImportCsvFormat: existingStatementImportCsvFormat,
+      }),
+    });
+  });
+
+  it("persists cash flag for currency asset accounts", async () => {
+    tx.account.create.mockResolvedValueOnce({
+      id: "account-3",
+      name: "Checking",
+      type: AccountType.ASSET,
+      unit: Unit.CURRENCY,
+      currency: "CHF",
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
+      isCashAccount: true,
+    });
+
+    await createAccount({
+      data: {
+        accountBookId: "book-1",
+        name: "Checking",
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        isCashAccount: true,
+      },
+    });
+
+    expect(validateAccountInput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        isCashAccount: true,
+      }),
+      [],
+    );
+    expect(tx.account.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: "Checking",
+          isCashAccount: true,
+        }),
+      }),
+    );
+  });
+
+  it("inherits cash status when creating accounts inside cash groups", async () => {
+    prisma.accountGroup.findUniqueOrThrow.mockResolvedValueOnce({
+      isCashAccount: true,
+    });
+
+    await createAccount({
+      data: {
+        accountBookId: "book-1",
+        name: "Wallet",
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        groupId: "cash-group",
+        isCashAccount: false,
+      },
+    });
+
+    expect(tx.account.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        groupId: "cash-group",
+        isCashAccount: true,
+      }),
+    });
+  });
+
+  it("inherits cash status when moving accounts into cash groups", async () => {
+    prisma.accountGroup.findUniqueOrThrow.mockResolvedValueOnce({
+      isCashAccount: true,
+    });
+
+    await updateAccount({
+      data: {
+        id: "account-1",
+        accountBookId: "book-1",
+        name: "Cash",
+        type: AccountType.ASSET,
+        groupId: "cash-group",
+        isCashAccount: false,
+      },
+    });
+
+    expect(tx.account.update).toHaveBeenCalledWith({
+      where: {
+        id_accountBookId: { id: "account-1", accountBookId: "book-1" },
+      },
+      data: expect.objectContaining({
+        groupId: "cash-group",
+        isCashAccount: true,
+      }),
+    });
+  });
+
+  it("preserves cash status when updating accounts without a cash flag", async () => {
+    prisma.account.findUniqueOrThrow.mockResolvedValueOnce({
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      unit: Unit.CURRENCY,
+      currency: "CHF",
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
+      statementImportCsvFormat: null,
+      isCashAccount: true,
+    });
+
+    await updateAccount({
+      data: {
+        id: "account-1",
+        accountBookId: "book-1",
+        name: "Cash renamed",
+        type: AccountType.ASSET,
+        groupId: null,
+      },
+    });
+
+    expect(validateAccountInput).toHaveBeenCalledWith(
+      expect.objectContaining({ isCashAccount: true }),
+      [],
+    );
+    expect(tx.account.update).toHaveBeenCalledWith({
+      where: {
+        id_accountBookId: { id: "account-1", accountBookId: "book-1" },
+      },
+      data: expect.objectContaining({
+        name: "Cash renamed",
+        isCashAccount: true,
       }),
     });
   });
@@ -604,6 +768,11 @@ describe("createAccountGroup", () => {
     vi.clearAllMocks();
 
     prisma.accountGroup.findMany.mockResolvedValue([]);
+    prisma.accountGroup.findUniqueOrThrow.mockResolvedValue({
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      isCashAccount: false,
+    });
     prisma.accountGroup.create.mockResolvedValue({
       id: "group-1",
       accountBookId: "book-1",
@@ -611,9 +780,39 @@ describe("createAccountGroup", () => {
       type: AccountType.ASSET,
       equityAccountSubtype: null,
       isActive: true,
+      isCashAccount: false,
       parentGroupId: null,
       sortOrder: null,
     });
+    prisma.accountGroup.update.mockResolvedValue({
+      id: "group-1",
+      accountBookId: "book-1",
+      name: "Group",
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      isActive: true,
+      isCashAccount: false,
+      parentGroupId: null,
+      sortOrder: null,
+    });
+    prisma.$transaction.mockImplementation(async (callback) => callback(tx));
+    tx.account.findMany.mockResolvedValue([]);
+    tx.account.updateMany.mockResolvedValue({ count: 0 });
+    tx.accountGroup.findMany.mockResolvedValue([
+      { id: "group-1", parentGroupId: null, type: AccountType.ASSET },
+    ]);
+    tx.accountGroup.update.mockResolvedValue({
+      id: "group-1",
+      accountBookId: "book-1",
+      name: "Group",
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      isActive: true,
+      isCashAccount: false,
+      parentGroupId: null,
+      sortOrder: null,
+    });
+    tx.accountGroup.updateMany.mockResolvedValue({ count: 0 });
   });
 
   it("defaults new groups to active when isActive is omitted", async () => {
@@ -634,6 +833,7 @@ describe("createAccountGroup", () => {
         isActive: true,
         parentGroupId: undefined,
         sortOrder: null,
+        isCashAccount: false,
       },
     });
     expect(invalidatePeriodBaseDataCacheForAccountBook).toHaveBeenCalledWith(
@@ -662,10 +862,192 @@ describe("createAccountGroup", () => {
         isActive: false,
         parentGroupId: "parent-1",
         sortOrder: 2,
+        isCashAccount: false,
       },
     });
     expect(invalidatePeriodBaseDataCacheForAccountBook).toHaveBeenCalledWith(
       "book-1",
     );
+  });
+
+  it("creates root cash groups", async () => {
+    await createAccountGroup({
+      data: {
+        accountBookId: "book-1",
+        name: "Cash",
+        type: AccountType.ASSET,
+        isCashAccount: true,
+      },
+    });
+
+    expect(validateAccountGroupInput).toHaveBeenCalledWith(
+      expect.objectContaining({ isCashAccount: true }),
+      [],
+    );
+    expect(prisma.accountGroup.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        name: "Cash",
+        isCashAccount: true,
+      }),
+    });
+  });
+
+  it("inherits cash status from parent groups when creating nested groups", async () => {
+    prisma.accountGroup.findUniqueOrThrow.mockResolvedValueOnce({
+      isCashAccount: true,
+    });
+
+    await createAccountGroup({
+      data: {
+        accountBookId: "book-1",
+        name: "Wallets",
+        type: AccountType.ASSET,
+        parentGroupId: "cash-parent",
+        isCashAccount: false,
+      },
+    });
+
+    expect(prisma.accountGroup.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        parentGroupId: "cash-parent",
+        isCashAccount: true,
+      }),
+    });
+  });
+
+  it("cascades group cash status when updating groups", async () => {
+    await updateAccountGroup({
+      data: {
+        id: "group-1",
+        accountBookId: "book-1",
+        name: "Cash",
+        type: AccountType.ASSET,
+        isCashAccount: true,
+      },
+    });
+
+    expect(tx.accountGroup.update).toHaveBeenCalledWith({
+      where: {
+        id_accountBookId: { id: "group-1", accountBookId: "book-1" },
+      },
+      data: expect.objectContaining({
+        name: "Cash",
+        isCashAccount: true,
+      }),
+    });
+    expect(tx.accountGroup.updateMany).toHaveBeenCalledWith({
+      where: {
+        accountBookId: "book-1",
+        id: { in: ["group-1"] },
+      },
+      data: { isCashAccount: true },
+    });
+    expect(tx.account.updateMany).toHaveBeenCalledWith({
+      where: {
+        accountBookId: "book-1",
+        groupId: { in: ["group-1"] },
+      },
+      data: { isCashAccount: true },
+    });
+  });
+
+  it("preserves and returns group cash status when updating groups without a cash flag", async () => {
+    prisma.accountGroup.findUniqueOrThrow.mockResolvedValueOnce({
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      isCashAccount: true,
+    });
+    tx.accountGroup.update.mockImplementationOnce(async ({ data }) => ({
+      id: "group-1",
+      accountBookId: "book-1",
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      isActive: true,
+      parentGroupId: null,
+      sortOrder: null,
+      ...data,
+    }));
+
+    const result = await updateAccountGroup({
+      data: {
+        id: "group-1",
+        accountBookId: "book-1",
+        name: "Cash renamed",
+        type: AccountType.ASSET,
+      },
+    });
+
+    expect(tx.accountGroup.update).toHaveBeenCalledWith({
+      where: {
+        id_accountBookId: { id: "group-1", accountBookId: "book-1" },
+      },
+      data: expect.objectContaining({
+        name: "Cash renamed",
+        isCashAccount: true,
+      }),
+    });
+    expect(tx.accountGroup.updateMany).toHaveBeenCalledWith({
+      where: {
+        accountBookId: "book-1",
+        id: { in: ["group-1"] },
+      },
+      data: { isCashAccount: true },
+    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        name: "Cash renamed",
+        isCashAccount: true,
+      }),
+    );
+  });
+
+  it("cascades non-cash status when unmarking groups", async () => {
+    await updateAccountGroup({
+      data: {
+        id: "group-1",
+        accountBookId: "book-1",
+        name: "Assets",
+        type: AccountType.ASSET,
+        isCashAccount: false,
+      },
+    });
+
+    expect(tx.accountGroup.updateMany).toHaveBeenCalledWith({
+      where: {
+        accountBookId: "book-1",
+        id: { in: ["group-1"] },
+      },
+      data: { isCashAccount: false },
+    });
+    expect(tx.account.updateMany).toHaveBeenCalledWith({
+      where: {
+        accountBookId: "book-1",
+        groupId: { in: ["group-1"] },
+      },
+      data: { isCashAccount: false },
+    });
+  });
+
+  it("rejects marking a group cash when its subtree has non-cashable accounts", async () => {
+    tx.account.findMany.mockResolvedValueOnce([
+      { type: AccountType.ASSET, unit: Unit.SECURITY },
+    ]);
+
+    await expect(
+      updateAccountGroup({
+        data: {
+          id: "group-1",
+          accountBookId: "book-1",
+          name: "Cash",
+          type: AccountType.ASSET,
+          isCashAccount: true,
+        },
+      }),
+    ).rejects.toThrow(
+      "Cash account groups must contain only currency asset accounts",
+    );
+
+    expect(tx.accountGroup.update).not.toHaveBeenCalled();
+    expect(tx.accountGroup.updateMany).not.toHaveBeenCalled();
   });
 });

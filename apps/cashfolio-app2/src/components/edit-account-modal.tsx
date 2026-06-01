@@ -16,10 +16,11 @@ import {
   Select,
   Textarea,
   Tooltip,
+  Checkbox,
 } from "@mantine/core";
 import { isNotEmpty, useForm } from "@mantine/form";
 import { IconCheck, IconCopy, IconInfoCircle } from "@tabler/icons-react";
-import { useEffect, useId, useMemo, useReducer, useRef } from "react";
+import { useEffect, useId, useMemo, useReducer, useRef, useState } from "react";
 import { Fragment } from "react/jsx-runtime";
 import {
   AccountType,
@@ -36,8 +37,18 @@ import {
   validateAccountTradeCurrency,
 } from "../shared/account-validation";
 import { useDialogSubmitState } from "../hooks/use-dialog-submit-state";
+import {
+  applyAccountGroupCashInheritance,
+  getAccountCashParentCompatibilityError,
+  getCashAccountDisabledReason,
+  isAccountGroupCompatibleWithAccountCashRules,
+  isRootCashAccountEditable,
+  resolveAccountCashAccountFormValue,
+  type AccountGroupOption,
+  type ExistingNode,
+} from "./account-cash-form-rules";
 import { FormattedNumberInput } from "./formatted-number-input";
-import { GroupTreeSelect, type GroupTreeOption } from "./group-tree-select";
+import { GroupTreeSelect } from "./group-tree-select";
 import { CryptocurrencySelect, CurrencySelect } from "./unit-select";
 import {
   parseStatementImportCsvFormatJson,
@@ -139,6 +150,7 @@ type FormValues = {
   symbol?: string;
   tradeCurrency?: string;
   statementImportCsvFormat?: string;
+  isCashAccount?: boolean;
 };
 
 export type TransformedFormValues = Omit<
@@ -159,6 +171,7 @@ export type TransformedFormValues = Omit<
   symbol?: string;
   tradeCurrency?: string;
   statementImportCsvFormat?: StatementImportCsvFormat | null;
+  isCashAccount?: boolean;
   openingBalance?: number | null;
 };
 
@@ -174,8 +187,46 @@ export type AccountInitialValues = {
   symbol?: string | null;
   tradeCurrency?: string | null;
   statementImportCsvFormat?: StatementImportCsvFormat | null;
+  isCashAccount?: boolean | null;
   openingBalance?: number | null;
 };
+
+export type AccountInitialValuesSource = Pick<
+  AccountInitialValues,
+  | "name"
+  | "type"
+  | "equityAccountSubtype"
+  | "groupId"
+  | "sortOrder"
+  | "unit"
+  | "currency"
+  | "cryptocurrency"
+  | "symbol"
+  | "tradeCurrency"
+  | "statementImportCsvFormat"
+  | "isCashAccount"
+  | "openingBalance"
+>;
+
+export function createAccountInitialValues(
+  source: AccountInitialValuesSource,
+): AccountInitialValues {
+  return {
+    name: source.name,
+    type: source.type,
+    equityAccountSubtype: source.equityAccountSubtype,
+    groupId: source.groupId ?? undefined,
+    sortOrder: source.sortOrder ?? undefined,
+    unit: source.unit,
+    currency: source.currency,
+    cryptocurrency: source.cryptocurrency,
+    symbol: source.symbol,
+    tradeCurrency: source.tradeCurrency,
+    statementImportCsvFormat: source.statementImportCsvFormat ?? null,
+    isCashAccount: source.isCashAccount ?? false,
+    openingBalance: source.openingBalance,
+  };
+}
 
 function toFormValues(initial: AccountInitialValues): FormValues {
   const typeDescriptor: FormValues["typeDescriptor"] =
@@ -197,6 +248,7 @@ function toFormValues(initial: AccountInitialValues): FormValues {
     statementImportCsvFormat: initial.statementImportCsvFormat
       ? JSON.stringify(initial.statementImportCsvFormat, null, 2)
       : undefined,
+    isCashAccount: initial.isCashAccount ?? false,
   };
 }
 
@@ -242,30 +294,24 @@ export function transformAccountValues(
       symbol: undefined,
       tradeCurrency: undefined,
       statementImportCsvFormat: null,
+      isCashAccount: false,
     };
   }
 
   return {
     ...transformed,
+    isCashAccount:
+      type === AccountType.ASSET && values.unit === Unit.CURRENCY
+        ? (values.isCashAccount ?? false)
+        : false,
   };
 }
-
-export type ExistingNode = {
-  id: string;
-  name: string;
-  nodeType: string;
-  parentId?: string;
-  groupId?: string;
-};
 
 export type EditAccountModalProps = {
   opened: boolean;
   onClose: () => void;
   onExitTransitionEnd?: () => void;
-  accountGroups: (GroupTreeOption & {
-    type: string;
-    equityAccountSubtype: string | null;
-  })[];
+  accountGroups: AccountGroupOption[];
   onSubmit: (values: TransformedFormValues) => void | Promise<void>;
   initialValues?: AccountInitialValues;
   existingNodes?: ExistingNode[];
@@ -290,6 +336,7 @@ export function EditAccountModal({
   const statementImportCsvFormatInputId = useId();
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
   const { isSubmitting, runSubmit } = useDialogSubmitState();
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const form = useForm<FormValues, TransformedFormValues>({
     mode: "uncontrolled",
     initialValues: initialValues
@@ -308,7 +355,13 @@ export function EditAccountModal({
         return validateAccountName(value, siblingNames);
       },
       typeDescriptor: isNotEmpty("Type is required"),
-      groupId: () => null,
+      groupId: (value, values) =>
+        getAccountCashParentCompatibilityError({
+          accountType: transformAccountValues(values).type,
+          accountUnit: values.unit,
+          groupId: value,
+          accountGroups,
+        }),
       openingBalance: (value, values) => {
         if (
           values.typeDescriptor !== AccountType.ASSET &&
@@ -354,7 +407,12 @@ export function EditAccountModal({
     },
     transformValues: transformAccountValues,
     onValuesChange: (values: FormValues, previous: FormValues) => {
-      if (values.unit !== previous.unit) {
+      if (
+        values.unit !== previous.unit ||
+        values.typeDescriptor !== previous.typeDescriptor ||
+        values.groupId !== previous.groupId
+      ) {
+        setSubmitError(null);
         forceUpdate();
       }
     },
@@ -374,6 +432,7 @@ export function EditAccountModal({
       const currentForm = formRef.current;
       currentForm.setInitialValues(resetInitialValues);
       currentForm.reset();
+      setSubmitError(null);
       forceUpdate();
     }
   }, [opened, resetInitialValues]);
@@ -381,6 +440,26 @@ export function EditAccountModal({
   const { unit, type, equityAccountSubtype } = transformAccountValues(
     form.getValues(),
   );
+  const canMarkAsCashAccount =
+    type === AccountType.ASSET && unit === Unit.CURRENCY;
+  const groupId = form.getValues().groupId;
+  const cashAccountEditable = isRootCashAccountEditable({
+    type,
+    unit,
+    groupId,
+  });
+  const cashAccountDisabledReason = getCashAccountDisabledReason({
+    type,
+    unit,
+    groupId,
+  });
+  const cashAccountValue = resolveAccountCashAccountFormValue({
+    type,
+    unit,
+    groupId,
+    isCashAccount: form.getValues().isCashAccount,
+    accountGroups,
+  });
   const unitIdentityDisabled = isEdit;
   const handleClose = () => {
     if (isSubmitting) return;
@@ -399,7 +478,22 @@ export function EditAccountModal({
       size="lg"
     >
       <form
-        onSubmit={form.onSubmit((values) => runSubmit(() => onSubmit(values)))}
+        onSubmit={form.onSubmit((values) => {
+          setSubmitError(null);
+          return runSubmit(async () => {
+            try {
+              await onSubmit(
+                applyAccountGroupCashInheritance(values, accountGroups),
+              );
+            } catch (error) {
+              setSubmitError(
+                error instanceof Error
+                  ? error.message
+                  : "Failed to save account.",
+              );
+            }
+          });
+        })}
       >
         <Stack gap="xl">
           <Grid>
@@ -469,7 +563,12 @@ export function EditAccountModal({
                     g.type === type &&
                     (!equityAccountSubtype ||
                       !g.equityAccountSubtype ||
-                      g.equityAccountSubtype === equityAccountSubtype),
+                      g.equityAccountSubtype === equityAccountSubtype) &&
+                    isAccountGroupCompatibleWithAccountCashRules({
+                      accountType: type,
+                      accountUnit: unit,
+                      group: g,
+                    }),
                 )}
                 {...form.getInputProps("groupId")}
               />
@@ -580,9 +679,36 @@ export function EditAccountModal({
                     />
                   </Stack>
                 </Grid.Col>
+                {canMarkAsCashAccount ? (
+                  <Grid.Col span={12}>
+                    <Tooltip
+                      label={cashAccountDisabledReason}
+                      disabled={cashAccountEditable}
+                    >
+                      <span style={{ display: "inline-flex" }}>
+                        <Checkbox
+                          label="Cash account"
+                          checked={cashAccountValue}
+                          disabled={!cashAccountEditable}
+                          onChange={(event) =>
+                            form.setFieldValue(
+                              "isCashAccount",
+                              event.currentTarget.checked,
+                            )
+                          }
+                        />
+                      </span>
+                    </Tooltip>
+                  </Grid.Col>
+                ) : null}
               </>
             )}
           </Grid>
+          {submitError && (
+            <Text size="sm" c="red">
+              {submitError}
+            </Text>
+          )}
           <Group justify="end">
             <Button
               variant="subtle"

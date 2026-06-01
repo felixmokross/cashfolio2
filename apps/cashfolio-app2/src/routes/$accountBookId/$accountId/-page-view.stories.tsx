@@ -61,6 +61,7 @@ const assetAccount = {
   symbol: null,
   tradeCurrency: null,
   statementImportCsvFormat,
+  isCashAccount: true,
   groupPathSegments: ["Assets", "Cash"],
 };
 
@@ -234,6 +235,7 @@ function LedgerPageStoryHarness({
           name: "Retained Earnings",
           isActive: accountActive,
           type: AccountType.EQUITY,
+          isCashAccount: false,
           groupPathSegments: ["Equity"],
         }
       : { ...assetAccount, isActive: accountActive };
