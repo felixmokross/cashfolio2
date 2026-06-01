@@ -428,15 +428,29 @@ async function loadPeriodCashFlowTransactionsRaw(args: {
     const transactionsPage = await prisma.transaction.findMany({
       where: {
         accountBookId: args.accountBookId,
-        bookings: {
-          some: {
-            accountId: { in: args.cashAccountIds },
-            date: {
-              gte: args.queryStart,
-              lt: args.queryEndExclusive,
+        AND: [
+          {
+            bookings: {
+              some: {
+                accountId: { in: args.cashAccountIds },
+                date: {
+                  gte: args.queryStart,
+                  lt: args.queryEndExclusive,
+                },
+              },
             },
           },
-        },
+          {
+            bookings: {
+              none: {
+                account: {
+                  type: AccountType.EQUITY,
+                  equityAccountSubtype: EquityAccountSubtype.OPENING_BALANCES,
+                },
+              },
+            },
+          },
+        ],
       },
       orderBy: { id: "asc" },
       take: 200,
