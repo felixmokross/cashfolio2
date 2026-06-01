@@ -116,6 +116,7 @@ describe("updateAccount opening balance management", () => {
       cryptocurrency: null,
       symbol: null,
       tradeCurrency: null,
+      isCashAccount: false,
     });
     prisma.accountGroup.findUniqueOrThrow.mockResolvedValue({
       isCashAccount: false,
@@ -131,6 +132,7 @@ describe("updateAccount opening balance management", () => {
       cryptocurrency: null,
       symbol: null,
       tradeCurrency: null,
+      isCashAccount: false,
     });
     tx.account.updateMany.mockResolvedValue({ count: 0 });
     tx.account.findMany.mockResolvedValue([]);
@@ -505,6 +507,44 @@ describe("updateAccount opening balance management", () => {
       },
       data: expect.objectContaining({
         groupId: "cash-group",
+        isCashAccount: true,
+      }),
+    });
+  });
+
+  it("preserves cash status when updating accounts without a cash flag", async () => {
+    prisma.account.findUniqueOrThrow.mockResolvedValueOnce({
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      unit: Unit.CURRENCY,
+      currency: "CHF",
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
+      statementImportCsvFormat: null,
+      isCashAccount: true,
+    });
+
+    await updateAccount({
+      data: {
+        id: "account-1",
+        accountBookId: "book-1",
+        name: "Cash renamed",
+        type: AccountType.ASSET,
+        groupId: null,
+      },
+    });
+
+    expect(validateAccountInput).toHaveBeenCalledWith(
+      expect.objectContaining({ isCashAccount: true }),
+      [],
+    );
+    expect(tx.account.update).toHaveBeenCalledWith({
+      where: {
+        id_accountBookId: { id: "account-1", accountBookId: "book-1" },
+      },
+      data: expect.objectContaining({
+        name: "Cash renamed",
         isCashAccount: true,
       }),
     });
@@ -892,6 +932,7 @@ describe("createAccountGroup", () => {
       },
       data: expect.objectContaining({
         name: "Cash",
+        isCashAccount: true,
       }),
     });
     expect(tx.accountGroup.updateMany).toHaveBeenCalledWith({
@@ -908,6 +949,56 @@ describe("createAccountGroup", () => {
       },
       data: { isCashAccount: true },
     });
+  });
+
+  it("preserves and returns group cash status when updating groups without a cash flag", async () => {
+    prisma.accountGroup.findUniqueOrThrow.mockResolvedValueOnce({
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      isCashAccount: true,
+    });
+    tx.accountGroup.update.mockImplementationOnce(async ({ data }) => ({
+      id: "group-1",
+      accountBookId: "book-1",
+      type: AccountType.ASSET,
+      equityAccountSubtype: null,
+      isActive: true,
+      parentGroupId: null,
+      sortOrder: null,
+      ...data,
+    }));
+
+    const result = await updateAccountGroup({
+      data: {
+        id: "group-1",
+        accountBookId: "book-1",
+        name: "Cash renamed",
+        type: AccountType.ASSET,
+      },
+    });
+
+    expect(tx.accountGroup.update).toHaveBeenCalledWith({
+      where: {
+        id_accountBookId: { id: "group-1", accountBookId: "book-1" },
+      },
+      data: expect.objectContaining({
+        name: "Cash renamed",
+        isCashAccount: true,
+      }),
+    });
+    expect(tx.accountGroup.updateMany).toHaveBeenCalledWith({
+      where: {
+        accountBookId: "book-1",
+        id: { in: ["group-1"] },
+      },
+      data: { isCashAccount: true },
+    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        name: "Cash renamed",
+        isCashAccount: true,
+      }),
+    );
   });
 
   it("cascades non-cash status when unmarking groups", async () => {

@@ -815,9 +815,7 @@ export async function createAccountOperation(data: AccountInput) {
 }
 
 export async function updateAccountOperation(data: AccountUpdateInput) {
-  const submittedData = normalizeMissingCashAccountFlag(
-    normalizeEquityAccountUnitIdentity(data),
-  );
+  const submittedData = normalizeEquityAccountUnitIdentity(data);
   const existing = await prisma.account.findUniqueOrThrow({
     where: {
       id_accountBookId: {
@@ -846,8 +844,15 @@ export async function updateAccountOperation(data: AccountUpdateInput) {
     throw new Error("Account type cannot be changed");
   }
   assertAccountUnitIdentityUnchanged(submittedData, existing);
+  const submittedDataWithExistingCashFlag = {
+    ...submittedData,
+    isCashAccount: submittedData.isCashAccount ?? existing.isCashAccount,
+  };
   const normalizedData = await resolveAccountCashFlag(
-    mergeExistingAccountUnitIdentity(submittedData, existing),
+    mergeExistingAccountUnitIdentity(
+      submittedDataWithExistingCashFlag,
+      existing,
+    ),
   );
   const dataWithExistingUnitIdentity = mergeExistingAccountUnitIdentity(
     normalizedData,
@@ -944,7 +949,7 @@ export async function createAccountGroupOperation(data: AccountGroupInput) {
 export async function updateAccountGroupOperation(
   data: AccountGroupUpdateInput,
 ) {
-  const submittedData = normalizeMissingGroupCashAccountFlag(data);
+  const submittedData = data;
   const existing = await prisma.accountGroup.findUniqueOrThrow({
     where: {
       id_accountBookId: {
@@ -952,7 +957,7 @@ export async function updateAccountGroupOperation(
         accountBookId: submittedData.accountBookId,
       },
     },
-    select: { type: true, equityAccountSubtype: true },
+    select: { type: true, equityAccountSubtype: true, isCashAccount: true },
   });
   assertNoSystemManagedGroupSubtype(existing);
   if (
@@ -962,7 +967,10 @@ export async function updateAccountGroupOperation(
   ) {
     throw new Error("Group type cannot be changed");
   }
-  const normalizedData = await resolveAccountGroupCashFlag(submittedData);
+  const normalizedData = await resolveAccountGroupCashFlag({
+    ...submittedData,
+    isCashAccount: submittedData.isCashAccount ?? existing.isCashAccount,
+  });
 
   const [siblingGroups, groupById] = await Promise.all([
     prisma.accountGroup.findMany({
@@ -1005,6 +1013,7 @@ export async function updateAccountGroupOperation(
           typeof normalizedData.sortOrder === "number"
             ? normalizedData.sortOrder
             : null,
+        isCashAccount: normalizedData.isCashAccount ?? false,
       },
     });
 
