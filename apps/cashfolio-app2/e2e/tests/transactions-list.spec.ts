@@ -101,6 +101,8 @@ test("lists transactions with booking details, carries account link context, and
   await expect(
     page.getByRole("heading", { name: "Transactions" }),
   ).toBeVisible();
+
+  await page.goto(`/${seeded.accountBookId}/transactions?period=2026-05`);
   await expect(page.getByTestId("period-picker-trigger")).toContainText(
     "May 2026",
   );

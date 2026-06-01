@@ -23,7 +23,7 @@ test.beforeAll(async ({ e2eExternalId }) => {
 test("report page shows KPI waterfall and updated income/expenses wording", async ({
   page,
 }) => {
-  await page.goto(`/${seeded.accountBookId}/report`);
+  await page.goto(`/${seeded.accountBookId}/report?period=2026-04`);
   await expect(page.getByRole("heading", { name: "April 2026" })).toBeVisible();
 
   const waterfallHeading = page.getByRole("heading", {
@@ -104,7 +104,7 @@ test("period allocation shows partial-data warning when valuation is missing", a
     counterAccountId: seeded.cashAccount.id,
   });
 
-  await page.goto(`/${seeded.accountBookId}/report`);
+  await page.goto(`/${seeded.accountBookId}/report?period=2026-04`);
   await expect(page.getByRole("heading", { name: "April 2026" })).toBeVisible();
   await expect(
     page.getByText(

@@ -31,7 +31,7 @@ test("account-book sidebar links navigate between key sections", async ({
 
   await page.getByRole("link", { name: "Report" }).click();
   await expect(page).toHaveURL(new RegExp(`/${seeded.accountBookId}/report$`));
-  await expect(page.getByRole("heading", { name: "April 2026" })).toBeVisible();
+  await expect(page.getByTestId("period-picker-trigger")).toBeVisible();
 
   await page.getByRole("link", { name: "History" }).click();
   await expect(page).toHaveURL(new RegExp(`/${seeded.accountBookId}/history$`));
