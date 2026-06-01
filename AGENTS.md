@@ -16,6 +16,8 @@ file and the linked docs are for `apps/cashfolio-app2`.
 - Use Node 24 for local development, CI, and application runtime.
 - Keep changes focused and minimal; avoid unrelated refactors.
 - Keep docs in sync when introducing new patterns or conventions.
+- Before starting implementation work, run `git fetch origin` and base new
+  branches or worktrees on the freshly fetched `origin/main`.
 - TanStack Start route filenames often contain `$` (for route params). In shell
   commands, always treat these paths as literals to avoid variable expansion.
   - Prefer wrapping such paths in single quotes, e.g.
@@ -31,7 +33,8 @@ file and the linked docs are for `apps/cashfolio-app2`.
     the canonical squash commit message.
 - When the current Codex/chat thread already has an open pull request, push any
   newly applied changes to that PR branch unless explicitly instructed
-  otherwise.
+  otherwise; still fetch first and account for `origin/main` being newer than
+  the branch base.
 - After you address a pull request review comment, resolve that conversation in
   the PR.
 - Keep `@types/node` aligned with the current runtime major (Node 24). Do not
