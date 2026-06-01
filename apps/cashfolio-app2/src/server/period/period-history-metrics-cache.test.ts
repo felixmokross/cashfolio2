@@ -30,6 +30,7 @@ function createMetrics(overrides = {}) {
   return {
     totalReturn: 10,
     savings: 8,
+    cashFlow: 6,
     income: 12,
     expenses: 4,
     gainsLosses: 2,
@@ -95,7 +96,7 @@ describe("period history metrics cache", () => {
     expect(redisClient.setEx).toHaveBeenCalledTimes(1);
     const [entryKey] = redisClient.setEx.mock.calls[0] ?? [];
     expect(entryKey).toBe(
-      "period:history:metrics:v1:preview-app-123:book-1:gen-1:2026-04:income:account:income-a",
+      "period:history:metrics:v5:preview-app-123:book-1:gen-1:2026-04:income:account:income-a",
     );
   });
 
@@ -106,7 +107,7 @@ describe("period history metrics cache", () => {
     });
     const [firstKey] = redisClient.setEx.mock.calls[0] ?? [];
     expect(firstKey).toBe(
-      "period:history:metrics:v1:preview-app-123:book-1:gen-1:2026-05:2026-05-11:total",
+      "period:history:metrics:v5:preview-app-123:book-1:gen-1:2026-05:2026-05-11:total",
     );
 
     vi.setSystemTime(new Date("2026-05-12T14:30:00.000Z"));
@@ -116,13 +117,93 @@ describe("period history metrics cache", () => {
     });
     const [secondKey] = redisClient.setEx.mock.calls[1] ?? [];
     expect(secondKey).toBe(
-      "period:history:metrics:v1:preview-app-123:book-1:gen-1:2026-05:2026-05-12:total",
+      "period:history:metrics:v5:preview-app-123:book-1:gen-1:2026-05:2026-05-12:total",
+    );
+  });
+
+  it("ignores stale v1 history metrics entries", async () => {
+    redisState.kv.set(
+      "period:history:metrics:v1:preview-app-123:book-1:gen-1:2026-04:total",
+      JSON.stringify(createMetrics({ cashFlow: 0 })),
+    );
+
+    const result = await getOrLoadPeriodHistoryPointMetrics({
+      accountBookId: "book-1",
+      period: "2026-04",
+    });
+
+    expect(result).toEqual(createMetrics());
+    expect(loadPeriodHistoryPointMetricsWithCacheability).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(redisClient.get).toHaveBeenCalledWith(
+      "period:history:metrics:v5:preview-app-123:book-1:gen-1:2026-04:total",
+    );
+  });
+
+  it("ignores stale v2 history metrics entries computed from old base data", async () => {
+    redisState.kv.set(
+      "period:history:metrics:v2:preview-app-123:book-1:gen-1:2026-04:total",
+      JSON.stringify(createMetrics({ cashFlow: 0 })),
+    );
+
+    const result = await getOrLoadPeriodHistoryPointMetrics({
+      accountBookId: "book-1",
+      period: "2026-04",
+    });
+
+    expect(result).toEqual(createMetrics());
+    expect(loadPeriodHistoryPointMetricsWithCacheability).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(redisClient.get).toHaveBeenCalledWith(
+      "period:history:metrics:v5:preview-app-123:book-1:gen-1:2026-04:total",
+    );
+  });
+
+  it("ignores stale v3 history metrics entries computed before legacy cash fallback", async () => {
+    redisState.kv.set(
+      "period:history:metrics:v3:preview-app-123:book-1:gen-1:2026-04:total",
+      JSON.stringify(createMetrics({ cashFlow: 0 })),
+    );
+
+    const result = await getOrLoadPeriodHistoryPointMetrics({
+      accountBookId: "book-1",
+      period: "2026-04",
+    });
+
+    expect(result).toEqual(createMetrics());
+    expect(loadPeriodHistoryPointMetricsWithCacheability).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(redisClient.get).toHaveBeenCalledWith(
+      "period:history:metrics:v5:preview-app-123:book-1:gen-1:2026-04:total",
+    );
+  });
+
+  it("ignores stale v4 history metrics entries computed with legacy cash fallback", async () => {
+    redisState.kv.set(
+      "period:history:metrics:v4:preview-app-123:book-1:gen-1:2026-04:total",
+      JSON.stringify(createMetrics({ cashFlow: 50 })),
+    );
+
+    const result = await getOrLoadPeriodHistoryPointMetrics({
+      accountBookId: "book-1",
+      period: "2026-04",
+    });
+
+    expect(result).toEqual(createMetrics());
+    expect(loadPeriodHistoryPointMetricsWithCacheability).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(redisClient.get).toHaveBeenCalledWith(
+      "period:history:metrics:v5:preview-app-123:book-1:gen-1:2026-04:total",
     );
   });
 
   it("ignores legacy entries missing balance scope options", async () => {
     redisState.kv.set(
-      "period:history:metrics:v1:preview-app-123:book-1:gen-1:2026-04:total",
+      "period:history:metrics:v5:preview-app-123:book-1:gen-1:2026-04:total",
       JSON.stringify({
         totalReturn: 1,
         savings: 1,
@@ -151,9 +232,30 @@ describe("period history metrics cache", () => {
     );
   });
 
+  it("ignores legacy entries missing cash flow", async () => {
+    const legacyMetrics: Partial<ReturnType<typeof createMetrics>> = {
+      ...createMetrics(),
+    };
+    delete legacyMetrics.cashFlow;
+    redisState.kv.set(
+      "period:history:metrics:v5:preview-app-123:book-1:gen-1:2026-04:total",
+      JSON.stringify(legacyMetrics),
+    );
+
+    const result = await getOrLoadPeriodHistoryPointMetrics({
+      accountBookId: "book-1",
+      period: "2026-04",
+    });
+
+    expect(result).toEqual(createMetrics());
+    expect(loadPeriodHistoryPointMetricsWithCacheability).toHaveBeenCalledTimes(
+      1,
+    );
+  });
+
   it("ignores malformed cached scope option arrays", async () => {
     redisState.kv.set(
-      "period:history:metrics:v1:preview-app-123:book-1:gen-1:2026-04:total",
+      "period:history:metrics:v5:preview-app-123:book-1:gen-1:2026-04:total",
       JSON.stringify(
         createMetrics({
           scopeOptions: {

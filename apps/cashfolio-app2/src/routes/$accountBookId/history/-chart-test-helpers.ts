@@ -67,6 +67,7 @@ export function createHistoryPoint(args: {
   periodLabel: string;
   totalReturn: number;
   savings: number;
+  cashFlow?: number;
   income: number;
   expenses: number;
   gainsLosses: number;
@@ -95,6 +96,7 @@ export function createHistoryPoint(args: {
   return {
     ...args,
     periodEndDate: args.periodEndDate ?? inferPeriodEndDate(),
+    cashFlow: args.cashFlow ?? args.savings,
     assets: args.assets ?? 100,
     liabilities: args.liabilities ?? 40,
     netWorth: args.netWorth ?? (args.assets ?? 100) - (args.liabilities ?? 40),

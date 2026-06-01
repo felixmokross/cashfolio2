@@ -88,9 +88,9 @@ Related docs:
   Gains/Losses Breakdown leaf rows)
 - `$accountBookId/history/route.tsx` - history page showing monthly/yearly
   metric history as a full-page chart with metric-specific rendering:
-  - Flow metrics (`totalReturn`, `savings`, `income`, `expenses`, `gainsLosses`)
-    render as bar + cumulative line + rolling-average line (legend toggles each
-    series on/off)
+  - Flow metrics (`totalReturn`, `savings`, `cashFlow`, `income`, `expenses`,
+    `gainsLosses`) render as bar + cumulative line + rolling-average line
+    (legend toggles each series on/off)
     - Rolling-average window depends on mode:
       - monthly: trailing 12 periods
       - yearly: trailing 5 periods

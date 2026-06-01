@@ -186,7 +186,7 @@ export async function loadPeriodOverview(args: {
     skippedBookingsCount += holdingGainLossTotals.skippedCount;
 
     const cashFlowResult = await computePeriodCashFlow({
-      transactions: baseData.cashFlowTransactions ?? [],
+      transactions: baseData.cashFlowTransactions,
       periodStart: queryStart,
       periodEndExclusive: queryEndExclusive,
       convertBookingToReference: (booking) =>
@@ -225,6 +225,7 @@ export async function loadPeriodOverview(args: {
     realizedGainLoss,
     unrealizedGainLoss,
     cashFlow,
+    hasCashAccounts: baseData.hasCashAccounts,
     isBeforeAccountBookStart,
     endOfPeriodBalanceStats,
     bookingsCount,

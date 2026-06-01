@@ -29,6 +29,7 @@ export type PeriodHistoryPoint = {
   periodEndDate: string;
   totalReturn: number;
   savings: number;
+  cashFlow: number;
   income: number;
   expenses: number;
   gainsLosses: number;
@@ -41,6 +42,7 @@ export type PeriodHistoryOpeningBalancePoint = HistoryOpeningBalancePoint;
 
 export type PeriodHistoryResponse = {
   referenceCurrency: string;
+  hasCashAccounts: boolean;
   openingBalancePoint: PeriodHistoryOpeningBalancePoint;
   points: PeriodHistoryPoint[];
   scopeOptions: {
@@ -411,6 +413,7 @@ export const getPeriodHistory = createServerFn({
         periodEndDate: point.selectedPeriodEnd.toISOString(),
         totalReturn: point.totalReturn,
         savings: point.savings,
+        cashFlow: point.cashFlow,
         income: point.income,
         expenses: point.expenses,
         gainsLosses: point.gainsLosses,
@@ -498,6 +501,7 @@ export const getPeriodHistory = createServerFn({
 
     return {
       referenceCurrency: context.referenceCurrency,
+      hasCashAccounts: context.hasCashAccounts,
       openingBalancePoint: responseOpeningBalancePoint,
       points: responsePoints,
       scopeOptions: {

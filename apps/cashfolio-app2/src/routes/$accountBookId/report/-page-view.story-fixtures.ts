@@ -121,6 +121,7 @@ export const baseOverview: ReportPageViewProps["overview"] = {
   selectedGranularity: "month",
   selectedYear: 2026,
   selectedMonth: 1,
+  hasCashAccounts: true,
   periodDateRange: {
     from: "2026-02-01T00:00:00.000Z",
     to: "2026-02-28T00:00:00.000Z",

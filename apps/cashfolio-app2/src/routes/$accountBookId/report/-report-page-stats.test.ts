@@ -89,4 +89,37 @@ describe("buildReportPageStats", () => {
       value: "CHF:-25.00",
     });
   });
+
+  it("shows a dash for cash flow when no cash accounts are configured", () => {
+    const result = buildReportPageStats({
+      overview: {
+        hasCashAccounts: false,
+        stats: {
+          totalReturn: 100,
+          savings: 80,
+          cashFlow: 0,
+          income: 100,
+          expenses: 20,
+          gainsLosses: 20,
+          realizedGainLoss: 13,
+          unrealizedGainLoss: 7,
+          endOfPeriodNetWorth: 1000,
+          endOfPeriodAssets: 1200,
+          endOfPeriodLiabilities: 200,
+        },
+      } as never,
+      currencyFormatter: createFormatter("CHF"),
+      savingsRateFormatter: createFormatter("PCT"),
+    });
+
+    const cashFlowCard = result.statCards.find(
+      (card) => card.id === "cashFlow",
+    );
+
+    expect(cashFlowCard).toMatchObject({
+      label: "Cash Flow",
+      valueColor: "dimmed",
+      value: "—",
+    });
+  });
 });

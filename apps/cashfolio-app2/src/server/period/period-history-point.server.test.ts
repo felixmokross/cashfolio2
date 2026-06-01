@@ -29,11 +29,13 @@ import {
 function createContext(args: {
   startDate: string;
   holdingAccountsResolved?: PeriodHistoryPointContext["holdingAccountsResolved"];
+  hasCashAccounts?: boolean;
 }): PeriodHistoryPointContext {
   return {
     referenceCurrency: "CHF",
     accountBookStartDate: new Date(args.startDate),
     holdingAccountsResolved: args.holdingAccountsResolved ?? [],
+    hasCashAccounts: args.hasCashAccounts ?? false,
   };
 }
 
@@ -53,6 +55,7 @@ describe("loadPeriodHistoryPointContext", () => {
         cryptocurrency: null,
         symbol: "AAPL",
         tradeCurrency: "USD",
+        isCashAccount: false,
       },
       {
         id: "cash-reference",
@@ -61,6 +64,7 @@ describe("loadPeriodHistoryPointContext", () => {
         cryptocurrency: null,
         symbol: null,
         tradeCurrency: null,
+        isCashAccount: true,
       },
       {
         id: "liability-foreign",
@@ -69,6 +73,7 @@ describe("loadPeriodHistoryPointContext", () => {
         cryptocurrency: null,
         symbol: null,
         tradeCurrency: null,
+        isCashAccount: false,
       },
     ]);
   });
@@ -99,6 +104,7 @@ describe("loadPeriodHistoryPointContext", () => {
         cryptocurrency: true,
         symbol: true,
         tradeCurrency: true,
+        isCashAccount: true,
       },
     });
     expect(result.referenceCurrency).toBe("CHF");
@@ -108,6 +114,7 @@ describe("loadPeriodHistoryPointContext", () => {
     expect(result.holdingAccountsResolved.map((account) => account.id)).toEqual(
       ["holding-security", "liability-foreign"],
     );
+    expect(result.hasCashAccounts).toBe(true);
   });
 });
 
@@ -126,6 +133,7 @@ describe("loadPeriodHistoryPoint", () => {
     getOrLoadPeriodHistoryPointMetrics.mockResolvedValue({
       totalReturn: 42,
       savings: 10,
+      cashFlow: 8,
       income: 50,
       expenses: 40,
       gainsLosses: 32,
@@ -163,6 +171,7 @@ describe("loadPeriodHistoryPoint", () => {
       selectedPeriodEnd: new Date("2026-01-09T00:00:00.000Z"),
       totalReturn: 0,
       savings: 0,
+      cashFlow: 0,
       income: 0,
       expenses: 0,
       gainsLosses: 0,
@@ -221,6 +230,7 @@ describe("loadPeriodHistoryPoint", () => {
       selectedPeriodEnd: new Date("2026-02-28T00:00:00.000Z"),
       totalReturn: 42,
       savings: 10,
+      cashFlow: 8,
       income: 50,
       expenses: 40,
       gainsLosses: 32,
@@ -265,6 +275,7 @@ describe("loadPeriodHistoryPoint", () => {
         cryptocurrency: true,
         symbol: true,
         tradeCurrency: true,
+        isCashAccount: true,
       },
     });
   });

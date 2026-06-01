@@ -85,6 +85,7 @@ describe("getPeriodHistory", () => {
       referenceCurrency: "CHF",
       accountBookStartDate: new Date("2026-01-05T00:00:00.000Z"),
       holdingAccountsResolved: [],
+      hasCashAccounts: true,
     });
     loadHistoryOpeningBalancePoint.mockResolvedValue({
       date: "2026-01-04T00:00:00.000Z",
@@ -106,6 +107,7 @@ describe("getPeriodHistory", () => {
               : new Date("2026-01-31T00:00:00.000Z"),
         totalReturn: period.length,
         savings: period.length + 1,
+        cashFlow: period.length + 8,
         income: period.length + 2,
         expenses: period.length + 3,
         gainsLosses: period.length + 4,
@@ -187,6 +189,7 @@ describe("getPeriodHistory", () => {
         referenceCurrency: "CHF",
         accountBookStartDate: new Date("2026-01-05T00:00:00.000Z"),
         holdingAccountsResolved: [],
+        hasCashAccounts: true,
       },
       metricScopeFilter: undefined,
       valuationContext: {
@@ -201,6 +204,7 @@ describe("getPeriodHistory", () => {
         referenceCurrency: "CHF",
         accountBookStartDate: new Date("2026-01-05T00:00:00.000Z"),
         holdingAccountsResolved: [],
+        hasCashAccounts: true,
       },
       metricScopeFilter: undefined,
       valuationContext: {
@@ -215,6 +219,7 @@ describe("getPeriodHistory", () => {
         referenceCurrency: "CHF",
         accountBookStartDate: new Date("2026-01-05T00:00:00.000Z"),
         holdingAccountsResolved: [],
+        hasCashAccounts: true,
       },
       metricScopeFilter: undefined,
       valuationContext: {
@@ -239,6 +244,7 @@ describe("getPeriodHistory", () => {
 
     expect(result).toEqual({
       referenceCurrency: "CHF",
+      hasCashAccounts: true,
       openingBalancePoint: {
         date: "2026-01-04T00:00:00.000Z",
         label: "Opening Balance",
@@ -253,6 +259,7 @@ describe("getPeriodHistory", () => {
           periodEndDate: "2026-01-31T00:00:00.000Z",
           totalReturn: 7,
           savings: 8,
+          cashFlow: 15,
           income: 9,
           expenses: 10,
           gainsLosses: 11,
@@ -266,6 +273,7 @@ describe("getPeriodHistory", () => {
           periodEndDate: "2026-02-28T00:00:00.000Z",
           totalReturn: 7,
           savings: 8,
+          cashFlow: 15,
           income: 9,
           expenses: 10,
           gainsLosses: 11,
@@ -279,6 +287,7 @@ describe("getPeriodHistory", () => {
           periodEndDate: "2026-03-17T00:00:00.000Z",
           totalReturn: 7,
           savings: 8,
+          cashFlow: 15,
           income: 9,
           expenses: 10,
           gainsLosses: 11,
@@ -363,6 +372,7 @@ describe("getPeriodHistory", () => {
         referenceCurrency: "CHF",
         accountBookStartDate: new Date("2026-01-05T00:00:00.000Z"),
         holdingAccountsResolved: [],
+        hasCashAccounts: true,
       },
       metricScopeFilter: {
         metric: "income",
@@ -388,6 +398,7 @@ describe("getPeriodHistory", () => {
               : new Date("2026-01-31T00:00:00.000Z"),
         totalReturn: 0,
         savings: 0,
+        cashFlow: 0,
         income: 0,
         expenses: 0,
         gainsLosses: 0,
@@ -505,6 +516,7 @@ describe("getPeriodHistory", () => {
         referenceCurrency: "CHF",
         accountBookStartDate: new Date("2026-01-05T00:00:00.000Z"),
         holdingAccountsResolved: [],
+        hasCashAccounts: true,
       },
       metricScopeFilter: {
         metric: "assets",
@@ -557,6 +569,7 @@ describe("getPeriodHistory", () => {
         referenceCurrency: "CHF",
         accountBookStartDate: new Date("2026-01-05T00:00:00.000Z"),
         holdingAccountsResolved: [],
+        hasCashAccounts: true,
       },
       metricScopeFilter: {
         metric: "gainsLosses",

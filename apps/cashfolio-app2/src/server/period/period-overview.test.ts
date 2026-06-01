@@ -423,6 +423,44 @@ describe("getPeriodOverview", () => {
     );
   });
 
+  it("does not treat legacy currency asset accounts as cash without the cash flag", async () => {
+    vi.setSystemTime(new Date("2026-02-10T12:00:00.000Z"));
+    prisma.accountBook.findUniqueOrThrow.mockResolvedValue({
+      referenceCurrency: "CHF",
+      startDate: new Date("2026-01-01T00:00:00.000Z"),
+    });
+    prisma.account.findMany.mockResolvedValue([
+      {
+        id: "asset-cash",
+        name: "Cash",
+        groupId: null,
+        type: AccountType.ASSET,
+        unit: Unit.CURRENCY,
+        currency: "CHF",
+        cryptocurrency: null,
+        symbol: null,
+        tradeCurrency: null,
+        isCashAccount: false,
+      },
+    ]);
+    prisma.booking.findMany.mockResolvedValue([]);
+    prisma.booking.groupBy.mockResolvedValue([
+      { accountId: "asset-cash", _sum: { value: 250 } },
+    ]);
+
+    const result = await getPeriodOverview({
+      data: { accountBookId: "book-legacy-cash", period: "2026-01" },
+    });
+
+    expect(result.hasCashAccounts).toBe(false);
+    expect(result.stats.cashFlow).toBe(0);
+    const cashFlowTransactionQuery =
+      prisma.transaction.findMany.mock.calls.find(([args]) =>
+        JSON.stringify(args).includes('"accountId":{"in":["asset-cash"]}'),
+      );
+    expect(cashFlowTransactionQuery).toBeUndefined();
+  });
+
   it("returns a zeroed overview when no bookings are present", async () => {
     vi.setSystemTime(new Date("2026-05-10T10:00:00.000Z"));
     prisma.account.findMany.mockResolvedValue([]);

@@ -135,35 +135,89 @@ describe("period base-data cache", () => {
     expect(redisClient.setEx).toHaveBeenCalledTimes(1);
     const [entryKey] = redisClient.setEx.mock.calls[0] ?? [];
     expect(entryKey).toContain(
-      "period:base:v2:preview-app-123:book-1:0:2026-02",
+      "period:base:v5:preview-app-123:book-1:0:2026-02",
     );
 
     expect(first.selection.from).toBeInstanceOf(Date);
     expect(second.selection.from).toBeInstanceOf(Date);
   });
 
+  it("ignores stale v2 entries written before cash-flow transactions were cached", async () => {
+    redisState.kv.set(
+      "period:base:v2:preview-app-123:book-1:0:2026-02",
+      JSON.stringify({ periodValue: "stale-v2" }),
+    );
+
+    const result = await periodBaseCache.getOrLoadPeriodBaseData({
+      accountBookId: "book-1",
+      period: "2026-02",
+    });
+
+    expect(result.periodValue).toBe("2026-02");
+    expect(redisClient.get).toHaveBeenCalledWith(
+      "period:base:v5:preview-app-123:book-1:0:2026-02",
+    );
+    expect(prisma.accountBook.findUniqueOrThrow).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores stale v3 entries computed before legacy cash-account fallback", async () => {
+    redisState.kv.set(
+      "period:base:v3:preview-app-123:book-1:0:2026-02",
+      JSON.stringify({ periodValue: "stale-v3", cashFlowTransactions: [] }),
+    );
+
+    const result = await periodBaseCache.getOrLoadPeriodBaseData({
+      accountBookId: "book-1",
+      period: "2026-02",
+    });
+
+    expect(result.periodValue).toBe("2026-02");
+    expect(redisClient.get).toHaveBeenCalledWith(
+      "period:base:v5:preview-app-123:book-1:0:2026-02",
+    );
+    expect(prisma.accountBook.findUniqueOrThrow).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores stale v4 entries computed with legacy cash-account fallback", async () => {
+    redisState.kv.set(
+      "period:base:v4:preview-app-123:book-1:0:2026-02",
+      JSON.stringify({ periodValue: "stale-v4", cashFlowTransactions: [] }),
+    );
+
+    const result = await periodBaseCache.getOrLoadPeriodBaseData({
+      accountBookId: "book-1",
+      period: "2026-02",
+    });
+
+    expect(result.periodValue).toBe("2026-02");
+    expect(redisClient.get).toHaveBeenCalledWith(
+      "period:base:v5:preview-app-123:book-1:0:2026-02",
+    );
+    expect(prisma.accountBook.findUniqueOrThrow).toHaveBeenCalledTimes(1);
+  });
+
   it("invalidates all cached period entries for one account book in one namespace", async () => {
-    redisState.kv.set("period:base:v2:preview-app-123:book-1:0:2026-01", "{}");
-    redisState.kv.set("period:base:v2:preview-app-123:book-1:0:2026-02", "{}");
-    redisState.kv.set("period:base:v2:preview-app-123:book-2:0:2026-02", "{}");
+    redisState.kv.set("period:base:v5:preview-app-123:book-1:0:2026-01", "{}");
+    redisState.kv.set("period:base:v5:preview-app-123:book-1:0:2026-02", "{}");
+    redisState.kv.set("period:base:v5:preview-app-123:book-2:0:2026-02", "{}");
     redisState.sets.set(
-      "period:base:index:v2:preview-app-123:book-1:0",
+      "period:base:index:v5:preview-app-123:book-1:0",
       new Set([
-        "period:base:v2:preview-app-123:book-1:0:2026-01",
-        "period:base:v2:preview-app-123:book-1:0:2026-02",
+        "period:base:v5:preview-app-123:book-1:0:2026-01",
+        "period:base:v5:preview-app-123:book-1:0:2026-02",
       ]),
     );
 
     await periodBaseCache.invalidatePeriodBaseDataCacheForAccountBook("book-1");
 
     expect(
-      redisState.kv.has("period:base:v2:preview-app-123:book-1:0:2026-01"),
+      redisState.kv.has("period:base:v5:preview-app-123:book-1:0:2026-01"),
     ).toBe(false);
     expect(
-      redisState.kv.has("period:base:v2:preview-app-123:book-1:0:2026-02"),
+      redisState.kv.has("period:base:v5:preview-app-123:book-1:0:2026-02"),
     ).toBe(false);
     expect(
-      redisState.kv.has("period:base:v2:preview-app-123:book-2:0:2026-02"),
+      redisState.kv.has("period:base:v5:preview-app-123:book-2:0:2026-02"),
     ).toBe(true);
     expect(redisClient.set).toHaveBeenCalledTimes(1);
     expect(redisClient.set.mock.calls[0]?.[0]).toBe(
@@ -179,7 +233,7 @@ describe("period base-data cache", () => {
 
     const [entryKey] = redisClient.setEx.mock.calls[0] ?? [];
     expect(entryKey).toContain(
-      "period:base:v2:preview-app-123:book-1:0:month:2026-05-01:2026-05-01",
+      "period:base:v5:preview-app-123:book-1:0:month:2026-05-01:2026-05-01",
     );
   });
 
@@ -190,7 +244,7 @@ describe("period base-data cache", () => {
     });
     const [firstKey] = redisClient.setEx.mock.calls[0] ?? [];
     expect(firstKey).toContain(
-      "period:base:v2:preview-app-123:book-1:0:2026-05:2026-05-01",
+      "period:base:v5:preview-app-123:book-1:0:2026-05:2026-05-01",
     );
 
     vi.setSystemTime(new Date("2026-05-02T12:00:00.000Z"));
@@ -200,7 +254,7 @@ describe("period base-data cache", () => {
     });
     const [secondKey] = redisClient.setEx.mock.calls[1] ?? [];
     expect(secondKey).toContain(
-      "period:base:v2:preview-app-123:book-1:0:2026-05:2026-05-02",
+      "period:base:v5:preview-app-123:book-1:0:2026-05:2026-05-02",
     );
   });
 
@@ -265,13 +319,13 @@ describe("period base-data cache", () => {
 
   it("switches generation after invalidation so old entries are not reused", async () => {
     redisState.kv.set(
-      "period:base:v2:preview-app-123:book-1:0:month:2026-05-01:2026-05-01",
+      "period:base:v5:preview-app-123:book-1:0:month:2026-05-01:2026-05-01",
       JSON.stringify({ cached: true }),
     );
     redisState.sets.set(
-      "period:base:index:v2:preview-app-123:book-1:0",
+      "period:base:index:v5:preview-app-123:book-1:0",
       new Set([
-        "period:base:v2:preview-app-123:book-1:0:month:2026-05-01:2026-05-01",
+        "period:base:v5:preview-app-123:book-1:0:month:2026-05-01:2026-05-01",
       ]),
     );
 

@@ -9,6 +9,7 @@ export type HistoryPeriodMode = "month" | "year";
 export type HistoryMetric =
   | "totalReturn"
   | "savings"
+  | "cashFlow"
   | "income"
   | "expenses"
   | "gainsLosses"
@@ -40,6 +41,7 @@ export function isHistoryMetric(value: unknown): value is HistoryMetric {
   return (
     value === "totalReturn" ||
     value === "savings" ||
+    value === "cashFlow" ||
     value === "income" ||
     value === "expenses" ||
     value === "gainsLosses" ||
@@ -55,6 +57,7 @@ export const HISTORY_METRIC_OPTIONS: Array<{
 }> = [
   { value: "totalReturn", label: "Total Return" },
   { value: "savings", label: "Savings" },
+  { value: "cashFlow", label: "Cash Flow" },
   { value: "income", label: "Income" },
   { value: "expenses", label: "Expenses" },
   { value: "gainsLosses", label: "Gain/Loss" },

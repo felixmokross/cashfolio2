@@ -67,13 +67,13 @@ Related docs:
   Redis instance.
 - Redis key namespace includes deployment scope and invalidation generation:
   - Entry:
-    `period:base:v2:{PERIOD_BASE_CACHE_ENV}:{accountBookId}:{generation}:{periodCacheKey}`
+    `period:base:v5:{PERIOD_BASE_CACHE_ENV}:{accountBookId}:{generation}:{periodCacheKey}`
   - Index:
-    `period:base:index:v2:{PERIOD_BASE_CACHE_ENV}:{accountBookId}:{generation}`
+    `period:base:index:v5:{PERIOD_BASE_CACHE_ENV}:{accountBookId}:{generation}`
   - Generation pointer:
     `period:base:generation:v1:{PERIOD_BASE_CACHE_ENV}:{accountBookId}`
 - History metrics entry:
-  `period:history:metrics:v1:{PERIOD_BASE_CACHE_ENV}:{accountBookId}:{generation}:{periodCacheKey}:{scopeKey}`
+  `period:history:metrics:v5:{PERIOD_BASE_CACHE_ENV}:{accountBookId}:{generation}:{periodCacheKey}:{scopeKey}`
 - For preset periods (`mtd`, `ytd`, `last-month`, `last-year`), `periodCacheKey`
   uses resolved concrete ranges (`granularity:from:to`) to avoid key aliasing
   across day/month boundaries.

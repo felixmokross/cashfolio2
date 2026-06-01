@@ -7,6 +7,7 @@ export type PeriodHistoryPointContext = {
   referenceCurrency: string;
   accountBookStartDate: Date;
   holdingAccountsResolved: ReturnType<typeof filterConvertibleHoldingAccounts>;
+  hasCashAccounts: boolean;
 };
 
 export async function loadPeriodHistoryPointContext(args: {
@@ -35,6 +36,7 @@ export async function loadPeriodHistoryPointContext(args: {
       cryptocurrency: true,
       symbol: true,
       tradeCurrency: true,
+      isCashAccount: true,
     },
   });
 
@@ -44,6 +46,9 @@ export async function loadPeriodHistoryPointContext(args: {
     holdingAccountsResolved: filterConvertibleHoldingAccounts(
       baseAssetLiabilityAccounts,
       referenceCurrency,
+    ),
+    hasCashAccounts: baseAssetLiabilityAccounts.some(
+      (account) => account.isCashAccount,
     ),
   };
 }

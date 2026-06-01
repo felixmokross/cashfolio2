@@ -25,6 +25,14 @@
   min-height: 0;
 }
 
+.emptyState {
+  margin-top: 12px;
+  display: grid;
+  flex: 1;
+  min-height: 240px;
+  place-items: center;
+}
+
 .chartContainer :global(.ag-charts-overlay) {
   color: var(--mantine-color-dimmed);
 }

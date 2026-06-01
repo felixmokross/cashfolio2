@@ -188,6 +188,8 @@ export function HistoryPageView({
       (option) => option.value === selectedScope,
     )?.label;
   }, [selectedMetric, history.scopeOptions, history.scopeSelection]);
+  const shouldShowCashFlowEmptyState =
+    selectedMetric === "cashFlow" && !history.hasCashAccounts;
 
   const handleChartZoom = useCallback((event: AgZoomEvent) => {
     const nextRange = event.rangeX
@@ -345,7 +347,13 @@ export function HistoryPageView({
           </div>
         </Group>
 
-        {rebasedChartData.length === 0 ? (
+        {shouldShowCashFlowEmptyState ? (
+          <div className={classes.emptyState}>
+            <Text c="dimmed" ta="center">
+              No cash accounts are configured for this account book.
+            </Text>
+          </div>
+        ) : rebasedChartData.length === 0 ? (
           <Text c="dimmed" mt="md">
             No periods available yet.
           </Text>

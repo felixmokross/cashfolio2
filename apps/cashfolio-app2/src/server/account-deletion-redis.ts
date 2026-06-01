@@ -3,8 +3,20 @@ import { getRedisClient } from "@/redis.server";
 const BOOK_SCOPED_REDIS_KEY_PATTERNS = [
   "period:base:v1:*:{accountBookId}:*",
   "period:base:index:v1:*:{accountBookId}:*",
+  "period:base:v2:*:{accountBookId}:*",
+  "period:base:index:v2:*:{accountBookId}:*",
+  "period:base:v3:*:{accountBookId}:*",
+  "period:base:index:v3:*:{accountBookId}:*",
+  "period:base:v4:*:{accountBookId}:*",
+  "period:base:index:v4:*:{accountBookId}:*",
+  "period:base:v5:*:{accountBookId}:*",
+  "period:base:index:v5:*:{accountBookId}:*",
   "period:base:generation:v1:*:{accountBookId}",
   "period:history:metrics:v1:*:{accountBookId}:*",
+  "period:history:metrics:v2:*:{accountBookId}:*",
+  "period:history:metrics:v3:*:{accountBookId}:*",
+  "period:history:metrics:v4:*:{accountBookId}:*",
+  "period:history:metrics:v5:*:{accountBookId}:*",
 ] as const;
 
 let hasWarnedAccountDeletionRedisCleanupFailure = false;
