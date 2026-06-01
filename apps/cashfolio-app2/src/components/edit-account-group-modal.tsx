@@ -13,28 +13,22 @@ import {
 } from "@mantine/core";
 import { isNotEmpty, useForm } from "@mantine/form";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
-import {
-  AccountType,
-  EquityAccountSubtype,
-  Unit,
-} from "../.prisma-client/enums";
+import { AccountType, EquityAccountSubtype } from "../.prisma-client/enums";
 import {
   validateAccountGroupName,
   validateAccountGroupParentGroupId,
 } from "../shared/account-validation";
 import { useDialogSubmitState } from "../hooks/use-dialog-submit-state";
-import type { ExistingNode } from "./edit-account-modal";
-import { GroupTreeSelect, type GroupTreeOption } from "./group-tree-select";
-
-type AccountGroupOption = GroupTreeOption & {
-  type: string;
-  equityAccountSubtype: string | null;
-};
-
-const CASH_GROUP_INHERITED_DISABLED_REASON =
-  "Cash account status is inherited from the parent group.";
-const CASH_GROUP_INELIGIBLE_DESCENDANTS_DISABLED_REASON =
-  "Cash account groups can contain only currency asset accounts and asset sub-groups.";
+import {
+  applyAccountGroupParentCashInheritance,
+  getAccountGroupCashParentCompatibilityError,
+  getCashAccountGroupDisabledReason,
+  isRootCashAccountGroupEditable,
+  resolveAccountGroupCashAccountFormValue,
+  type AccountGroupOption,
+  type ExistingNode,
+} from "./account-cash-form-rules";
+import { GroupTreeSelect } from "./group-tree-select";
 
 type FormValues = {
   name?: string;
@@ -85,145 +79,6 @@ function transformAccountGroupValues(
     isCashAccount:
       type === AccountType.ASSET ? (values.isCashAccount ?? false) : false,
     ...(type === AccountType.EQUITY ? { equityAccountSubtype } : undefined),
-  };
-}
-
-function getSelectedParentGroup(
-  accountGroups: AccountGroupOption[],
-  parentGroupId?: string | null,
-) {
-  return parentGroupId
-    ? accountGroups.find((group) => group.value === parentGroupId)
-    : undefined;
-}
-
-export function isRootCashAccountGroupEditable(args: {
-  type?: AccountType;
-  parentGroupId?: string | null;
-}) {
-  return args.type === AccountType.ASSET && !args.parentGroupId;
-}
-
-function getDescendantNodes(args: {
-  groupId?: string;
-  existingNodes?: ExistingNode[];
-}) {
-  if (!args.groupId || !args.existingNodes) return [];
-
-  const childGroupIdsByParentId = new Map<string, string[]>();
-  for (const node of args.existingNodes) {
-    if (node.nodeType !== "accountGroup" || !node.parentId) continue;
-    const childGroupIds = childGroupIdsByParentId.get(node.parentId) ?? [];
-    childGroupIds.push(node.id);
-    childGroupIdsByParentId.set(node.parentId, childGroupIds);
-  }
-
-  const descendantGroupIds = new Set<string>();
-  const stack = [...(childGroupIdsByParentId.get(args.groupId) ?? [])];
-  while (stack.length > 0) {
-    const groupId = stack.pop();
-    if (!groupId || descendantGroupIds.has(groupId)) continue;
-    descendantGroupIds.add(groupId);
-    stack.push(...(childGroupIdsByParentId.get(groupId) ?? []));
-  }
-
-  return args.existingNodes.filter((node) => {
-    if (node.nodeType === "accountGroup") {
-      return descendantGroupIds.has(node.id);
-    }
-    return (
-      node.groupId === args.groupId ||
-      descendantGroupIds.has(node.groupId ?? "")
-    );
-  });
-}
-
-export function canMarkAccountGroupSubtreeAsCash(args: {
-  groupId?: string;
-  existingNodes?: ExistingNode[];
-}) {
-  const descendants = getDescendantNodes(args);
-  return descendants.every((node) => {
-    if (node.nodeType === "accountGroup") {
-      return node.type === AccountType.ASSET;
-    }
-    return node.type === AccountType.ASSET && node.unit === Unit.CURRENCY;
-  });
-}
-
-export function getCashAccountGroupDisabledReason(args: {
-  type?: AccountType;
-  parentGroupId?: string | null;
-  groupId?: string;
-  existingNodes?: ExistingNode[];
-}) {
-  if (args.type !== AccountType.ASSET) return undefined;
-  if (args.parentGroupId) return CASH_GROUP_INHERITED_DISABLED_REASON;
-  if (
-    !canMarkAccountGroupSubtreeAsCash({
-      groupId: args.groupId,
-      existingNodes: args.existingNodes,
-    })
-  ) {
-    return CASH_GROUP_INELIGIBLE_DESCENDANTS_DISABLED_REASON;
-  }
-  return undefined;
-}
-
-export function getAccountGroupCashParentCompatibilityError(args: {
-  type?: AccountType;
-  parentGroupId?: string | null;
-  groupId?: string;
-  accountGroups: AccountGroupOption[];
-  existingNodes?: ExistingNode[];
-}) {
-  const parentGroup = getSelectedParentGroup(
-    args.accountGroups,
-    args.parentGroupId,
-  );
-  if (!parentGroup?.isCashAccount) return null;
-  if (args.type !== AccountType.ASSET) {
-    return "Cash account groups must contain only asset groups.";
-  }
-  return canMarkAccountGroupSubtreeAsCash({
-    groupId: args.groupId,
-    existingNodes: args.existingNodes,
-  })
-    ? null
-    : CASH_GROUP_INELIGIBLE_DESCENDANTS_DISABLED_REASON;
-}
-
-export function resolveAccountGroupCashAccountFormValue(args: {
-  type?: AccountType;
-  parentGroupId?: string | null;
-  isCashAccount?: boolean | null;
-  accountGroups: AccountGroupOption[];
-}) {
-  const parentGroup = getSelectedParentGroup(
-    args.accountGroups,
-    args.parentGroupId,
-  );
-  if (parentGroup) {
-    return parentGroup.isCashAccount ?? false;
-  }
-
-  return isRootCashAccountGroupEditable(args)
-    ? (args.isCashAccount ?? false)
-    : false;
-}
-
-export function applyAccountGroupParentCashInheritance(
-  values: AccountGroupTransformedFormValues,
-  accountGroups: AccountGroupOption[],
-): AccountGroupTransformedFormValues {
-  return {
-    ...values,
-    isCashAccount: resolveAccountGroupCashAccountFormValue({
-      type: values.type,
-      parentGroupId: values.parentGroupId,
-      isCashAccount: values.isCashAccount,
-      accountGroups,
-    }),
   };
 }
 

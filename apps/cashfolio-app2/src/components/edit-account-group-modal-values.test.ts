@@ -7,8 +7,8 @@ import {
   getCashAccountGroupDisabledReason,
   isRootCashAccountGroupEditable,
   resolveAccountGroupCashAccountFormValue,
-} from "./edit-account-group-modal";
-import type { ExistingNode } from "./edit-account-modal";
+  type ExistingNode,
+} from "./account-cash-form-rules";
 
 const accountGroups = [
   {

@@ -6,11 +6,13 @@ import {
 } from "../.prisma-client/enums";
 import {
   applyAccountGroupCashInheritance,
-  createAccountInitialValues,
-  getAccountGroupCashParentCompatibilityError,
+  getAccountCashParentCompatibilityError,
   getCashAccountDisabledReason,
   isAccountGroupCompatibleWithAccountCashRules,
   resolveAccountCashAccountFormValue,
+} from "./account-cash-form-rules";
+import {
+  createAccountInitialValues,
   transformAccountValues,
   validateStatementImportCsvFormatFormValue,
 } from "./edit-account-modal";
@@ -272,7 +274,7 @@ describe("account cash group helpers", () => {
     "returns a group error when moving a %s account into a cash group",
     (_label, accountType, accountUnit) => {
       expect(
-        getAccountGroupCashParentCompatibilityError({
+        getAccountCashParentCompatibilityError({
           accountType,
           accountUnit,
           groupId: "cash-group",
@@ -284,7 +286,7 @@ describe("account cash group helpers", () => {
 
   test("allows currency asset accounts in cash groups", () => {
     expect(
-      getAccountGroupCashParentCompatibilityError({
+      getAccountCashParentCompatibilityError({
         accountType: AccountType.ASSET,
         accountUnit: Unit.CURRENCY,
         groupId: "cash-group",

@@ -37,8 +37,18 @@ import {
   validateAccountTradeCurrency,
 } from "../shared/account-validation";
 import { useDialogSubmitState } from "../hooks/use-dialog-submit-state";
+import {
+  applyAccountGroupCashInheritance,
+  getAccountCashParentCompatibilityError,
+  getCashAccountDisabledReason,
+  isAccountGroupCompatibleWithAccountCashRules,
+  isRootCashAccountEditable,
+  resolveAccountCashAccountFormValue,
+  type AccountGroupOption,
+  type ExistingNode,
+} from "./account-cash-form-rules";
 import { FormattedNumberInput } from "./formatted-number-input";
-import { GroupTreeSelect, type GroupTreeOption } from "./group-tree-select";
+import { GroupTreeSelect } from "./group-tree-select";
 import { CryptocurrencySelect, CurrencySelect } from "./unit-select";
 import {
   parseStatementImportCsvFormatJson,
@@ -68,8 +78,6 @@ const STATEMENT_IMPORT_CSV_FORMAT_EXAMPLE = JSON.stringify(
 const STATEMENT_IMPORT_CSV_FORMAT_PLACEHOLDER =
   "Paste a statement import CSV format JSON object.";
 const STATEMENT_IMPORT_CSV_FORMAT_HELP_VIEWPORT_PADDING = 12;
-const CASH_GROUP_ACCOUNT_COMPATIBILITY_ERROR =
-  "Cash account groups can contain only currency asset accounts.";
 
 function StatementImportCsvFormatHelp() {
   return (
@@ -129,11 +137,6 @@ export type AccountTypeDescriptor =
   | "ASSET"
   | "LIABILITY"
   | `EQUITY-${EquityAccountSubtype}`;
-
-type AccountGroupOption = GroupTreeOption & {
-  type: string;
-  equityAccountSubtype: string | null;
-};
 
 type FormValues = {
   name?: string;
@@ -304,110 +307,6 @@ export function transformAccountValues(
   };
 }
 
-function getSelectedGroup(
-  accountGroups: AccountGroupOption[],
-  groupId?: string | null,
-) {
-  return groupId
-    ? accountGroups.find((group) => group.value === groupId)
-    : undefined;
-}
-
-export function isRootCashAccountEditable(args: {
-  type?: AccountType;
-  unit?: Unit;
-  groupId?: string | null;
-}) {
-  return (
-    args.type === AccountType.ASSET &&
-    args.unit === Unit.CURRENCY &&
-    !args.groupId
-  );
-}
-
-export function getCashAccountDisabledReason(args: {
-  type?: AccountType;
-  unit?: Unit;
-  groupId?: string | null;
-}) {
-  if (isRootCashAccountEditable(args)) return undefined;
-  if (args.groupId) {
-    return "Cash account status is inherited from the selected group.";
-  }
-  return "Only root-level currency asset accounts can be marked as cash accounts.";
-}
-
-export function resolveAccountCashAccountFormValue(args: {
-  type?: AccountType;
-  unit?: Unit;
-  groupId?: string | null;
-  isCashAccount?: boolean | null;
-  accountGroups: AccountGroupOption[];
-}) {
-  const selectedGroup = getSelectedGroup(args.accountGroups, args.groupId);
-  if (selectedGroup) {
-    return selectedGroup.isCashAccount ?? false;
-  }
-
-  return isRootCashAccountEditable(args)
-    ? (args.isCashAccount ?? false)
-    : false;
-}
-
-export function isAccountGroupCompatibleWithAccountCashRules(args: {
-  accountType?: AccountType;
-  accountUnit?: Unit;
-  group: Pick<AccountGroupOption, "isCashAccount">;
-}) {
-  if (!args.group.isCashAccount) return true;
-  return (
-    args.accountType === AccountType.ASSET && args.accountUnit === Unit.CURRENCY
-  );
-}
-
-export function getAccountGroupCashParentCompatibilityError(args: {
-  accountType?: AccountType;
-  accountUnit?: Unit;
-  groupId?: string | null;
-  accountGroups: AccountGroupOption[];
-}) {
-  const selectedGroup = getSelectedGroup(args.accountGroups, args.groupId);
-  if (!selectedGroup?.isCashAccount) return null;
-  return isAccountGroupCompatibleWithAccountCashRules({
-    accountType: args.accountType,
-    accountUnit: args.accountUnit,
-    group: selectedGroup,
-  })
-    ? null
-    : CASH_GROUP_ACCOUNT_COMPATIBILITY_ERROR;
-}
-
-export function applyAccountGroupCashInheritance(
-  values: TransformedFormValues,
-  accountGroups: AccountGroupOption[],
-): TransformedFormValues {
-  return {
-    ...values,
-    isCashAccount: resolveAccountCashAccountFormValue({
-      type: values.type,
-      unit: values.unit,
-      groupId: values.groupId,
-      isCashAccount: values.isCashAccount,
-      accountGroups,
-    }),
-  };
-}
-
-export type ExistingNode = {
-  id: string;
-  name: string;
-  nodeType: "account" | "accountGroup";
-  parentId?: string;
-  groupId?: string;
-  type?: AccountType;
-  unit?: Unit | null;
-};
-
 export type EditAccountModalProps = {
   opened: boolean;
   onClose: () => void;
@@ -457,7 +356,7 @@ export function EditAccountModal({
       },
       typeDescriptor: isNotEmpty("Type is required"),
       groupId: (value, values) =>
-        getAccountGroupCashParentCompatibilityError({
+        getAccountCashParentCompatibilityError({
           accountType: transformAccountValues(values).type,
           accountUnit: values.unit,
           groupId: value,

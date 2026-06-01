@@ -3,8 +3,9 @@ import {
   EquityAccountSubtype,
   Unit,
 } from "../.prisma-client/enums";
+import type { ExistingNode } from "./account-cash-form-rules";
 import type { AccountGroupInitialValues } from "./edit-account-group-modal";
-import type { AccountInitialValues, ExistingNode } from "./edit-account-modal";
+import type { AccountInitialValues } from "./edit-account-modal";
 import type { AccountOption } from "./edit-transaction-modal";
 import type { ReorderGroupChildRow } from "./reorder-group-children-modal";
 
