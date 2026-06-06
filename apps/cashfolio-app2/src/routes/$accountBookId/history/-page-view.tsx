@@ -189,7 +189,7 @@ export function HistoryPageView({
     )?.label;
   }, [selectedMetric, history.scopeOptions, history.scopeSelection]);
   const shouldShowCashFlowEmptyState =
-    selectedMetric === "cashFlow" && !history.hasCashAccounts;
+    selectedMetric === "cashFlow" && history.hasCashAccounts === false;
 
   const handleChartZoom = useCallback((event: AgZoomEvent) => {
     const nextRange = event.rangeX

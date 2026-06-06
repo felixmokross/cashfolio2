@@ -38,7 +38,7 @@ export function buildReportPageStats(args: {
     savings: overview.stats.savings,
     savingsRateFormatter,
   });
-  const hasCashAccounts = overview.hasCashAccounts !== false;
+  const hasCashAccounts = overview.hasCashAccounts === true;
 
   const statCards: StatCardData[] = [
     {
