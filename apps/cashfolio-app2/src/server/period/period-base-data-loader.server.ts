@@ -42,7 +42,7 @@ type PeriodBaseAssetLiabilityAccount = {
   cryptocurrency: string | null;
   symbol: string | null;
   tradeCurrency: string | null;
-  isCashAccount?: boolean;
+  isCashAccount: boolean;
 };
 
 type PeriodBaseAccountGroup = {
@@ -134,7 +134,8 @@ export type PeriodBaseData = {
   explicitCounterparts: PeriodBaseExplicitCounterpart[];
   initialHoldingBalances: PeriodBaseInitialHoldingBalance[];
   holdingTransactions: PeriodBaseHoldingTransaction[];
-  cashFlowTransactions?: PeriodBaseCashFlowTransaction[];
+  cashFlowTransactions: PeriodBaseCashFlowTransaction[];
+  hasCashAccounts: boolean;
 };
 
 async function loadPeriodEquityBookingsRaw(args: {
@@ -744,5 +745,6 @@ export async function loadPeriodBaseDataUncached(args: {
     })),
     holdingTransactions,
     cashFlowTransactions,
+    hasCashAccounts: cashAccountIds.length > 0,
   };
 }

@@ -16,6 +16,7 @@ describe("loadHistoryPageData", () => {
   test("loads history for the selected mode", async () => {
     mockedGetPeriodHistory.mockResolvedValueOnce({
       referenceCurrency: "CHF",
+      hasCashAccounts: true,
       openingBalancePoint: {
         date: "2025-12-31T00:00:00.000Z",
         label: "Opening Balance",
@@ -30,6 +31,7 @@ describe("loadHistoryPageData", () => {
           periodEndDate: "2026-01-31T00:00:00.000Z",
           totalReturn: 10,
           savings: 6,
+          cashFlow: 5,
           income: 12,
           expenses: 6,
           gainsLosses: 4,
@@ -82,6 +84,7 @@ describe("loadHistoryPageData", () => {
     expect(result).toEqual({
       history: {
         referenceCurrency: "CHF",
+        hasCashAccounts: true,
         openingBalancePoint: {
           date: "2025-12-31T00:00:00.000Z",
           label: "Opening Balance",
@@ -96,6 +99,7 @@ describe("loadHistoryPageData", () => {
             periodEndDate: "2026-01-31T00:00:00.000Z",
             totalReturn: 10,
             savings: 6,
+            cashFlow: 5,
             income: 12,
             expenses: 6,
             gainsLosses: 4,

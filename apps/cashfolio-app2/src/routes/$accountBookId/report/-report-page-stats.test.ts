@@ -11,6 +11,7 @@ describe("buildReportPageStats", () => {
   it("uses em dash savings rate when income is zero", () => {
     const result = buildReportPageStats({
       overview: {
+        hasCashAccounts: true,
         stats: {
           totalReturn: 100,
           savings: 80,
@@ -49,6 +50,7 @@ describe("buildReportPageStats", () => {
   it("labels negative gains/losses as losses with red value", () => {
     const result = buildReportPageStats({
       overview: {
+        hasCashAccounts: true,
         stats: {
           totalReturn: -5,
           savings: -30,
@@ -87,6 +89,71 @@ describe("buildReportPageStats", () => {
       label: "Cash Flow",
       valueColor: "red",
       value: "CHF:-25.00",
+    });
+  });
+
+  it("shows a dash for cash flow when no cash accounts are configured", () => {
+    const result = buildReportPageStats({
+      overview: {
+        hasCashAccounts: false,
+        stats: {
+          totalReturn: 100,
+          savings: 80,
+          cashFlow: 0,
+          income: 100,
+          expenses: 20,
+          gainsLosses: 20,
+          realizedGainLoss: 13,
+          unrealizedGainLoss: 7,
+          endOfPeriodNetWorth: 1000,
+          endOfPeriodAssets: 1200,
+          endOfPeriodLiabilities: 200,
+        },
+      } as never,
+      currencyFormatter: createFormatter("CHF"),
+      savingsRateFormatter: createFormatter("PCT"),
+    });
+
+    const cashFlowCard = result.statCards.find(
+      (card) => card.id === "cashFlow",
+    );
+
+    expect(cashFlowCard).toMatchObject({
+      label: "Cash Flow",
+      valueColor: "dimmed",
+      value: "—",
+    });
+  });
+
+  it("shows a dash for cash flow when cash account availability is missing", () => {
+    const result = buildReportPageStats({
+      overview: {
+        stats: {
+          totalReturn: 100,
+          savings: 80,
+          cashFlow: 70,
+          income: 100,
+          expenses: 20,
+          gainsLosses: 20,
+          realizedGainLoss: 13,
+          unrealizedGainLoss: 7,
+          endOfPeriodNetWorth: 1000,
+          endOfPeriodAssets: 1200,
+          endOfPeriodLiabilities: 200,
+        },
+      } as never,
+      currencyFormatter: createFormatter("CHF"),
+      savingsRateFormatter: createFormatter("PCT"),
+    });
+
+    const cashFlowCard = result.statCards.find(
+      (card) => card.id === "cashFlow",
+    );
+
+    expect(cashFlowCard).toMatchObject({
+      label: "Cash Flow",
+      valueColor: "dimmed",
+      value: "—",
     });
   });
 });

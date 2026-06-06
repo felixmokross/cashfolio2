@@ -16,7 +16,7 @@ import {
   type HistoryScopeOption,
 } from "../../shared/history-scope";
 
-const PERIOD_HISTORY_METRICS_CACHE_ENTRY_PREFIX = "period:history:metrics:v1";
+const PERIOD_HISTORY_METRICS_CACHE_ENTRY_PREFIX = "period:history:metrics:v5";
 const PERIOD_HISTORY_METRICS_CACHE_MAX_SERIALIZED_BYTES = 512 * 1024;
 
 const inflightByCacheKey = new Map<
@@ -87,6 +87,7 @@ function isHistoryMetricsCacheEntry(
   return (
     typeof record.totalReturn === "number" &&
     typeof record.savings === "number" &&
+    typeof record.cashFlow === "number" &&
     typeof record.income === "number" &&
     typeof record.expenses === "number" &&
     typeof record.gainsLosses === "number" &&

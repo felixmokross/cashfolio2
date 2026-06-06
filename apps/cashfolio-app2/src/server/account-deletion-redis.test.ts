@@ -75,6 +75,38 @@ describe("deleteBookScopedRedisDataForAccountBooks", () => {
       COUNT: 100,
     });
     expect(redis.scanIterator).toHaveBeenCalledWith({
+      MATCH: "period:base:v2:*:book-1:*",
+      COUNT: 100,
+    });
+    expect(redis.scanIterator).toHaveBeenCalledWith({
+      MATCH: "period:base:index:v2:*:book-1:*",
+      COUNT: 100,
+    });
+    expect(redis.scanIterator).toHaveBeenCalledWith({
+      MATCH: "period:base:v3:*:book-1:*",
+      COUNT: 100,
+    });
+    expect(redis.scanIterator).toHaveBeenCalledWith({
+      MATCH: "period:base:index:v3:*:book-1:*",
+      COUNT: 100,
+    });
+    expect(redis.scanIterator).toHaveBeenCalledWith({
+      MATCH: "period:base:v4:*:book-1:*",
+      COUNT: 100,
+    });
+    expect(redis.scanIterator).toHaveBeenCalledWith({
+      MATCH: "period:base:index:v4:*:book-1:*",
+      COUNT: 100,
+    });
+    expect(redis.scanIterator).toHaveBeenCalledWith({
+      MATCH: "period:base:v5:*:book-1:*",
+      COUNT: 100,
+    });
+    expect(redis.scanIterator).toHaveBeenCalledWith({
+      MATCH: "period:base:index:v5:*:book-1:*",
+      COUNT: 100,
+    });
+    expect(redis.scanIterator).toHaveBeenCalledWith({
       MATCH: "period:base:generation:v1:*:book-1",
       COUNT: 100,
     });
@@ -82,6 +114,22 @@ describe("deleteBookScopedRedisDataForAccountBooks", () => {
       MATCH: "period:history:metrics:v1:*:book-1:*",
       COUNT: 100,
     });
-    expect(redis.del).toHaveBeenCalledTimes(4);
+    expect(redis.scanIterator).toHaveBeenCalledWith({
+      MATCH: "period:history:metrics:v2:*:book-1:*",
+      COUNT: 100,
+    });
+    expect(redis.scanIterator).toHaveBeenCalledWith({
+      MATCH: "period:history:metrics:v3:*:book-1:*",
+      COUNT: 100,
+    });
+    expect(redis.scanIterator).toHaveBeenCalledWith({
+      MATCH: "period:history:metrics:v4:*:book-1:*",
+      COUNT: 100,
+    });
+    expect(redis.scanIterator).toHaveBeenCalledWith({
+      MATCH: "period:history:metrics:v5:*:book-1:*",
+      COUNT: 100,
+    });
+    expect(redis.del).toHaveBeenCalledTimes(16);
   });
 });

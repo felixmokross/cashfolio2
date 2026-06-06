@@ -38,6 +38,7 @@ export function buildReportPageStats(args: {
     savings: overview.stats.savings,
     savingsRateFormatter,
   });
+  const hasCashAccounts = overview.hasCashAccounts === true;
 
   const statCards: StatCardData[] = [
     {
@@ -56,8 +57,14 @@ export function buildReportPageStats(args: {
     {
       id: "cashFlow",
       label: "Cash Flow",
-      value: currencyFormatter.format(overview.stats.cashFlow),
-      valueColor: overview.stats.cashFlow >= 0 ? "green" : "red",
+      value: hasCashAccounts
+        ? currencyFormatter.format(overview.stats.cashFlow)
+        : "—",
+      valueColor: hasCashAccounts
+        ? overview.stats.cashFlow >= 0
+          ? "green"
+          : "red"
+        : "dimmed",
     },
     {
       id: "income",

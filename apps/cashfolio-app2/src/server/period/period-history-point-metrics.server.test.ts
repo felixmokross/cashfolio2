@@ -67,6 +67,8 @@ function createBaseData(args?: {
     explicitCounterparts: [],
     initialHoldingBalances: [],
     holdingTransactions: [],
+    cashFlowTransactions: [],
+    hasCashAccounts: true,
   };
 
   return {
@@ -97,6 +99,7 @@ describe("loadPeriodHistoryPointMetrics", () => {
     expect(result).toEqual({
       totalReturn: 0,
       savings: 0,
+      cashFlow: 0,
       income: 0,
       expenses: 0,
       gainsLosses: 0,
@@ -185,6 +188,7 @@ describe("loadPeriodHistoryPointMetrics", () => {
     expect(result).toEqual({
       totalReturn: 135,
       savings: 100,
+      cashFlow: 0,
       income: 120,
       expenses: 20,
       gainsLosses: 35,
@@ -199,6 +203,89 @@ describe("loadPeriodHistoryPointMetrics", () => {
         liabilities: [],
       },
       scopedMetricValue: undefined,
+    });
+  });
+
+  test("computes cash flow from cash-flow transactions with reference conversion details", async () => {
+    const baseData = createBaseData({
+      overrides: {
+        cashFlowTransactions: [
+          {
+            id: "tx-salary",
+            bookings: [
+              {
+                id: "cash-booking",
+                date: new Date("2026-02-10T00:00:00.000Z"),
+                value: 70,
+                unit: Unit.CURRENCY,
+                currency: "USD",
+                cryptocurrency: null,
+                symbol: null,
+                tradeCurrency: null,
+                account: {
+                  type: AccountType.ASSET,
+                  isCashAccount: true,
+                },
+              },
+              {
+                id: "income-booking",
+                date: new Date("2026-02-10T00:00:00.000Z"),
+                value: -70,
+                unit: Unit.CURRENCY,
+                currency: "USD",
+                cryptocurrency: null,
+                symbol: null,
+                tradeCurrency: null,
+                account: {
+                  type: AccountType.EQUITY,
+                  isCashAccount: false,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+    getOrLoadPeriodBaseData.mockResolvedValue(baseData);
+    processPeriodEquityBookingsFromBaseData.mockResolvedValue({
+      bookingsCount: 0,
+      convertedCount: 0,
+      skippedCount: 0,
+    });
+    computePeriodHoldingGainLoss.mockResolvedValue({
+      realizedGainLoss: 0,
+      unrealizedGainLoss: 0,
+      convertedCount: 0,
+      skippedCount: 0,
+    });
+    convertBookingValueToReferenceDetails.mockImplementation(
+      async ({ value }: { value: number }) => ({
+        value: value * 2,
+        source: "timeSeries",
+      }),
+    );
+    getUnitToReferenceExchangeRateDetails.mockResolvedValue({
+      rate: 1,
+      source: "identity",
+    });
+
+    const result = await loadPeriodHistoryPointMetricsWithCacheability({
+      accountBookId: "book-1",
+      period: "2026-02",
+    });
+
+    expect(result.metrics.cashFlow).toBe(140);
+    expect(result.cacheableFromPermanentValuationCache).toBe(true);
+    expect(convertBookingValueToReferenceDetails).toHaveBeenCalledWith({
+      value: 70,
+      unit: Unit.CURRENCY,
+      currency: "USD",
+      cryptocurrency: null,
+      symbol: null,
+      tradeCurrency: null,
+      date: new Date("2026-02-10T00:00:00.000Z"),
+      referenceCurrency: "CHF",
+      exchangeRateByKey: expect.any(Map),
     });
   });
 
@@ -429,6 +516,7 @@ describe("loadPeriodHistoryPointMetrics", () => {
             cryptocurrency: null,
             symbol: null,
             tradeCurrency: null,
+            isCashAccount: false,
           },
           {
             id: "liability-1",
@@ -440,6 +528,7 @@ describe("loadPeriodHistoryPointMetrics", () => {
             cryptocurrency: null,
             symbol: null,
             tradeCurrency: null,
+            isCashAccount: false,
           },
         ],
         endOfPeriodRawBalances: [
@@ -505,6 +594,7 @@ describe("loadPeriodHistoryPointMetrics", () => {
     expect(result).toEqual({
       totalReturn: 0,
       savings: 0,
+      cashFlow: 0,
       income: 0,
       expenses: 0,
       gainsLosses: 0,
@@ -574,6 +664,7 @@ describe("loadPeriodHistoryPointMetrics", () => {
             cryptocurrency: null,
             symbol: null,
             tradeCurrency: null,
+            isCashAccount: false,
           },
           {
             id: "liability-1",
@@ -585,6 +676,7 @@ describe("loadPeriodHistoryPointMetrics", () => {
             cryptocurrency: null,
             symbol: null,
             tradeCurrency: null,
+            isCashAccount: false,
           },
         ],
         endOfPeriodRawBalances: [

@@ -26,6 +26,7 @@ import {
 } from "./period-history-scopes.server";
 import { type HistoryScopeOption } from "../../shared/history-scope";
 import { buildGainsLossesBreakdown } from "./period-gains-losses-breakdown";
+import { computePeriodCashFlow } from "./period-cash-flow";
 import type {
   ValuationRateLookupResult,
   ValuationRateSource,
@@ -38,6 +39,7 @@ const TRANSFER_CLEARING_TRANSACTIONS_BATCH_SIZE = 200;
 export type PeriodHistoryPointMetrics = {
   totalReturn: number;
   savings: number;
+  cashFlow: number;
   income: number;
   expenses: number;
   gainsLosses: number;
@@ -156,6 +158,7 @@ export async function loadPeriodHistoryPointMetricsWithCacheability(args: {
       metrics: {
         totalReturn: 0,
         savings: 0,
+        cashFlow: 0,
         income: 0,
         expenses: 0,
         gainsLosses: 0,
@@ -237,55 +240,70 @@ export async function loadPeriodHistoryPointMetricsWithCacheability(args: {
   ];
   const allAccountGroups = [...baseData.allAccountGroups, ...virtualGroups];
 
-  const [holdingGainLossTotals, endOfPeriodBalanceStats] = await Promise.all([
-    computePeriodHoldingGainLoss({
-      accountBookId: args.accountBookId,
-      periodStart: selection.from,
-      periodEndExclusive: selection.queryEndExclusive,
-      periodEnd: selection.to,
-      initialHoldingDate: selection.initialHoldingDate,
-      referenceCurrency,
-      transactionPageSize: TRANSACTIONS_PAGE_SIZE,
-      transferClearingBatchSize: TRANSFER_CLEARING_TRANSACTIONS_BATCH_SIZE,
-      holdingAccounts: baseData.holdingAccountsResolved,
-      transferClearingHoldingAccounts,
-      transferClearingUnitBuckets: baseData.transferClearingUnitBuckets,
-      assetLiabilityAccountNameById,
-      gainsLossesContributionByKey,
-      resolveRate: async (input) => {
-        const result = await getUnitToReferenceExchangeRateDetails({
-          ...input,
-          referenceCurrency,
-          exchangeRateByKey,
-        });
-        markValuationSource(result.source);
-        return result.rate;
-      },
-      convertBookingToReference: async (booking) => {
-        const result = await convertBookingValueToReferenceDetails({
-          ...booking,
-          referenceCurrency,
-          exchangeRateByKey,
-        });
-        markValuationSource(result.source);
-        return result.value;
-      },
-      initialHoldingBalances: baseData.initialHoldingBalances,
-      holdingTransactions: baseData.holdingTransactions,
-    }),
-    loadEndOfPeriodBalanceStats({
-      baseData,
-      referenceCurrency,
-      convertBalanceToReference: async (input) => {
-        const result = await convertBookingValueToReferenceDetails({
-          ...input,
-          exchangeRateByKey,
-        });
-        markValuationSource(result.source);
-        return result.value;
-      },
-    }),
-  ]);
+  const [holdingGainLossTotals, endOfPeriodBalanceStats, cashFlowResult] =
+    await Promise.all([
+      computePeriodHoldingGainLoss({
+        accountBookId: args.accountBookId,
+        periodStart: selection.from,
+        periodEndExclusive: selection.queryEndExclusive,
+        periodEnd: selection.to,
+        initialHoldingDate: selection.initialHoldingDate,
+        referenceCurrency,
+        transactionPageSize: TRANSACTIONS_PAGE_SIZE,
+        transferClearingBatchSize: TRANSFER_CLEARING_TRANSACTIONS_BATCH_SIZE,
+        holdingAccounts: baseData.holdingAccountsResolved,
+        transferClearingHoldingAccounts,
+        transferClearingUnitBuckets: baseData.transferClearingUnitBuckets,
+        assetLiabilityAccountNameById,
+        gainsLossesContributionByKey,
+        resolveRate: async (input) => {
+          const result = await getUnitToReferenceExchangeRateDetails({
+            ...input,
+            referenceCurrency,
+            exchangeRateByKey,
+          });
+          markValuationSource(result.source);
+          return result.rate;
+        },
+        convertBookingToReference: async (booking) => {
+          const result = await convertBookingValueToReferenceDetails({
+            ...booking,
+            referenceCurrency,
+            exchangeRateByKey,
+          });
+          markValuationSource(result.source);
+          return result.value;
+        },
+        initialHoldingBalances: baseData.initialHoldingBalances,
+        holdingTransactions: baseData.holdingTransactions,
+      }),
+      loadEndOfPeriodBalanceStats({
+        baseData,
+        referenceCurrency,
+        convertBalanceToReference: async (input) => {
+          const result = await convertBookingValueToReferenceDetails({
+            ...input,
+            exchangeRateByKey,
+          });
+          markValuationSource(result.source);
+          return result.value;
+        },
+      }),
+      computePeriodCashFlow({
+        transactions: baseData.cashFlowTransactions,
+        periodStart: selection.from,
+        periodEndExclusive: selection.queryEndExclusive,
+        convertBookingToReference: async (booking) => {
+          const result = await convertBookingValueToReferenceDetails({
+            ...booking,
+            referenceCurrency,
+            exchangeRateByKey,
+          });
+          markValuationSource(result.source);
+          return result.value;
+        },
+      }),
+    ]);
 
   const { income, expenses, explicitGainLoss } = equityAggregation;
   const gainsLosses = toMoneyNumber(
@@ -299,6 +317,7 @@ export async function loadPeriodHistoryPointMetricsWithCacheability(args: {
   const roundedIncome = round2(income);
   const roundedExpenses = round2(expenses);
   const roundedGainsLosses = round2(gainsLosses);
+  const roundedCashFlow = round2(cashFlowResult.cashFlow);
   const roundedSavings = round2(
     toMoneyNumber(moneyAdd(roundedIncome, -roundedExpenses)),
   );
@@ -353,6 +372,7 @@ export async function loadPeriodHistoryPointMetricsWithCacheability(args: {
     metrics: {
       totalReturn: roundedTotalReturn,
       savings: roundedSavings,
+      cashFlow: roundedCashFlow,
       income: roundedIncome,
       expenses: roundedExpenses,
       gainsLosses: roundedGainsLosses,

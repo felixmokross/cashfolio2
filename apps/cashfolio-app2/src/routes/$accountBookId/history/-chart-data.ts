@@ -14,6 +14,7 @@ export type HistoryChartDatum = {
   periodMetricDate: Date;
   totalReturn: number;
   savings: number;
+  cashFlow: number;
   income: number;
   expenses: number;
   gainsLosses: number;
@@ -143,6 +144,7 @@ export function mapHistoryPointsToChartData(
         periodMetricDate,
         totalReturn: point.totalReturn,
         savings: point.savings,
+        cashFlow: point.cashFlow,
         income: point.income,
         expenses: point.expenses,
         gainsLosses: point.gainsLosses,
@@ -230,6 +232,7 @@ export function prependOpeningBalanceChartDatum(args: {
     periodMetricDate: openingDate,
     totalReturn: 0,
     savings: 0,
+    cashFlow: 0,
     income: 0,
     expenses: 0,
     gainsLosses: 0,

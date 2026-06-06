@@ -4,7 +4,7 @@ export type StatCardData = {
   id: string;
   label: string;
   value: string;
-  valueColor: "green" | "red";
+  valueColor: "green" | "red" | "dimmed";
   secondaryValue?: string;
 };
 

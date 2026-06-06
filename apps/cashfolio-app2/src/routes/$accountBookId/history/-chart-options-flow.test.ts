@@ -117,6 +117,62 @@ describe("createHistoryChartOptions (flow metrics)", () => {
     });
   });
 
+  test("renders cash flow as a flow metric", () => {
+    const chartData = addRollingAverageMetricToChartData({
+      chartData: mapHistoryPointsToChartData([
+        createHistoryPoint({
+          periodValue: "2026-01",
+          periodLabel: "January 2026",
+          totalReturn: 10,
+          savings: 7,
+          cashFlow: -12,
+          income: 11,
+          expenses: 4,
+          gainsLosses: 3,
+        }),
+      ]),
+      selectedMetric: "cashFlow",
+      periodMode: "month",
+    });
+
+    const options = createHistoryChartOptions({
+      chartData,
+      periodMode: "month",
+      selectedMetric: "cashFlow",
+      amountCompactFormatter: new Intl.NumberFormat("en-CH", {
+        notation: "compact",
+      }),
+      currencyFormatter: new Intl.NumberFormat("en-CH", {
+        style: "currency",
+        currency: "CHF",
+      }),
+      colors: mockColors,
+      theme: mockTheme,
+      isDarkMode: false,
+    });
+
+    expect(options.axes?.x).toMatchObject({ type: "unit-time" });
+    expect(options.series).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "bar",
+          yKey: "cashFlow",
+          yName: "Cash Flow",
+        }),
+        expect.objectContaining({
+          type: "line",
+          yKey: "rollingAverageMetric",
+          yName: "12M Rolling Avg Cash Flow",
+        }),
+        expect.objectContaining({
+          type: "line",
+          yKey: "cumulativeMetric",
+          yName: "Cumulative Cash Flow",
+        }),
+      ]),
+    );
+  });
+
   test("uses selected scope label for scoped monthly flow series", () => {
     const chartData = rebaseHistoryChartDataCumulativeToVisibleRange({
       chartData: addRollingAverageMetricToChartData({

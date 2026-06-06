@@ -52,6 +52,7 @@ export async function loadPeriodHistoryPoint(args: {
       selectedPeriodEnd: selection.to,
       totalReturn: 0,
       savings: 0,
+      cashFlow: 0,
       income: 0,
       expenses: 0,
       gainsLosses: 0,

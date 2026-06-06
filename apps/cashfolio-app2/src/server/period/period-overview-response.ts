@@ -45,6 +45,7 @@ export function buildPeriodOverviewResponse(args: {
   realizedGainLoss: number;
   unrealizedGainLoss: number;
   cashFlow: number;
+  hasCashAccounts?: boolean;
   isBeforeAccountBookStart: boolean;
   endOfPeriodBalanceStats: PeriodOverviewEndOfPeriodStats;
   bookingsCount: number;
@@ -188,6 +189,7 @@ export function buildPeriodOverviewResponse(args: {
     ),
     currentYearValue: String(args.currentDay.getUTCFullYear()),
     referenceCurrency: args.referenceCurrency,
+    hasCashAccounts: args.hasCashAccounts ?? false,
     bookingsCount: args.bookingsCount,
     convertedBookingsCount: args.convertedBookingsCount,
     skippedBookingsCount: args.skippedBookingsCount,

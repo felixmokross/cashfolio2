@@ -28,6 +28,7 @@ describe("isHistoryMetric", () => {
   test("accepts supported metric values", () => {
     expect(isHistoryMetric("totalReturn")).toBe(true);
     expect(isHistoryMetric("savings")).toBe(true);
+    expect(isHistoryMetric("cashFlow")).toBe(true);
     expect(isHistoryMetric("income")).toBe(true);
     expect(isHistoryMetric("expenses")).toBe(true);
     expect(isHistoryMetric("gainsLosses")).toBe(true);
@@ -65,6 +66,9 @@ describe("parseHistorySearch", () => {
     });
     expect(parseHistorySearch({ metric: "savings" })).toEqual({
       metric: "savings",
+    });
+    expect(parseHistorySearch({ metric: "cashFlow" })).toEqual({
+      metric: "cashFlow",
     });
     expect(parseHistorySearch({ metric: "income" })).toEqual({
       metric: "income",
