@@ -1,6 +1,20 @@
-import { createClient, type RedisClientType } from "redis";
+import { createClient, type RedisClientOptions } from "redis";
 
-type RedisClient = RedisClientType;
+const redisClientOptions = {
+  RESP: 2,
+  commandOptions: {
+    timeout: undefined,
+  },
+} satisfies RedisClientOptions;
+
+function createRedisClient(redisUrl: string) {
+  return createClient({
+    ...redisClientOptions,
+    url: redisUrl,
+  });
+}
+
+type RedisClient = ReturnType<typeof createRedisClient>;
 
 let redisClient: RedisClient | null = null;
 let redisConnectPromise: Promise<RedisClient | null> | null = null;
@@ -20,7 +34,7 @@ export async function getRedisClient(): Promise<RedisClient | null> {
   }
 
   if (!redisClient) {
-    redisClient = createClient({ url: redisUrl });
+    redisClient = createRedisClient(redisUrl);
     redisClient.on("error", (error) => {
       console.error("Redis Client Error", error);
     });

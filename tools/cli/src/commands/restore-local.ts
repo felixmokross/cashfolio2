@@ -1,6 +1,13 @@
 import { program } from "commander";
 import { exec } from "../shared";
-import { createClient } from "redis";
+import { createClient, type RedisClientOptions } from "redis";
+
+const redisClientOptions = {
+  RESP: 2,
+  commandOptions: {
+    timeout: undefined,
+  },
+} satisfies RedisClientOptions;
 
 program.command("restore-local").action(async () => {
   console.log("Dropping local database…");
@@ -19,7 +26,10 @@ program.command("restore-local").action(async () => {
 
   console.log("Purging account-book keys from local Redis…");
 
-  const redis = createClient({ url: process.env.RESTORE_REDIS_URL });
+  const redis = createClient({
+    ...redisClientOptions,
+    url: process.env.RESTORE_REDIS_URL,
+  });
   await redis.connect();
 
   const keys = await redis.keys("account-book:*");
