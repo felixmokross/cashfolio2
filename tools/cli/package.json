@@ -15,7 +15,7 @@
     "commander": "^15.0.0",
     "dotenv": "^17.4.2",
     "pg": "^8.20.0",
-    "redis": "^5.12.1"
+    "redis": "^6.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.13.1",

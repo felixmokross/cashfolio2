@@ -55,7 +55,7 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-number-format": "^5.4.5",
-    "redis": "^5.12.1"
+    "redis": "^6.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
