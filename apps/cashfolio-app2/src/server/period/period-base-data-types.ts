@@ -3,7 +3,6 @@ import type {
   EquityAccountSubtype,
   Unit,
 } from "../../.prisma-client/enums";
-import type { filterConvertibleHoldingAccounts } from "./period-helpers";
 import type { PeriodSpecifier } from "./period-selection";
 import type { TransferClearingUnitBucket } from "./period-transfer-clearing";
 
@@ -33,6 +32,15 @@ export type PeriodBaseAssetLiabilityAccount = {
   symbol: string | null;
   tradeCurrency: string | null;
   isCashAccount: boolean;
+};
+
+type PeriodBaseHoldingAccount = {
+  id: string;
+  unit: Unit;
+  currency: string | null;
+  cryptocurrency: string | null;
+  symbol: string | null;
+  tradeCurrency: string | null;
 };
 
 type PeriodBaseAccountGroup = {
@@ -117,7 +125,7 @@ export type PeriodBaseData = {
   selection: PeriodBaseSelectionData;
   allAccountGroups: PeriodBaseAccountGroup[];
   baseAssetLiabilityAccounts: PeriodBaseAssetLiabilityAccount[];
-  holdingAccountsResolved: ReturnType<typeof filterConvertibleHoldingAccounts>;
+  holdingAccountsResolved: PeriodBaseHoldingAccount[];
   endOfPeriodRawBalances: PeriodBaseRawBalance[];
   transferClearingUnitBuckets: TransferClearingUnitBucket[];
   equityBookings: PeriodBaseEquityBooking[];
