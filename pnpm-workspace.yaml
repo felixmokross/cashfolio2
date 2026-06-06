@@ -10,6 +10,9 @@ allowBuilds:
   prisma: true
   unrs-resolver: true
 
+minimumReleaseAgeExclude:
+  - '@types/node@24.13.1'
+
 overrides:
   "@prisma/dev>@hono/node-server": "1.19.13"
   "@prisma/dev>hono": "4.12.18"
