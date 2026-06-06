@@ -12,6 +12,7 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - '@types/node@24.13.1'
+  - '@fxmk/releaser@0.5.5'
 
 overrides:
   "@prisma/dev>@hono/node-server": "1.19.13"
