@@ -195,9 +195,18 @@ importers:
 
   tools/cli:
     dependencies:
+      commander:
+        specifier: ^15.0.0
+        version: 15.0.0
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       pg:
         specifier: ^8.20.0
         version: 8.21.0
+      redis:
+        specifier: ^5.12.1
+        version: 5.12.1
     devDependencies:
       '@types/node':
         specifier: ^24.12.4
@@ -205,15 +214,6 @@ importers:
       '@types/pg':
         specifier: ^8.20.0
         version: 8.20.0
-      commander:
-        specifier: ^15.0.0
-        version: 15.0.0
-      dotenv:
-        specifier: ^17.4.2
-        version: 17.4.2
-      redis:
-        specifier: ^5.12.1
-        version: 5.12.1
       tsx:
         specifier: ^4.21.0
         version: 4.22.3

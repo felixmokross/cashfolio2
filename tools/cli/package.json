@@ -12,14 +12,14 @@
     "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
-    "pg": "^8.20.0"
+    "commander": "^15.0.0",
+    "dotenv": "^17.4.2",
+    "pg": "^8.20.0",
+    "redis": "^5.12.1"
   },
   "devDependencies": {
     "@types/node": "^24.12.4",
     "@types/pg": "^8.20.0",
-    "commander": "^15.0.0",
-    "dotenv": "^17.4.2",
-    "redis": "^5.12.1",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3"
   }
