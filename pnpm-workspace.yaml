@@ -15,6 +15,7 @@ minimumReleaseAgeExclude:
   - '@fxmk/releaser@0.5.5'
 
 overrides:
+  "@babel/core": "7.29.6"
   "@prisma/dev>@hono/node-server": "1.19.13"
   "@prisma/dev>hono": "4.12.25"
   "@tanstack/start-server-core>h3-v2": "npm:h3@2.0.1-rc.18"
