@@ -35,7 +35,7 @@ export type ReportPageSessionState = {
 };
 
 function isBreakdownType(value: unknown): value is BreakdownType {
-  return value === "expense" || value === "income";
+  return value === "expense" || value === "income" || value === "cashFlow";
 }
 
 function isAllocationBreakdownType(
@@ -72,6 +72,7 @@ export function getDefaultReportPageSessionState(): ReportPageSessionState {
     drillPathByBreakdown: {
       expense: [],
       income: [],
+      cashFlow: [],
     },
     drillPathByAllocationBreakdown: {
       asset: [],
@@ -127,6 +128,7 @@ export function parseStoredReportPageSessionState(
     drillPathByBreakdown: {
       expense: normalizeDrillPath(drillPathByBreakdown.expense),
       income: normalizeDrillPath(drillPathByBreakdown.income),
+      cashFlow: normalizeDrillPath(drillPathByBreakdown.cashFlow),
     },
     drillPathByAllocationBreakdown: {
       asset: normalizeDrillPath(drillPathByAllocationBreakdown.asset),
@@ -240,6 +242,7 @@ export function useReportPageSessionState(accountBookId: string) {
           return {
             expense: normalizeDrillPath(resolvedValue.expense),
             income: normalizeDrillPath(resolvedValue.income),
+            cashFlow: normalizeDrillPath(resolvedValue.cashFlow),
           };
         })(),
       }));
